@@ -16,21 +16,17 @@ import { AdminMap } from '@/components/admin/admin-map';
 import { EmailBlaster } from '@/components/admin/email-blaster';
 import { GhostProtocol } from '@/components/admin/ghost-protocol';
 import { AuthDialog } from '@/components/auth/auth-dialog';
-import { ArrowLeft, Shield, Map, Mail, Tag, Lock, Users, Ghost } from 'lucide-react';
+import { ArrowLeft, Shield, Map, Mail, Tag, Lock, Users, Ghost, LogOut } from 'lucide-react';
 
 function AdminPageContent() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth(); // J'ai ajouté signOut ici
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-  
-  // Stats réelles
   const [stats, setStats] = useState({ totalRevenue: 0, totalLocks: 0, totalUsers: 0, activeLocks: 0 });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  // 1. Vérification Admin
   useEffect(() => {
     if (!loading) {
-      // Note: isAdmin retourne true pour le test actuellement
       if (!user || !isAdmin(user.email)) {
         if(!user) setShowAuthDialog(true);
         else router.push('/');
@@ -40,18 +36,12 @@ function AdminPageContent() {
     }
   }, [user, loading, router]);
 
-  // 2. Calcul des Stats Réelles
   const fetchRealStats = async () => {
     setIsLoadingStats(true);
     try {
-      // Compter les users
       const { count: userCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-      
-      // Compter les cadenas (Total + Actifs)
       const { count: locksCount } = await supabase.from('locks').select('*', { count: 'exact', head: true });
       const { count: activeCount } = await supabase.from('locks').select('*', { count: 'exact', head: true }).eq('status', 'Active');
-
-      // Calculer le Chiffre d'Affaires (Somme des transactions)
       const { data: transactions } = await supabase.from('transactions').select('amount');
       const revenue = transactions?.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0;
 
@@ -73,6 +63,7 @@ function AdminPageContent() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       
+      {/* HEADER AVEC BOUTON DECONNEXION */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -83,15 +74,19 @@ function AdminPageContent() {
                 <Shield className="h-5 w-5 text-red-600" /> GOD MODE • Admin
               </h1>
             </div>
-            <div className="text-xs bg-slate-100 px-3 py-1 rounded-full">{user.email}</div>
+            
+            <div className="flex items-center gap-3">
+              <div className="text-xs bg-slate-100 px-3 py-1 rounded-full hidden sm:block">{user.email}</div>
+              <Button variant="destructive" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4 mr-2" /> Exit
+              </Button>
+            </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto space-y-8">
-          
           <StatsDashboard {...stats} />
-
           <Tabs defaultValue="golden" className="space-y-6">
             <TabsList className="bg-white p-1 border border-slate-200 rounded-xl w-full flex justify-start overflow-x-auto h-auto flex-wrap">
               <TabsTrigger value="golden" className="data-[state=active]:bg-amber-100 data-[state=active]:text-amber-900">👑 Golden Assets</TabsTrigger>
