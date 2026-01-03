@@ -1,0 +1,50 @@
+{
+  "home": {
+    "title": "The Only Legal Love Lock in Paris - Eternal & Virtual on Pont des Arts",
+    "subtitle": "Preserve your love forever on the iconic Pont des Arts, legally and eternally",
+    "problem": {
+      "heading": "The Problem",
+      "title": "Physical Love Locks Are Destroyed",
+      "description": "Since 2015, the City of Paris has removed all physical love locks from the Pont des Arts. The weight of over 700,000 locks threatened the bridge's structural integrity. Today, attaching physical locks is illegal and they are systematically cut and destroyed.",
+      "impact": "Thousands of love stories lost forever..."
+    },
+    "solution": {
+      "heading": "The Solution",
+      "title": "Your Eternal Virtual Love Lock",
+      "description": "Welcome to the only legal, ecological, and permanent way to immortalize your love on the Pont des Arts. Our virtual bridge preserves your love story forever, accessible from anywhere in the world.",
+      "features": {
+        "legal": {
+          "title": "100% Legal",
+          "description": "Fully compliant with Paris city regulations"
+        },
+        "eternal": {
+          "title": "Forever Eternal",
+          "description": "Your lock will never be cut or removed"
+        },
+        "ecological": {
+          "title": "Eco-Friendly",
+          "description": "Zero environmental impact, pure digital love"
+        },
+        "accessible": {
+          "title": "Always Accessible",
+          "description": "Visit your lock anytime, from anywhere"
+        }
+      }
+    },
+    "nav": {
+      "bridge": "The Bridge"
+    },
+    "cta": {
+      "main": "Secure Your Spot Now",
+      "start": "Get Started",
+      "secondary": "Save your love, go digital"
+    },
+    "footer": {
+      "tagline": "The eternal bridge of love stories",
+      "legal": "Legal",
+      "terms": "Terms & Conditions",
+      "privacy": "Privacy Policy",
+      "copyright": "© 2024 LoveLockParis.com - All rights reserved"
+    }
+  }
+}

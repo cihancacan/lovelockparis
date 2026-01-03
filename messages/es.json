@@ -1,0 +1,50 @@
+{
+  "home": {
+    "title": "El Único Candado de Amor Legal en París - Eterno y Virtual en el Pont des Arts",
+    "subtitle": "Preserva tu amor para siempre en el icónico Pont des Arts, legal y eternamente",
+    "problem": {
+      "heading": "El Problema",
+      "title": "Los Candados Físicos Son Destruidos",
+      "description": "Desde 2015, la Ciudad de París ha retirado todos los candados de amor físicos del Pont des Arts. El peso de más de 700,000 candados amenazaba la integridad estructural del puente. Hoy en día, colocar candados físicos es ilegal y son sistemáticamente cortados y destruidos.",
+      "impact": "Miles de historias de amor perdidas para siempre..."
+    },
+    "solution": {
+      "heading": "La Solución",
+      "title": "Tu Candado de Amor Virtual Eterno",
+      "description": "Bienvenido a la única forma legal, ecológica y permanente de inmortalizar tu amor en el Pont des Arts. Nuestro puente virtual preserva tu historia de amor para siempre, accesible desde cualquier lugar del mundo.",
+      "features": {
+        "legal": {
+          "title": "100% Legal",
+          "description": "Totalmente conforme con las regulaciones de la Ciudad de París"
+        },
+        "eternal": {
+          "title": "Eternamente Para Siempre",
+          "description": "Tu candado nunca será cortado o removido"
+        },
+        "ecological": {
+          "title": "Ecológico",
+          "description": "Cero impacto ambiental, amor digital puro"
+        },
+        "accessible": {
+          "title": "Siempre Accesible",
+          "description": "Visita tu candado en cualquier momento, desde cualquier lugar"
+        }
+      }
+    },
+    "nav": {
+      "bridge": "El Puente"
+    },
+    "cta": {
+      "main": "Asegura Tu Lugar Ahora",
+      "start": "Empezar",
+      "secondary": "Salva tu amor, hazte digital"
+    },
+    "footer": {
+      "tagline": "El puente eterno de historias de amor",
+      "legal": "Legal",
+      "terms": "Términos y Condiciones",
+      "privacy": "Política de Privacidad",
+      "copyright": "© 2024 LoveLockParis.com - Todos los derechos reservados"
+    }
+  }
+}

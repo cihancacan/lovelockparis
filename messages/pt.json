@@ -1,0 +1,38 @@
+{
+  "home": {
+    "title": "Love Lock Paris",
+    "subtitle": "Eternize seu amor no único Registro Virtual Oficial.",
+    "nav": {
+      "bridge": "Ponte 3D"
+    },
+    "cta": {
+      "main": "Garantir meu Lugar",
+      "start": "Começar",
+      "secondary": "Eterno & Legal"
+    },
+    "problem": {
+      "heading": "A Proibição",
+      "title": "Cadeados Físicos Removidos",
+      "description": "A prefeitura de Paris remove toneladas de cadeados. O seu será destruído.",
+      "impact": "Não deixe seu amor enferrujar."
+    },
+    "solution": {
+      "heading": "A Solução",
+      "title": "Digital & Eterno",
+      "description": "Um ativo digital permanente garantido pela blockchain.",
+      "features": {
+        "legal": { "title": "Legal", "description": "100% Autorizado" },
+        "eternal": { "title": "Eterno", "description": "Nunca removido" },
+        "ecological": { "title": "Ecológico", "description": "Sem poluição" },
+        "accessible": { "title": "Visão AR", "description": "Visível no local" }
+      }
+    },
+    "footer": {
+      "tagline": "O Registro Oficial",
+      "legal": "Legal",
+      "terms": "Termos",
+      "privacy": "Privacidade",
+      "copyright": "Todos os direitos reservados"
+    }
+  }
+}

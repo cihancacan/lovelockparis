@@ -1,0 +1,38 @@
+{
+  "home": {
+    "title": "Love Lock Paris",
+    "subtitle": "خلّد حبك في السجل الافتراضي الرسمي الوحيد.",
+    "nav": {
+      "bridge": "الجسر 3D"
+    },
+    "cta": {
+      "main": "حجز مكاني",
+      "start": "ابدأ",
+      "secondary": "أبدي وقانوني"
+    },
+    "problem": {
+      "heading": "الحظر",
+      "title": "إزالة الأقفال الحقيقية",
+      "description": "تقوم بلدية باريس بإزالة أطنان من الأقفال المعدنية. سيتم تدمير قفلك.",
+      "impact": "لا تدع حبك يصدأ."
+    },
+    "solution": {
+      "heading": "الحل",
+      "title": "رقمي وأبدي",
+      "description": "أصل رقمي دائم مؤمن بتقنية البلوكشين.",
+      "features": {
+        "legal": { "title": "قانوني", "description": "مرخص 100%" },
+        "eternal": { "title": "أبدي", "description": "لن يتم إزالته أبداً" },
+        "ecological": { "title": "صديق للبيئة", "description": "بدون تلوث" },
+        "accessible": { "title": "عرض AR", "description": "مرئي في الموقع" }
+      }
+    },
+    "footer": {
+      "tagline": "السجل الرسمي",
+      "legal": "قانوني",
+      "terms": "الشروط",
+      "privacy": "الخصوصية",
+      "copyright": "جميع الحقوق محفوظة"
+    }
+  }
+}

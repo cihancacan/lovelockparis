@@ -1,0 +1,50 @@
+{
+  "home": {
+    "title": "Le Seul Cadenas d'Amour Légal à Paris - Éternel & Virtuel sur le Pont des Arts",
+    "subtitle": "Préservez votre amour pour toujours sur l'emblématique Pont des Arts, légalement et éternellement",
+    "problem": {
+      "heading": "Le Problème",
+      "title": "Les Cadenas Physiques Sont Détruits",
+      "description": "Depuis 2015, la Ville de Paris a retiré tous les cadenas d'amour physiques du Pont des Arts. Le poids de plus de 700 000 cadenas menaçait l'intégrité structurelle du pont. Aujourd'hui, accrocher des cadenas physiques est interdit et ils sont systématiquement coupés et détruits.",
+      "impact": "Des milliers d'histoires d'amour perdues à jamais..."
+    },
+    "solution": {
+      "heading": "La Solution",
+      "title": "Votre Cadenas d'Amour Virtuel Éternel",
+      "description": "Bienvenue sur la seule façon légale, écologique et permanente d'immortaliser votre amour sur le Pont des Arts. Notre pont virtuel préserve votre histoire d'amour pour toujours, accessible depuis n'importe où dans le monde.",
+      "features": {
+        "legal": {
+          "title": "100% Légal",
+          "description": "Conforme aux réglementations de la Ville de Paris"
+        },
+        "eternal": {
+          "title": "Éternel",
+          "description": "Votre cadenas ne sera jamais coupé ou retiré"
+        },
+        "ecological": {
+          "title": "Écologique",
+          "description": "Zéro impact environnemental, amour 100% digital"
+        },
+        "accessible": {
+          "title": "Toujours Accessible",
+          "description": "Visitez votre cadenas à tout moment, de n'importe où"
+        }
+      }
+    },
+    "nav": {
+      "bridge": "Le Pont"
+    },
+    "cta": {
+      "main": "Réservez Votre Place Maintenant",
+      "start": "Commencer",
+      "secondary": "Sauvez votre amour, passez au digital"
+    },
+    "footer": {
+      "tagline": "Le pont éternel des histoires d'amour",
+      "legal": "Mentions Légales",
+      "terms": "Conditions Générales",
+      "privacy": "Politique de Confidentialité",
+      "copyright": "© 2024 LoveLockParis.com - Tous droits réservés"
+    }
+  }
+}

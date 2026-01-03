@@ -1,0 +1,50 @@
+{
+  "home": {
+    "title": "巴黎唯一合法的爱情锁 - 艺术桥上永恒的虚拟爱情锁",
+    "subtitle": "在标志性的艺术桥上永久保存您的爱情，合法且永恒",
+    "problem": {
+      "heading": "问题所在",
+      "title": "实体爱情锁已被拆除",
+      "description": "自2015年起,巴黎市政府已从艺术桥上拆除了所有实体爱情锁。超过70万把锁的重量威胁到了桥梁的结构完整性。如今,挂实体锁是违法的,它们会被系统地切割和销毁。",
+      "impact": "成千上万的爱情故事永远消失了..."
+    },
+    "solution": {
+      "heading": "解决方案",
+      "title": "您永恒的虚拟爱情锁",
+      "description": "欢迎来到唯一合法、环保且永久的方式,在艺术桥上永远铭记您的爱情。我们的虚拟桥梁永久保存您的爱情故事,可从世界任何地方访问。",
+      "features": {
+        "legal": {
+          "title": "100%合法",
+          "description": "完全符合巴黎市法规"
+        },
+        "eternal": {
+          "title": "永恒不变",
+          "description": "您的锁永远不会被切割或移除"
+        },
+        "ecological": {
+          "title": "环保友好",
+          "description": "零环境影响,纯数字之爱"
+        },
+        "accessible": {
+          "title": "随时访问",
+          "description": "随时随地访问您的爱情锁"
+        }
+      }
+    },
+    "nav": {
+      "bridge": "桥梁"
+    },
+    "cta": {
+      "main": "立即预订您的位置",
+      "start": "开始",
+      "secondary": "保存您的爱,走向数字化"
+    },
+    "footer": {
+      "tagline": "爱情故事的永恒之桥",
+      "legal": "法律声明",
+      "terms": "条款与条件",
+      "privacy": "隐私政策",
+      "copyright": "© 2024 LoveLockParis.com - 保留所有权利"
+    }
+  }
+}
