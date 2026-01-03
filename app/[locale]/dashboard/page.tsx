@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react'; // Ajout de Suspense
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
   ShieldCheck, Lock, TrendingUp, Eye, 
-  PartyPopper, CreditCard, Wallet, History, Tag, XCircle, Calendar
+  PartyPopper, CreditCard, Wallet, History, Tag, XCircle, Calendar, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,7 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import Image from 'next/image';
 
-export default function DashboardPage() {
+// 1. On déplace TOUTE la logique dans ce sous-composant
+function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -148,14 +149,13 @@ export default function DashboardPage() {
     setPriceInputs(prev => ({ ...prev, [id]: value }));
   };
 
-  // Helper pour calculer le gain net (Prix - 20%)
   const calculateNetEarnings = (price: string) => {
     const p = parseFloat(price);
     if (isNaN(p) || p <= 0) return '0.00';
-    return (p * 0.80).toFixed(2); // 20% de frais
+    return (p * 0.80).toFixed(2);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white text-slate-900">Loading Dashboard...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white text-slate-900"><Loader2 className="animate-spin h-8 w-8" /></div>;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -186,7 +186,6 @@ export default function DashboardPage() {
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         
-        {/* STATS */}
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           <Card className="border-none shadow-sm bg-white p-4 flex items-center gap-4">
             <div className="bg-blue-50 p-3 rounded-full text-blue-600"><Lock size={20} /></div>
@@ -225,7 +224,7 @@ export default function DashboardPage() {
             <TabsTrigger value="bank" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Bank & Payouts</TabsTrigger>
           </TabsList>
 
-          {/* 1. ASSETS */}
+          {/* ASSETS */}
           <TabsContent value="assets" className="space-y-6">
              {locks.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
@@ -237,7 +236,6 @@ export default function DashboardPage() {
               locks.map((lock) => (
                 <div key={lock.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm flex flex-col md:flex-row transition-all hover:shadow-md">
                   
-                  {/* Image */}
                   <div className="md:w-1/4 bg-slate-50 p-8 flex items-center justify-center border-r border-slate-100 relative">
                      <Image src={`/images/skin-${lock.skin ? lock.skin.toLowerCase() : 'gold'}.png`} alt="Lock" width={100} height={100} className="object-contain" />
                      {lock.status === 'For_Sale' && (
@@ -247,7 +245,6 @@ export default function DashboardPage() {
                      )}
                   </div>
                   
-                  {/* Détails */}
                   <div className="flex-1 p-6 space-y-4">
                     <div className="flex justify-between items-start">
                       <div className="space-y-2">
@@ -258,7 +255,6 @@ export default function DashboardPage() {
                           </span>
                         </div>
                         
-                        {/* AJOUT : Date d'achat */}
                         <div className="flex items-center gap-2 text-xs text-slate-400">
                           <Calendar size={12} />
                           <span>Purchased on {new Date(lock.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
@@ -270,7 +266,6 @@ export default function DashboardPage() {
                       <Button size="sm" variant="outline" onClick={() => window.open(`/bridge`)}><Eye className="w-3 h-3 mr-1"/> 3D</Button>
                     </div>
 
-                    {/* Zone de Revente */}
                     <div className={`flex flex-col gap-3 pt-4 border-t border-slate-100 mt-2 ${lock.status === 'For_Sale' ? 'bg-green-50/50 -mx-6 px-6 py-4' : ''}`}>
                        
                        {lock.status === 'For_Sale' ? (
@@ -331,7 +326,7 @@ export default function DashboardPage() {
             )}
           </TabsContent>
 
-          {/* 2. PROFILE */}
+          {/* PROFILE */}
           <TabsContent value="profile">
             <Card>
               <CardHeader><CardTitle>Identity</CardTitle></CardHeader>
@@ -344,7 +339,7 @@ export default function DashboardPage() {
             </Card>
           </TabsContent>
 
-          {/* 3. BANK */}
+          {/* BANK */}
           <TabsContent value="bank">
             <div className="grid md:grid-cols-2 gap-8">
               <Card>
@@ -353,7 +348,6 @@ export default function DashboardPage() {
                   <CardDescription>We support global payouts via Stripe Connect.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  
                   <div className="space-y-2">
                     <Label>Bank Region</Label>
                     <select 
@@ -369,7 +363,6 @@ export default function DashboardPage() {
                       <option value="OTHER">🌍 Rest of World (SWIFT)</option>
                     </select>
                   </div>
-
                   {bankZone === 'EU' && (
                     <>
                       <div className="space-y-2"><Label>IBAN</Label><Input value={field1} onChange={(e) => setField1(e.target.value)} placeholder="FR76 ...." /></div>
@@ -388,13 +381,11 @@ export default function DashboardPage() {
                       <div className="space-y-2"><Label>Code (Sort/Transit/BSB)</Label><Input value={field2} onChange={(e) => setField2(e.target.value)} /></div>
                     </>
                   )}
-
                   <Button onClick={handleSaveBank} className="w-full bg-slate-900 text-white mt-2">
                     <Lock className="mr-2 h-4 w-4" /> Secure Save
                   </Button>
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader><CardTitle>Payout History</CardTitle></CardHeader>
                 <CardContent className="text-center py-10 text-slate-400 text-sm">
@@ -406,6 +397,21 @@ export default function DashboardPage() {
           </TabsContent>
         </Tabs>
       </main>
+    </div>
+  );
+}
+
+// 2. Le composant Principal avec Suspense
+export default function DashboardPage() {
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="animate-spin h-10 w-10 text-[#e11d48]" />
+        </div>
+      }>
+        <DashboardContent />
+      </Suspense>
     </div>
   );
 }
