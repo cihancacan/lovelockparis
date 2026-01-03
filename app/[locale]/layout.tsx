@@ -591,9 +591,7 @@ export default async function LocaleLayout({
         <meta name="ICBM" content="48.858370, 2.337480" />
       </head>
       <body className="bg-white text-slate-900 font-sans antialiased selection:bg-rose-100 selection:text-rose-900 overflow-x-hidden">
-      import CrispChat from 'crisp-chat';
-       
-        <CrispChat websiteId="2cd2d759-05b7-40fb-924b-1b7a448620a7" />
+      <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="2cd2d759-05b7-40fb-924b-1b7a448620a7";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
         
         {/* Schema.org markup for body */}
         <div itemScope itemType="https://schema.org/WebPage" style={{ display: 'none' }}>
