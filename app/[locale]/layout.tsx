@@ -3,6 +3,8 @@ import { Playfair_Display, Montserrat } from 'next/font/google';
 import { Providers } from '@/lib/providers';
 import '@/app/globals.css';
 import { Metadata, Viewport } from 'next';
+import Script from 'next/script';
+import { CrispChat } from '@/components/crisp-chat';
 
 // --- LISTE COMPLÈTE DES LANGUES OPTIMISÉES ---
 const locales = ['en', 'fr', 'zh-CN', 'ja', 'ko', 'es', 'pt', 'ar'];
@@ -651,6 +653,22 @@ export default async function LocaleLayout({
             `
           }}
         />
+        {/* --- GOOGLE ADS (Démarrage) --- */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-17850760368"
+          strategy="afterInteractive"
+        />
+        <Script id="google-ads" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-17850760368');
+          `}
+        </Script>
+        
+        {/* --- CRISP CHAT (Support Client) --- */}
+        <CrispChat />
       </body>
     </html>
   );
