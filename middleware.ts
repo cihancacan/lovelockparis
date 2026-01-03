@@ -31,19 +31,26 @@ export default async function middleware(req: NextRequest) {
     }
   );
 
+  // On rafraîchit la session (Important pour que Supabase sache qui est là)
   const { data: { session } } = await supabase.auth.getSession();
   const path = req.nextUrl.pathname;
 
-  // Protection Admin (Porte fermée sauf pour toi)
-  if (path.includes('/admin')) {
-    if (!session) return NextResponse.redirect(new URL('/purchase', req.url));
-    if (session.user.email !== ADMIN_EMAIL) return NextResponse.redirect(new URL('/', req.url));
-  }
+  // --- MODE "PORTES OUVERTES" (POUR TESTER LA PROD) ---
+  // J'ai mis des // devant les protections pour les désactiver.
 
-  // Protection Dashboard (Porte fermée sauf si connecté)
-  if (path.includes('/dashboard')) {
-    if (!session) return NextResponse.redirect(new URL('/purchase', req.url));
-  }
+  // 1. Protection Admin
+  // if (path.includes('/admin')) {
+  //   if (!session) return NextResponse.redirect(new URL('/purchase', req.url));
+  //   // On vérifie l'email en minuscules pour éviter les erreurs de majuscules
+  //   if (session.user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+  //      return NextResponse.redirect(new URL('/', req.url));
+  //   }
+  // }
+
+  // 2. Protection Dashboard
+  // if (path.includes('/dashboard')) {
+  //   if (!session) return NextResponse.redirect(new URL('/purchase', req.url));
+  // }
 
   return res;
 }
