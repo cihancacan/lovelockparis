@@ -80,6 +80,6 @@
     "vaul": "^0.9.9",
     "zod": "^3.23.8",
     "resend": "^3.2.0",
-    "@react-email/components": "^0.0.15",
+    "@react-email/components": "^0.0.15"
   }
 }
