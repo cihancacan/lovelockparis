@@ -78,7 +78,7 @@
     "three": "^0.160.1",
     "typescript": "5.2.2",
     "vaul": "^0.9.9",
-    "zod": "^3.23.8",
+    "zod": "^3.23.8",  // ← CORRECTION ICI : ajouter une virgule
     "resend": "^3.2.0",
     "@react-email/components": "^0.0.15"
   }
