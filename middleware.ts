@@ -5,7 +5,6 @@ import type { NextRequest } from 'next/server';
 
 const ADMIN_EMAIL = 'cacancihan@gmail.com';
 
-// 1. Configurer les langues
 const intlMiddleware = createMiddleware({
   locales: ['en', 'fr', 'zh-CN', 'ja', 'ko', 'es', 'pt', 'ar'],
   defaultLocale: 'en',
@@ -13,10 +12,8 @@ const intlMiddleware = createMiddleware({
 });
 
 export default async function middleware(req: NextRequest) {
-  // 2. D'abord, on génère la réponse qui gère la langue
   const res = intlMiddleware(req);
 
-  // 3. Ensuite, on branche Supabase sur CETTE réponse
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -35,24 +32,34 @@ export default async function middleware(req: NextRequest) {
     }
   );
 
-  // 4. On récupère l'utilisateur
-  const { data: { user } } = await supabase.auth.getUser();
+  // REVENIR À getSession (Plus rapide et stable que getUser pour le middleware)
+  const { data: { session } } = await supabase.auth.getSession();
+  
   const path = req.nextUrl.pathname;
 
   // --- SÉCURITÉ ---
 
   // A. Protection ADMIN
   if (path.includes('/admin')) {
-    // Si pas connecté OU email incorrect (insensible à la casse)
-    if (!user || user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    // 1. Si pas connecté du tout -> Redirection vers Login
+    if (!session) {
+      return NextResponse.redirect(new URL('/purchase', req.url));
+    }
+
+    // 2. Vérification email (Nettoyage majuscules/espaces pour éviter les bugs)
+    const userEmail = session.user.email?.trim().toLowerCase();
+    const adminEmail = ADMIN_EMAIL.trim().toLowerCase();
+
+    // Si l'email ne correspond pas -> Redirection vers Accueil
+    if (userEmail !== adminEmail) {
+      console.log(`[Middleware] Accès refusé à ${userEmail} (Attendu: ${adminEmail})`);
       return NextResponse.redirect(new URL('/', req.url));
     }
   }
 
   // B. Protection DASHBOARD
   if (path.includes('/dashboard')) {
-    if (!user) {
-      // Si pas connecté, on renvoie vers la page d'achat/login
+    if (!session) {
       return NextResponse.redirect(new URL('/purchase', req.url));
     }
   }
@@ -60,6 +67,9 @@ export default async function middleware(req: NextRequest) {
   return res;
 }
 
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)']
+};
 // C'est la SEULE et UNIQUE configuration à garder à la fin
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)']
