@@ -5,8 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-// J'ai retiré Select et Dialog complexes pour éviter les erreurs d'import si tu ne les as pas
-// On utilise du HTML standard pour les modales pour être sûr que ça marche.
 import { supabase } from '@/lib/supabase';
 import { 
   Users, Search, Crown, Ban, Eye, Phone, CreditCard, Calendar, 
@@ -15,22 +13,38 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
 
+// TYPE SÉCURISÉ
 type UserProfile = {
   id: string;
   email: string;
-  full_name: string | null;
-  phone: string | null;
+  full_name: string;
+  phone: string;
   created_at: string;
   role: string;
   last_sign_in_at: string | null;
-  bank_country: string | null;
-  iban: string | null;
+  bank_country: string;
+  iban: string;
   locks_count: number;
   total_spent: number;
   total_sales: number;
   last_activity: string; 
   is_banned: boolean;
   owned_locks: any[]; 
+};
+
+// Fonction de formatage ultra-sécurisée (Anti-Crash)
+const formatDate = (dateString: string | null | undefined) => {
+  if (!dateString) return '-';
+  try {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '-'; // Si date invalide
+    // On force la locale pour éviter les erreurs serveur/client
+    return d.toLocaleDateString('fr-FR', {
+      day: 'numeric', month: 'numeric', year: 'numeric'
+    });
+  } catch (e) {
+    return 'Date erreur';
+  }
 };
 
 export function UserManagement() {
@@ -64,7 +78,7 @@ export function UserManagement() {
       const { data: transactions } = await supabase.from('transactions').select('*');
 
       const enrichedUsers = (profiles || []).map((p: any) => {
-        // Sécurisation des données (Anti-Crash)
+        // Sécurisation maximale des données
         const userLocks = locks?.filter((l: any) => l.owner_id === p.id) || [];
         const userPurchases = transactions?.filter((t: any) => t.buyer_id === p.id) || [];
         const userSales = transactions?.filter((t: any) => t.seller_id === p.id) || [];
@@ -72,32 +86,35 @@ export function UserManagement() {
         const totalSpent = userPurchases.reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
         const totalSales = userSales.reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
 
-        // Calcul sécurisé de la date (C'était ici le bug)
-        const dates = [
-          p.last_sign_in_at,
-          p.created_at,
-          ...userLocks.map((l: any) => l.created_at),
-          ...userPurchases.map((t: any) => t.created_at)
-        ].filter(d => d); // On garde que les dates valides
+        // Calcul sécurisé de la date (Correction du bug -Infinity)
+        let lastActivity = p.created_at;
+        try {
+            const validDates = [
+              p.last_sign_in_at,
+              p.created_at,
+              ...userLocks.map((l: any) => l.created_at),
+              ...userPurchases.map((t: any) => t.created_at)
+            ].filter(d => d && !isNaN(new Date(d).getTime())); // Filtre les dates nulles ou invalides
 
-        let lastActivity = p.created_at; // Par défaut
-        if (dates.length > 0) {
-            const timestamps = dates.map(d => new Date(d).getTime()).filter(t => !isNaN(t));
-            if (timestamps.length > 0) {
-                lastActivity = new Date(Math.max(...timestamps)).toISOString();
+            if (validDates.length > 0) {
+                // On convertit en timestamp pour Math.max
+                const maxTime = Math.max(...validDates.map(d => new Date(d).getTime()));
+                lastActivity = new Date(maxTime).toISOString();
             }
+        } catch (e) {
+            console.warn("Erreur date pour", p.id);
         }
 
         return {
-          id: p.id,
+          id: p.id || 'Unknown',
           email: p.email || 'No Email',
-          full_name: p.full_name,
-          phone: p.phone,
-          created_at: p.created_at,
+          full_name: p.full_name || '',
+          phone: p.phone || '',
+          created_at: p.created_at || new Date().toISOString(),
           role: p.role || 'user',
           last_sign_in_at: p.last_sign_in_at,
-          bank_country: p.bank_country,
-          iban: p.iban,
+          bank_country: p.bank_country || '-',
+          iban: p.iban || '-',
           locks_count: userLocks.length,
           total_spent: totalSpent,
           total_sales: totalSales,
@@ -110,6 +127,7 @@ export function UserManagement() {
       setUsers(enrichedUsers);
     } catch (err) {
       console.error(err);
+      // Pas de toast ici pour éviter les boucles en cas d'erreur de rendu
     } finally {
       setLoading(false);
     }
@@ -121,24 +139,27 @@ export function UserManagement() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(u => 
-        u.email?.toLowerCase().includes(q) || 
-        u.full_name?.toLowerCase().includes(q) ||
-        u.id.toLowerCase().includes(q)
+        (u.email && u.email.toLowerCase().includes(q)) || 
+        (u.full_name && u.full_name.toLowerCase().includes(q)) ||
+        (u.id && u.id.toLowerCase().includes(q))
       );
     }
 
-    switch (sortFilter) {
-      case 'newest': result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break;
-      case 'activity': result.sort((a, b) => new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime()); break;
-      case 'richest': result.sort((a, b) => b.total_spent - a.total_spent); break;
-      case 'banned': result = result.filter(u => u.is_banned); break;
-    }
+    try {
+        switch (sortFilter) {
+        case 'newest': result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break;
+        case 'activity': result.sort((a, b) => new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime()); break;
+        case 'richest': result.sort((a, b) => b.total_spent - a.total_spent); break;
+        case 'banned': result = result.filter(u => u.is_banned); break;
+        }
+    } catch (e) { console.error("Erreur de tri"); }
+    
     setFilteredUsers(result);
   };
 
   const openEdit = (user: UserProfile) => {
     setSelectedUser(user);
-    setEditForm({ full_name: user.full_name || '', phone: user.phone || '', role: user.role });
+    setEditForm({ full_name: user.full_name, phone: user.phone, role: user.role });
     setShowEditDialog(true);
   };
 
@@ -220,7 +241,7 @@ export function UserManagement() {
           <TableHeader>
             <TableRow className="bg-slate-50">
               <TableHead>Client</TableHead>
-              <TableHead>Dernière Activité</TableHead>
+              <TableHead>Dates</TableHead>
               <TableHead>Dépenses</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -229,50 +250,54 @@ export function UserManagement() {
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={5} className="text-center p-8">Chargement...</TableCell></TableRow>
-            ) : filteredUsers.map((user) => (
-              <TableRow key={user.id} className="hover:bg-slate-50">
-                <TableCell>
-                  <div className="font-bold text-slate-900">{user.full_name || 'Sans Nom'}</div>
-                  <div className="text-xs text-slate-500 font-mono">{user.email}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-xs text-slate-500">
-                    <div>Inscrit: {new Date(user.created_at).toLocaleDateString()}</div>
-                    <div className="text-green-600 font-bold">Actif: {new Date(user.last_activity).toLocaleDateString()}</div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-bold text-slate-900">${user.total_spent.toFixed(2)}</div>
-                  <div className="text-xs text-slate-500">{user.locks_count} cadenas</div>
-                </TableCell>
-                <TableCell>
-                  {user.is_banned ? <Badge variant="destructive">BANNI</Badge> : 
-                   user.role === 'admin' ? <Badge className="bg-amber-500">Admin</Badge> : 
-                   <Badge variant="outline">Client</Badge>}
-                </TableCell>
-                <TableCell className="text-right flex justify-end gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => { setSelectedUser(user); setShowDetailsDialog(true); }}><Eye className="h-4 w-4 text-blue-500"/></Button>
-                  <Button size="sm" variant="outline" onClick={() => openEdit(user)}><Edit className="h-4 w-4 text-slate-500"/></Button>
-                  {!user.role.includes('admin') && !user.is_banned && (
-                    <Button size="sm" variant="ghost" onClick={() => { setSelectedUser(user); setShowBanDialog(true); }}><Ban className="h-4 w-4 text-red-400"/></Button>
-                  )}
-                  {user.is_banned && (
-                    <Button size="sm" variant="outline" onClick={() => handleUnban(user.id)} className="text-green-600">Déban</Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
+            ) : filteredUsers.length === 0 ? (
+              <TableRow><TableCell colSpan={5} className="text-center p-8 text-muted-foreground">Aucun résultat</TableCell></TableRow>
+            ) : (
+              filteredUsers.map((user) => (
+                <TableRow key={user.id} className="hover:bg-slate-50">
+                  <TableCell>
+                    <div className="font-bold text-slate-900">{user.full_name || 'Sans Nom'}</div>
+                    <div className="text-xs text-slate-500 font-mono">{user.email}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-xs text-slate-500">
+                      <div>Inscrit: {formatDate(user.created_at)}</div>
+                      <div className="text-green-600 font-bold">Actif: {formatDate(user.last_activity)}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-bold text-slate-900">${user.total_spent.toFixed(2)}</div>
+                    <div className="text-xs text-slate-500">{user.locks_count} cadenas</div>
+                  </TableCell>
+                  <TableCell>
+                    {user.is_banned ? <Badge variant="destructive">BANNI</Badge> : 
+                     user.role === 'admin' ? <Badge className="bg-amber-500">Admin</Badge> : 
+                     <Badge variant="outline">Client</Badge>}
+                  </TableCell>
+                  <TableCell className="text-right flex justify-end gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => { setSelectedUser(user); setShowDetailsDialog(true); }}><Eye className="h-4 w-4 text-blue-500"/></Button>
+                    <Button size="sm" variant="outline" onClick={() => openEdit(user)}><Edit className="h-4 w-4 text-slate-500"/></Button>
+                    {!user.role.includes('admin') && !user.is_banned && (
+                      <Button size="sm" variant="ghost" onClick={() => { setSelectedUser(user); setShowBanDialog(true); }}><Ban className="h-4 w-4 text-red-400"/></Button>
+                    )}
+                    {user.is_banned && (
+                      <Button size="sm" variant="outline" onClick={() => handleUnban(user.id)} className="text-green-600">Déban</Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
 
-      {/* --- MODALES (HTML STANDARD POUR ÉVITER LES BUGS) --- */}
+      {/* --- MODALES --- */}
       
       {/* EDIT */}
       {showEditDialog && selectedUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
-            <h3 className="text-lg font-bold mb-4">Modifier {selectedUser.email}</h3>
+            <h3 className="text-lg font-bold mb-4">Modifier Client</h3>
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-bold text-slate-500">Nom</label>
@@ -298,7 +323,7 @@ export function UserManagement() {
         </div>
       )}
 
-      {/* DÉTAILS */}
+      {/* DÉTAILS (Fiche Complète) */}
       {showDetailsDialog && selectedUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
@@ -310,20 +335,23 @@ export function UserManagement() {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-slate-50 p-3 rounded"><div className="text-xs font-bold text-slate-400">NOM</div><div>{selectedUser.full_name || '-'}</div></div>
               <div className="bg-slate-50 p-3 rounded"><div className="text-xs font-bold text-slate-400">EMAIL</div><div>{selectedUser.email}</div></div>
-              <div className="bg-slate-50 p-3 rounded"><div className="text-xs font-bold text-slate-400">IBAN</div><div className="font-mono text-sm">{selectedUser.iban || 'Aucun'}</div></div>
-              <div className="bg-slate-50 p-3 rounded"><div className="text-xs font-bold text-slate-400">PAYS</div><div>{selectedUser.bank_country || '-'}</div></div>
+              <div className="bg-slate-50 p-3 rounded"><div className="text-xs font-bold text-slate-400">IBAN</div><div className="font-mono text-sm break-all">{selectedUser.iban}</div></div>
+              <div className="bg-slate-50 p-3 rounded"><div className="text-xs font-bold text-slate-400">PAYS</div><div>{selectedUser.bank_country}</div></div>
             </div>
 
             <h4 className="font-bold border-b pb-2 mb-2">Inventaire ({selectedUser.locks_count})</h4>
-            <div className="space-y-2">
-              {selectedUser.owned_locks.map((lock: any) => (
-                <div key={lock.id} className="flex justify-between items-center bg-slate-50 p-2 rounded text-sm">
-                  <span className="font-mono font-bold">#{lock.id}</span>
-                  <span>{lock.zone} / {lock.skin}</span>
-                  <span className="font-bold">${lock.price}</span>
-                </div>
-              ))}
-              {selectedUser.owned_locks.length === 0 && <div className="text-center text-slate-400 py-4">Vide</div>}
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {selectedUser.owned_locks.length === 0 ? (
+                <div className="text-center text-slate-400 py-4">Vide</div>
+              ) : (
+                selectedUser.owned_locks.map((lock: any) => (
+                  <div key={lock.id} className="flex justify-between items-center bg-slate-50 p-2 rounded text-sm">
+                    <span className="font-mono font-bold">#{lock.id}</span>
+                    <span>{lock.zone} / {lock.skin}</span>
+                    <span className="font-bold">${lock.price}</span>
+                  </div>
+                ))
+              )}
             </div>
 
             <div className="mt-6 flex justify-end">
