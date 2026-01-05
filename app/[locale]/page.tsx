@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Lock, Heart, DollarSign, Globe, ShoppingCart, Target, Medal, ShieldCheck, ArrowRight, Smartphone, Coins, Users, MapPin, Star, TrendingUp, CheckCircle, Calendar, Eye, Award, Clock, Zap, ChevronRight, Trophy, Crown, Sparkles, InfinityIcon, Building, Euro } from 'lucide-react';
+import { Lock, DollarSign, ShoppingCart, Target, Heart, Globe, ShieldCheck, CheckCircle, Clock, InfinityIcon, MapPin, Award, TrendingUp, Zap, Coins, Users, Euro, Building, Trophy, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -138,11 +138,6 @@ export default async function Home({ params }: { params: { locale: string } }) {
         {/* =====================================================================================
             HERO SECTION - Optimisé pour "lock of love bridge paris"
         ===================================================================================== */}
-         {/* Changements : 
-            1. 'justify-center' au lieu de 'justify-end' pour ne pas coller en bas.
-            2. 'pt-20' pour dégager le header mais rester haut.
-            3. 'pb-20' pour laisser de la place aux stats en bas.
-        */}
         <section className="relative min-h-[85vh] flex flex-col justify-center items-center text-center px-4 overflow-hidden pt-0 pb-0">
           
           <div className="absolute inset-0 z-0">
@@ -157,8 +152,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
           </div>
 
-         {/* ON CHANGE pt-10 PAR pt-32 (Mobile) et md:pt-48 (Ordi) POUR DESCENDRE */}
-<div className="relative z-10 max-w-6xl mx-auto w-full space-y-8 pt4 md:pt-20">
+         <div className="relative z-10 max-w-6xl mx-auto w-full space-y-8 pt-4 md:pt-20">
             
             <div className="flex justify-center">
               <div className="inline-flex items-center space-x-3 px-6 py-3 rounded-full bg-white/20 backdrop-blur-lg border-2 border-white/30 text-white shadow-2xl">
@@ -172,7 +166,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
               </div>
             </div>
 
-            {/* H1 Principal - Intégration forte du mot-clé principal */}
+            {/* H1 Principal */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold leading-[1.0] text-white drop-shadow-2xl">
               {locale === 'fr' ? (
                 <>
@@ -195,7 +189,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
               )}
             </h1>
 
-            {/* Sous-titre avec variations de mots-clés */}
+            {/* Sous-titre */}
             <div className="max-w-4xl mx-auto">
               <p className="text-base sm:text-lg md:text-xl text-slate-100 leading-relaxed drop-shadow-lg font-medium px-4">
                 {locale === 'fr' ? (
@@ -256,9 +250,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
           </div>
         </section>
 
-        {/* =====================================================================================
-            STATISTICS BAR - Trust Indicators
-        ===================================================================================== */}
+        {/* STATISTICS BAR */}
         <section className="py-10 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-6xl mx-auto">
@@ -298,9 +290,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
           </div>
         </section>
 
-        {/* =====================================================================================
-            PROBLEM/SOLUTION SECTION - Optimisé pour "love lock bridge"
-        ===================================================================================== */}
+        {/* PROBLEM/SOLUTION SECTION */}
         <section className="py-24 bg-gradient-to-b from-white to-slate-50">
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -465,9 +455,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
           </div>
         </section>
 
-        {/* =====================================================================================
-            HOW IT WORKS - Optimisé pour "love lock bridge paris"
-        ===================================================================================== */}
+        {/* HOW IT WORKS */}
         <section className="py-24 bg-white">
           <div className="container mx-auto px-4">
             <div className="text-center mb-20">
@@ -577,410 +565,198 @@ export default async function Home({ params }: { params: { locale: string } }) {
           </div>
         </section>
 
-        {/* =====================================================================================
-            MARKETPLACE & INVESTMENT OPPORTUNITY - Nouvelle section
-===================================================================================== */}
-<section className="py-24 bg-gradient-to-r from-amber-50 via-white to-emerald-50">
-  <div className="container mx-auto px-4 max-w-6xl">
-    {/* En-tête avec badge "Investissement" */}
-    <div className="text-center mb-16">
-      <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-full text-sm font-bold uppercase tracking-wider mb-6 shadow-lg">
-        <TrendingUp className="h-5 w-5" />
-        {locale === 'fr' ? 'OPPORTUNITÉ D\'INVESTISSEMENT EXCLUSIVE' :
-         locale === 'zh-CN' ? '独家投资机会' :
-         'EXCLUSIVE INVESTMENT OPPORTUNITY'}
-      </div>
-      
-      <h2 className="text-4xl md:text-5xl font-serif font-bold text-slate-900 mb-6">
-        {locale === 'fr' ? (
-          <>Achetez & Revendez Vos<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-800">Cadenas Numériques avec Profit</span></>
-        ) : locale === 'zh-CN' ? (
-          <>购买并转售您的<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-800">数字锁以获取利润</span></>
-        ) : (
-          <>Buy & Resell Your<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-800">Digital Locks for Profit</span></>
-        )}
-      </h2>
-      
-      <p className="text-slate-700 text-lg max-w-3xl mx-auto">
-        {locale === 'fr' ? 'Rejoignez notre marketplace exclusive : achetez des cadenas numériques sur le Pont des Arts et revendez-les à des collectionneurs pour des profits significatifs.' :
-         locale === 'zh-CN' ? '加入我们的专属市场：购买艺术桥上的数字锁，并转售给收藏家以获取可观的利润。' :
-         'Join our exclusive marketplace: purchase digital locks on Pont des Arts and resell them to collectors for significant profits.'}
-      </p>
-    </div>
+        {/* MARKETPLACE SECTION */}
+        <section className="py-24 bg-gradient-to-r from-amber-50 via-white to-emerald-50">
+          <div className="container mx-auto px-4 max-w-6xl">
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-full text-sm font-bold uppercase tracking-wider mb-6 shadow-lg">
+                <TrendingUp className="h-5 w-5" />
+                {locale === 'fr' ? 'OPPORTUNITÉ D\'INVESTISSEMENT EXCLUSIVE' :
+                 locale === 'zh-CN' ? '独家投资机会' :
+                 'EXCLUSIVE INVESTMENT OPPORTUNITY'}
+              </div>
+              
+              <h2 className="text-4xl md:text-5xl font-serif font-bold text-slate-900 mb-6">
+                {locale === 'fr' ? (
+                  <>Achetez & Revendez Vos<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-800">Cadenas Numériques avec Profit</span></>
+                ) : locale === 'zh-CN' ? (
+                  <>购买并转售您的<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-800">数字锁以获取利润</span></>
+                ) : (
+                  <>Buy & Resell Your<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-800">Digital Locks for Profit</span></>
+                )}
+              </h2>
+              
+              <p className="text-slate-700 text-lg max-w-3xl mx-auto">
+                {locale === 'fr' ? 'Rejoignez notre marketplace exclusive : achetez des cadenas numériques sur le Pont des Arts et revendez-les à des collectionneurs pour des profits significatifs.' :
+                 locale === 'zh-CN' ? '加入我们的专属市场：购买艺术桥上的数字锁，并转售给收藏家以获取可观的利润。' :
+                 'Join our exclusive marketplace: purchase digital locks on Pont des Arts and resell them to collectors for significant profits.'}
+              </p>
+            </div>
 
-    {/* Statistiques de profit */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-      <div className="bg-white p-8 rounded-3xl border-2 border-emerald-100 shadow-lg text-center">
-        <div className="text-5xl font-bold text-emerald-600 mb-4">+450%</div>
-        <h4 className="font-bold text-slate-900 text-xl mb-3">
-          {locale === 'fr' ? 'Profit Maximal' :
-           locale === 'zh-CN' ? '最高利润' :
-           'Maximum Profit'}
-        </h4>
-        <p className="text-slate-600">
-          {locale === 'fr' ? 'Certains numéros spéciaux ont augmenté de valeur jusqu\'à 450%' :
-           locale === 'zh-CN' ? '某些特殊编号价值增长高达450%' :
-           'Some special numbers have increased in value up to 450%'}
-        </p>
-      </div>
-      
-      <div className="bg-white p-8 rounded-3xl border-2 border-amber-100 shadow-lg text-center">
-        <div className="text-5xl font-bold text-amber-600 mb-4">$12.5K</div>
-        <h4 className="font-bold text-slate-900 text-xl mb-3">
-          {locale === 'fr' ? 'Record de Vente' :
-           locale === 'zh-CN' ? '最高销售额' :
-           'Sales Record'}
-        </h4>
-        <p className="text-slate-600">
-          {locale === 'fr' ? 'Cadenas #777 vendu pour 12,500 USD' :
-           locale === 'zh-CN' ? '锁具#777以12,500美元售出' :
-           'Lock #777 sold for 12,500 USD'}
-        </p>
-      </div>
-      
-      <div className="bg-white p-8 rounded-3xl border-2 border-blue-100 shadow-lg text-center">
-        <div className="text-5xl font-bold text-blue-600 mb-4">72h</div>
-        <h4 className="font-bold text-slate-900 text-xl mb-3">
-          {locale === 'fr' ? 'Vente Rapide' :
-           locale === 'zh-CN' ? '快速销售' :
-           'Quick Sale'}
-        </h4>
-        <p className="text-slate-600">
-          {locale === 'fr' ? 'Temps moyen de vente pour les numéros premium' :
-           locale === 'zh-CN' ? '优质编号的平均销售时间' :
-           'Average sale time for premium numbers'}
-        </p>
-      </div>
-    </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+              <div className="bg-white p-8 rounded-3xl border-2 border-emerald-100 shadow-lg text-center">
+                <div className="text-5xl font-bold text-emerald-600 mb-4">+450%</div>
+                <h4 className="font-bold text-slate-900 text-xl mb-3">
+                  {locale === 'fr' ? 'Profit Maximal' :
+                   locale === 'zh-CN' ? '最高利润' :
+                   'Maximum Profit'}
+                </h4>
+                <p className="text-slate-600">
+                  {locale === 'fr' ? 'Certains numéros spéciaux ont augmenté de valeur jusqu\'à 450%' :
+                   locale === 'zh-CN' ? '某些特殊编号价值增长高达450%' :
+                   'Some special numbers have increased in value up to 450%'}
+                </p>
+              </div>
+              
+              <div className="bg-white p-8 rounded-3xl border-2 border-amber-100 shadow-lg text-center">
+                <div className="text-5xl font-bold text-amber-600 mb-4">$12.5K</div>
+                <h4 className="font-bold text-slate-900 text-xl mb-3">
+                  {locale === 'fr' ? 'Record de Vente' :
+                   locale === 'zh-CN' ? '最高销售额' :
+                   'Sales Record'}
+                </h4>
+                <p className="text-slate-600">
+                  {locale === 'fr' ? 'Cadenas #777 vendu pour 12,500 USD' :
+                   locale === 'zh-CN' ? '锁具#777以12,500美元售出' :
+                   'Lock #777 sold for 12,500 USD'}
+                </p>
+              </div>
+              
+              <div className="bg-white p-8 rounded-3xl border-2 border-blue-100 shadow-lg text-center">
+                <div className="text-5xl font-bold text-blue-600 mb-4">72h</div>
+                <h4 className="font-bold text-slate-900 text-xl mb-3">
+                  {locale === 'fr' ? 'Vente Rapide' :
+                   locale === 'zh-CN' ? '快速销售' :
+                   'Quick Sale'}
+                </h4>
+                <p className="text-slate-600">
+                  {locale === 'fr' ? 'Temps moyen de vente pour les numéros premium' :
+                   locale === 'zh-CN' ? '优质编号的平均销售时间' :
+                   'Average sale time for premium numbers'}
+                </p>
+              </div>
+            </div>
 
-    {/* Exemples de profits */}
-    <div className="mb-16">
-      <h3 className="text-3xl font-bold text-slate-900 mb-10 text-center">
-        {locale === 'fr' ? 'Exemples Réels de Profits' :
-         locale === 'zh-CN' ? '真实利润示例' :
-         'Real Profit Examples'}
-      </h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Exemple 1 */}
-        <Card className="border-2 border-slate-100 hover:border-emerald-200 transition-all hover:shadow-xl">
-          <CardContent className="p-6 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-emerald-700 mx-auto mb-4">
-              #777
-            </div>
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm text-slate-500">
-                  {locale === 'fr' ? 'Prix d\'achat' :
-                   locale === 'zh-CN' ? '购买价格' :
-                   'Purchase Price'}
-                </div>
-                <div className="text-xl font-bold text-slate-900">$149</div>
-              </div>
-              <div>
-                <div className="text-sm text-slate-500">
-                  {locale === 'fr' ? 'Prix de vente' :
-                   locale === 'zh-CN' ? '销售价格' :
-                   'Sale Price'}
-                </div>
-                <div className="text-2xl font-bold text-emerald-600">$12,500</div>
-              </div>
-              <div className="pt-3">
-                <div className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-bold">
-                  +8,288%
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Exemple 2 */}
-        <Card className="border-2 border-slate-100 hover:border-amber-200 transition-all hover:shadow-xl">
-          <CardContent className="p-6 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-amber-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-amber-700 mx-auto mb-4">
-              #1313
-            </div>
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm text-slate-500">
-                  {locale === 'fr' ? 'Prix d\'achat' :
-                   locale === 'zh-CN' ? '购买价格' :
-                   'Purchase Price'}
-                </div>
-                <div className="text-xl font-bold text-slate-900">$79</div>
-              </div>
-              <div>
-                <div className="text-sm text-slate-500">
-                  {locale === 'fr' ? 'Prix de vente' :
-                   locale === 'zh-CN' ? '销售价格' :
-                   'Sale Price'}
-                </div>
-                <div className="text-2xl font-bold text-amber-600">$2,499</div>
-              </div>
-              <div className="pt-3">
-                <div className="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-bold">
-                  +3,063%
-                </div>
+            <div className="mb-16">
+              <h3 className="text-3xl font-bold text-slate-900 mb-10 text-center">
+                {locale === 'fr' ? 'Exemples Réels de Profits' :
+                 locale === 'zh-CN' ? '真实利润示例' :
+                 'Real Profit Examples'}
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <Card className="border-2 border-slate-100 hover:border-emerald-200 transition-all hover:shadow-xl">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-emerald-700 mx-auto mb-4">#777</div>
+                    <div className="space-y-3">
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-xl font-bold text-slate-900">$149</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-2xl font-bold text-emerald-600">$12,500</div></div>
+                      <div className="pt-3"><div className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-bold">+8,288%</div></div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-2 border-slate-100 hover:border-amber-200 transition-all hover:shadow-xl">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-amber-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-amber-700 mx-auto mb-4">#1313</div>
+                    <div className="space-y-3">
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-xl font-bold text-slate-900">$79</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-2xl font-bold text-amber-600">$2,499</div></div>
+                      <div className="pt-3"><div className="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-bold">+3,063%</div></div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-2 border-slate-100 hover:border-blue-200 transition-all hover:shadow-xl">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-blue-700 mx-auto mb-4">#2024</div>
+                    <div className="space-y-3">
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-xl font-bold text-slate-900">$49</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-2xl font-bold text-blue-600">$1,850</div></div>
+                      <div className="pt-3"><div className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">+3,676%</div></div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-2 border-slate-100 hover:border-purple-200 transition-all hover:shadow-xl">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-purple-700 mx-auto mb-4">#888</div>
+                    <div className="space-y-3">
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-xl font-bold text-slate-900">$49</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-2xl font-bold text-purple-600">$999</div></div>
+                      <div className="pt-3"><div className="inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-bold">+3,345%</div></div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        
-        {/* Exemple 3 */}
-        <Card className="border-2 border-slate-100 hover:border-blue-200 transition-all hover:shadow-xl">
-          <CardContent className="p-6 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-blue-700 mx-auto mb-4">
-              #2024
-            </div>
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm text-slate-500">
-                  {locale === 'fr' ? 'Prix d\'achat' :
-                   locale === 'zh-CN' ? '购买价格' :
-                   'Purchase Price'}
-                </div>
-                <div className="text-xl font-bold text-slate-900">$49</div>
-              </div>
-              <div>
-                <div className="text-sm text-slate-500">
-                  {locale === 'fr' ? 'Prix de vente' :
-                   locale === 'zh-CN' ? '销售价格' :
-                   'Sale Price'}
-                </div>
-                <div className="text-2xl font-bold text-blue-600">$1,850</div>
-              </div>
-              <div className="pt-3">
-                <div className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
-                  +3,676%
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Exemple 4 */}
-        <Card className="border-2 border-slate-100 hover:border-purple-200 transition-all hover:shadow-xl">
-          <CardContent className="p-6 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-purple-700 mx-auto mb-4">
-              #888
-            </div>
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm text-slate-500">
-                  {locale === 'fr' ? 'Prix d\'achat' :
-                   locale === 'zh-CN' ? '购买价格' :
-                   'Purchase Price'}
-                </div>
-                <div className="text-xl font-bold text-slate-900">$49</div>
-              </div>
-              <div>
-                <div className="text-sm text-slate-500">
-                  {locale === 'fr' ? 'Prix de vente' :
-                   locale === 'zh-CN' ? '销售价格' :
-                   'Sale Price'}
-                </div>
-                <div className="text-2xl font-bold text-purple-600">$999</div>
-              </div>
-              <div className="pt-3">
-                <div className="inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-bold">
-                  +3,345%
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
 
-    {/* Comment ça marche pour les investisseurs */}
-    <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-10 text-white mb-16">
-      <h3 className="text-3xl font-bold text-white mb-8 text-center">
-        {locale === 'fr' ? 'Comment Investir Intelligemment ?' :
-         locale === 'zh-CN' ? '如何智能投资？' :
-         'How to Invest Smartly?'}
-      </h3>
-      
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Eye className="h-8 w-8 text-emerald-400" />
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-12 text-center relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(16,185,129,0.4),transparent_50%)]"></div>
+              </div>
+              
+              <div className="relative z-10">
+                <h3 className="text-4xl font-bold text-white mb-6">
+                  {locale === 'fr' ? (
+                    <>Prêt à <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Transformer $49.99 en $12,500</span> ?</>
+                  ) : locale === 'zh-CN' ? (
+                    <>准备好将<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">$49.99变成$12,500</span>吗？</>
+                  ) : (
+                    <>Ready to <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Turn $49.99 into $12,500</span> ?</>
+                  )}
+                </h3>
+                
+                <p className="text-xl text-slate-300 mb-10 max-w-3xl mx-auto">
+                  {locale === 'fr' ? 'Rejoignez notre marketplace exclusive de cadenas numériques. Achetez des numéros spéciaux, personnalisez-les et revendez-les à des collectionneurs du monde entier.' :
+                   locale === 'zh-CN' ? '加入我们的数字锁专属市场。购买特殊编号，个性化定制，然后转售给全球收藏家。' :
+                   'Join our exclusive digital lock marketplace. Purchase special numbers, customize them, and resell to collectors worldwide.'}
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                  <Link href="/marketplace" className="w-full sm:w-auto">
+                    <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-14 py-8 text-xl rounded-full shadow-2xl hover:scale-105 transition-transform">
+                      <TrendingUp className="mr-3 h-6 w-6" />
+                      {locale === 'fr' ? 'Explorer la Marketplace' :
+                       locale === 'zh-CN' ? '探索市场' :
+                       'Explore Marketplace'}
+                    </Button>
+                  </Link>
+                  <Link href="/purchase?investment=true" className="w-full sm:w-auto">
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto border-3 border-white/40 bg-white/5 hover:bg-white/10 text-white font-bold px-10 py-8 text-xl rounded-full">
+                      <Coins className="mr-3" />
+                      {locale === 'fr' ? 'Acheter à $29.99' :
+                       locale === 'zh-CN' ? '以$29.99购买' :
+                       'Buy Starting at $29.99'}
+                    </Button>
+                  </Link>
+                </div>
+                
+                <div className="mt-10 pt-8 border-t border-slate-700">
+                  <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-400">
+                    <span className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" />
+                      {locale === 'fr' ? 'Garantie 30 jours' :
+                       locale === 'zh-CN' ? '30天保证' :
+                       '30-day guarantee'}
+                    </span>
+                    <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-blue-400" />
+                      {locale === 'fr' ? 'Propriété vérifiée' :
+                       locale === 'zh-CN' ? '验证所有权' :
+                       'Verified ownership'}
+                    </span>
+                    <span className="flex items-center gap-2"><Users className="h-4 w-4 text-purple-400" />
+                      {locale === 'fr' ? '85,000+ collectionneurs' :
+                       locale === 'zh-CN' ? '85,000+收藏家' :
+                       '85,000+ collectors'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <h4 className="font-bold text-xl mb-3">
-            {locale === 'fr' ? '1. Repérez' :
-             locale === 'zh-CN' ? '1. 发现' :
-             '1. Spot'}
-          </h4>
-          <p className="text-slate-300">
-            {locale === 'fr' ? 'Identifiez des numéros porte-bonheur (7, 77, 777) ou des dates significatives' :
-             locale === 'zh-CN' ? '识别幸运数字（7, 77, 777）或有意义的日期' :
-             'Identify lucky numbers (7, 77, 777) or meaningful dates'}
-          </p>
-        </div>
-        
-        <div className="text-center">
-          <div className="w-16 h-16 bg-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Coins className="h-8 w-8 text-amber-400" />
-          </div>
-          <h4 className="font-bold text-xl mb-3">
-            {locale === 'fr' ? '2. Achetez' :
-             locale === 'zh-CN' ? '2. 购买' :
-             '2. Purchase'}
-          </h4>
-          <p className="text-slate-300">
-            {locale === 'fr' ? 'Acquérez le cadenas numérique à partir de $29.99 seulement' :
-             locale === 'zh-CN' ? '仅需$29.99起购买数字锁' :
-             'Purchase the digital lock starting from $29.99'}
-          </p>
-        </div>
-        
-        <div className="text-center">
-          <div className="w-16 h-16 bg-rose-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <TrendingUp className="h-8 w-8 text-rose-400" />
-          </div>
-          <h4 className="font-bold text-xl mb-3">
-            {locale === 'fr' ? '3. Revendez' :
-             locale === 'zh-CN' ? '3. 转售' :
-             '3. Resell'}
-          </h4>
-          <p className="text-slate-300">
-            {locale === 'fr' ? 'Mettez-le en vente sur notre marketplace avec votre prix' :
-             locale === 'zh-CN' ? '在我们的市场上以您设定的价格出售' :
-             'List it for sale on our marketplace with your price'}
-          </p>
-        </div>
-      </div>
-      
-      <div className="mt-12 text-center">
-        <div className="bg-slate-800/50 rounded-2xl p-6 inline-block">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <Euro className="h-8 w-8 text-emerald-400" />
-            <Building className="h-8 w-8 text-amber-400" />
-            <Trophy className="h-8 w-8 text-rose-400" />
-          </div>
-          <p className="text-slate-300 text-lg">
-            {locale === 'fr' ? 'Nos meilleurs investisseurs gagnent en moyenne $8,500 par mois' :
-             locale === 'zh-CN' ? '我们顶级投资者平均每月赚取$8,500' :
-             'Our top investors average $8,500 per month in profits'}
-          </p>
-        </div>
-      </div>
-    </div>
+        </section>
 
-{/* Numéros Boostés par les Vendeurs */}
-<div className="mb-16">
-  <div className="flex flex-col md:flex-row justify-between items-center mb-10">
-    <div>
-      <h3 className="text-3xl font-bold text-slate-900 mb-3">
-        🔥 Featured by Sellers
-      </h3>
-      <p className="text-slate-600">
-        Locks boosted by sellers • Starting from $19.99 boost
-      </p>
-    </div>
-    <div className="mt-4 md:mt-0">
-      <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
-        <Sparkles className="h-3 w-3 mr-1" /> SELLER BOOSTED
-      </Badge>
-    </div>
-  </div>
-  
-  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-    {[777, 1313, 2024, 888, 123, 456, 789, 1010, 2020, 3030].map((num, index) => (
-      <Card key={num} className="border-2 border-amber-100 hover:border-amber-300 hover:shadow-xl transition-all cursor-pointer">
-        <CardContent className="p-6 text-center">
-          <div className="text-2xl font-bold text-amber-700 mb-2">#{num}</div>
-          <div className="text-sm text-slate-600 mb-3">
-            {index < 3 ? 'VIP Boosted' : index < 7 ? 'Premium Boosted' : 'Basic Boosted'}
-          </div>
-          <div className="text-lg font-bold text-slate-900 mb-4">
-            ${(299 + (index * 100)).toFixed(2)}
-          </div>
-          <div className="text-xs text-amber-600 font-bold mb-4">
-            <DollarSign className="inline h-3 w-3 mr-1" />
-            {index < 3 ? '$99.99' : index < 7 ? '$49.99' : '$19.99'} boost
-          </div>
-          <Button 
-            size="sm" 
-            className="w-full bg-amber-600 hover:bg-amber-700"
-            onClick={() => handleQuickBuy(num, 299 + (index * 100))}
-          >
-            <ShoppingCart className="h-3 w-3 mr-2" /> Quick Buy
-          </Button>
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-</div>
-
-    {/* CTA pour la marketplace */}
-    <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-12 text-center relative overflow-hidden">
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(16,185,129,0.4),transparent_50%)]"></div>
-      </div>
-      
-      <div className="relative z-10">
-        <h3 className="text-4xl font-bold text-white mb-6">
-          {locale === 'fr' ? (
-            <>Prêt à <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Transformer $49.99 en $12,500</span> ?</>
-          ) : locale === 'zh-CN' ? (
-            <>准备好将<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">$49.99变成$12,500</span>吗？</>
-          ) : (
-            <>Ready to <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Turn $49.99 into $12,500</span> ?</>
-          )}
-        </h3>
-        
-        <p className="text-xl text-slate-300 mb-10 max-w-3xl mx-auto">
-          {locale === 'fr' ? 'Rejoignez notre marketplace exclusive de cadenas numériques. Achetez des numéros spéciaux, personnalisez-les et revendez-les à des collectionneurs du monde entier.' :
-           locale === 'zh-CN' ? '加入我们的数字锁专属市场。购买特殊编号，个性化定制，然后转售给全球收藏家。' :
-           'Join our exclusive digital lock marketplace. Purchase special numbers, customize them, and resell to collectors worldwide.'}
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-6 justify-center">
-          <Link href="/marketplace" className="w-full sm:w-auto">
-            <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-14 py-8 text-xl rounded-full shadow-2xl hover:scale-105 transition-transform">
-              <TrendingUp className="mr-3 h-6 w-6" />
-              {locale === 'fr' ? 'Explorer la Marketplace' :
-               locale === 'zh-CN' ? '探索市场' :
-               'Explore Marketplace'}
-            </Button>
-          </Link>
-          <Link href="/purchase?investment=true" className="w-full sm:w-auto">
-            <Button size="lg" variant="outline" className="w-full sm:w-auto border-3 border-white/40 bg-white/5 hover:bg-white/10 text-white font-bold px-10 py-8 text-xl rounded-full">
-              <Coins className="mr-3" />
-              {locale === 'fr' ? 'Acheter à $29.99' :
-               locale === 'zh-CN' ? '以$29.99购买' :
-               'Buy Starting at $29.99'}
-            </Button>
-          </Link>
-        </div>
-        
-        <div className="mt-10 pt-8 border-t border-slate-700">
-          <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-400">
-            <span className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-400" />
-              {locale === 'fr' ? 'Garantie 30 jours' :
-               locale === 'zh-CN' ? '30天保证' :
-               '30-day guarantee'}
-            </span>
-            <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-blue-400" />
-              {locale === 'fr' ? 'Propriété vérifiée' :
-               locale === 'zh-CN' ? '验证所有权' :
-               'Verified ownership'}
-            </span>
-            <span className="flex items-center gap-2"><Users className="h-4 w-4 text-purple-400" />
-              {locale === 'fr' ? '85,000+ collectionneurs' :
-               locale === 'zh-CN' ? '85,000+收藏家' :
-               '85,000+ collectors'}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-        {/* =====================================================================================
-            FAQ SECTION - Ultra-complète
-        ===================================================================================== */}
+        {/* FAQ SECTION */}
         <section className="py-24 bg-slate-50">
           <div className="container mx-auto px-4 max-w-4xl">
             <div className="text-center mb-16">
@@ -1058,7 +834,6 @@ export default async function Home({ params }: { params: { locale: string } }) {
 
             </Accordion>
 
-            {/* CTA après FAQ */}
             <div className="mt-16 text-center">
               <Link href="/purchase">
                 <Button size="lg" className="bg-gradient-to-r from-[#e11d48] to-rose-600 hover:from-rose-700 hover:to-[#be123c] text-white font-bold px-14 py-8 text-xl rounded-full shadow-2xl hover:scale-105 transition-transform">
@@ -1078,9 +853,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
           </div>
         </section>
 
-        {/* =====================================================================================
-            FINAL CTA - Optimisée pour conversion
-        ===================================================================================== */}
+        {/* FINAL CTA */}
         <section className="py-24 bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(225,29,72,0.4),transparent_50%)]"></div>
@@ -1211,6 +984,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
             </div>
           </div>
         </section>
+
       </main>
 
       <PurchaseNotifications />
