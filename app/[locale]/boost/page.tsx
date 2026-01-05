@@ -54,6 +54,25 @@ export default function BoostPage() {
   const [selectedLockId, setSelectedLockId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Définir les fonctions AVANT les useEffect
+  const calculateProjectedViews = (currentViews: number, packageId: string) => {
+    const multipliers = {
+      basic: 3, // +200%
+      premium: 6, // +500%
+      vip: 11 // +1000%
+    };
+    return currentViews * (multipliers[packageId as keyof typeof multipliers] || 1);
+  };
+
+  const calculateProjectedPrice = (currentPrice: number, packageId: string) => {
+    const multipliers = {
+      basic: 1.5, // +50%
+      premium: 2.5, // +150%
+      vip: 4 // +300%
+    };
+    return currentPrice * (multipliers[packageId as keyof typeof multipliers] || 1);
+  };
+
   const boostPackages: BoostPackage[] = [
     {
       id: 'basic',
@@ -159,24 +178,6 @@ export default function BoostPage() {
 
     // Redirect to checkout
     router.push(`/checkout?type=boost&lock_id=${selectedLockId}&package=${selectedPackage}&price=${selectedPackageData.price}`);
-  };
-
-  const calculateProjectedViews = (currentViews: number, packageId: string) => {
-    const multipliers = {
-      basic: 3, // +200%
-      premium: 6, // +500%
-      vip: 11 // +1000%
-    };
-    return currentViews * (multipliers[packageId as keyof typeof multipliers] || 1);
-  };
-
-  const calculateProjectedPrice = (currentPrice: number, packageId: string) => {
-    const multipliers = {
-      basic: 1.5, // +50%
-      premium: 2.5, // +150%
-      vip: 4 // +300%
-    };
-    return currentPrice * (multipliers[packageId as keyof typeof multipliers] || 1);
   };
 
   const selectedLock = userLocks.find(lock => lock.id === selectedLockId);
