@@ -771,7 +771,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
                    locale === 'zh-CN' ? '购买价格' :
                    'Purchase Price'}
                 </div>
-                <div className="text-xl font-bold text-slate-900">$29</div>
+                <div className="text-xl font-bold text-slate-900">$49</div>
               </div>
               <div>
                 <div className="text-sm text-slate-500">
@@ -827,8 +827,8 @@ export default async function Home({ params }: { params: { locale: string } }) {
              '2. Purchase'}
           </h4>
           <p className="text-slate-300">
-            {locale === 'fr' ? 'Acquérez le cadenas numérique à partir de $19.99 seulement' :
-             locale === 'zh-CN' ? '仅需$19.99起购买数字锁' :
+            {locale === 'fr' ? 'Acquérez le cadenas numérique à partir de $29.99 seulement' :
+             locale === 'zh-CN' ? '仅需$29.99起购买数字锁' :
              'Purchase the digital lock starting from $29.99'}
           </p>
         </div>
