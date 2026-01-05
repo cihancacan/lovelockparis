@@ -6,29 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label'; // Assure-toi d'avoir ce composant ou utilise un label standard
 import { supabase } from '@/lib/supabase';
-import { Users, Search, Shield, Crown, Ban, Eye, Phone, CreditCard, Calendar, DollarSign, Filter } from 'lucide-react';
+import { Users, Search, Shield, Crown, Ban, Eye, Phone, CreditCard, Calendar, Tag, PenSquare, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
 
-// Type enrichi pour avoir toutes les infos
 type UserProfile = {
   id: string;
   email: string;
@@ -36,13 +22,15 @@ type UserProfile = {
   phone: string | null;
   created_at: string;
   role: string;
+  last_sign_in_at: string | null; // Nouvelle donnée
   // Infos bancaires
   bank_country: string | null;
   iban: string | null;
   // Stats calculées
   locks_count: number;
   total_spent: number;
-  last_purchase_date: string | null;
+  total_sales: number; // Nouvelle donnée
+  last_sale_date: string | null; // Nouvelle donnée
   is_banned: boolean;
 };
 
@@ -53,22 +41,22 @@ export function UserManagement() {
   
   // Filtres
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortFilter, setSortFilter] = useState('newest'); // newest, oldest, richest, most_locks, banned
+  const [sortFilter, setSortFilter] = useState('newest');
 
   // États UI
   const [loading, setLoading] = useState(true);
   const [showBanDialog, setShowBanDialog] = useState(false);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false); // Pour l'édition
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  
+  // Formulaire d'édition
+  const [editForm, setEditForm] = useState({ full_name: '', phone: '', role: 'user' });
   const [banReason, setBanReason] = useState('');
-
-  const isAdminUser = userProfile?.role === 'admin' || userProfile?.email === 'cacancihan@gmail.com';
 
   useEffect(() => {
     loadData();
   }, []);
 
-  // Re-filtrer quand la recherche ou le tri change
   useEffect(() => {
     applyFilters();
   }, [searchQuery, sortFilter, users]);
@@ -76,31 +64,34 @@ export function UserManagement() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. Récupérer tous les profils
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*');
-
+      // 1. Profils
+      const { data: profiles, error } = await supabase.from('profiles').select('*');
       if (error) throw error;
 
-      // 2. Récupérer les bannis
+      // 2. Bannis
       const { data: bannedData } = await supabase.from('banned_users').select('user_id');
       const bannedSet = new Set(bannedData?.map(b => b.user_id));
 
-      // 3. Récupérer tous les cadenas (pour calculer les stats)
-      const { data: locks } = await supabase.from('locks').select('owner_id, price, created_at');
+      // 3. Transactions (Achats et Ventes) & Cadenas
+      const { data: locks } = await supabase.from('locks').select('owner_id, price');
+      const { data: transactions } = await supabase.from('transactions').select('*');
 
-      // 4. Fusionner les données (Data Munging)
+      // 4. Fusion des données
       const enrichedUsers: UserProfile[] = (profiles || []).map(p => {
-        // Filtrer les cadenas de cet utilisateur
+        // Cadenas possédés
         const userLocks = locks?.filter(l => l.owner_id === p.id) || [];
         
-        // Calculs
-        const totalSpent = userLocks.reduce((sum, l) => sum + (Number(l.price) || 0), 0);
+        // Achats (Dépenses)
+        const purchases = transactions?.filter(t => t.buyer_id === p.id) || [];
+        const totalSpent = purchases.reduce((sum, t) => sum + Number(t.amount), 0);
+
+        // Ventes (Gains)
+        const sales = transactions?.filter(t => t.seller_id === p.id) || [];
+        const totalSales = sales.reduce((sum, t) => sum + (Number(t.amount) - Number(t.platform_commission)), 0);
         
-        // Trouver la dernière date d'achat
-        const sortedLocks = [...userLocks].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        const lastPurchase = sortedLocks.length > 0 ? sortedLocks[0].created_at : null;
+        // Date dernière vente
+        sales.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        const lastSale = sales.length > 0 ? sales[0].created_at : null;
 
         return {
           id: p.id,
@@ -108,12 +99,14 @@ export function UserManagement() {
           full_name: p.full_name,
           phone: p.phone,
           created_at: p.created_at,
-          role: p.role,
+          role: p.role || 'user',
+          last_sign_in_at: p.last_sign_in_at,
           bank_country: p.bank_country,
           iban: p.iban,
           locks_count: userLocks.length,
           total_spent: totalSpent,
-          last_purchase_date: lastPurchase,
+          total_sales: totalSales,
+          last_sale_date: lastSale,
           is_banned: bannedSet.has(p.id)
         };
       });
@@ -122,7 +115,7 @@ export function UserManagement() {
 
     } catch (err: any) {
       console.error(err);
-      toast.error("Erreur de chargement des données clients");
+      toast.error("Erreur chargement données");
     } finally {
       setLoading(false);
     }
@@ -131,41 +124,65 @@ export function UserManagement() {
   const applyFilters = () => {
     let result = [...users];
 
-    // 1. Recherche
+    // Recherche
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(u => 
         u.email?.toLowerCase().includes(q) || 
         u.full_name?.toLowerCase().includes(q) ||
-        u.phone?.includes(q) ||
-        u.id === q
+        u.phone?.includes(q)
       );
     }
 
-    // 2. Tri
+    // Tri
     switch (sortFilter) {
-      case 'newest':
-        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        break;
-      case 'oldest':
-        result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-        break;
-      case 'richest': // Ceux qui ont le plus dépensé
-        result.sort((a, b) => b.total_spent - a.total_spent);
-        break;
-      case 'most_locks': // Ceux qui ont le plus de cadenas
-        result.sort((a, b) => b.locks_count - a.locks_count);
-        break;
-      case 'banned': // Les bannis en premier
-        result = result.filter(u => u.is_banned);
-        break;
-      case 'admins': // Les admins
-        result = result.filter(u => u.role === 'admin');
-        break;
+      case 'newest': result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break;
+      case 'active': result.sort((a, b) => new Date(b.last_sign_in_at || 0).getTime() - new Date(a.last_sign_in_at || 0).getTime()); break;
+      case 'richest': result.sort((a, b) => b.total_spent - a.total_spent); break;
+      case 'sellers': result.sort((a, b) => b.total_sales - a.total_sales); break; // Meilleurs vendeurs
+      case 'banned': result = result.filter(u => u.is_banned); break;
+      case 'admins': result = result.filter(u => u.role === 'admin'); break;
     }
 
     setFilteredUsers(result);
   };
+
+  // --- ACTIONS MODIFICATION ---
+
+  const openEdit = (user: UserProfile) => {
+    setSelectedUser(user);
+    setEditForm({
+      full_name: user.full_name || '',
+      phone: user.phone || '',
+      role: user.role
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: editForm.full_name,
+          phone: editForm.phone,
+          role: editForm.role
+        })
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
+
+      toast.success("Profil mis à jour !");
+      setShowEditDialog(false);
+      loadData(); // Rafraîchir
+    } catch (e) {
+      toast.error("Erreur lors de la modification");
+    }
+  };
+
+  // --- ACTIONS BAN ---
 
   const handleBanUser = async () => {
     if (!selectedUser || !banReason) return;
@@ -175,108 +192,67 @@ export function UserManagement() {
         reason: banReason,
         banned_by: 'Admin'
       });
-      toast.success(`${selectedUser.email} a été banni.`);
+      toast.success("Utilisateur banni.");
       setShowBanDialog(false);
-      loadData(); // Recharger pour mettre à jour l'état
-    } catch (e) {
-      toast.error("Erreur lors du bannissement");
-    }
+      loadData();
+    } catch (e) { toast.error("Erreur ban"); }
   };
 
   const handleUnbanUser = async (id: string) => {
-    if(!confirm("Débannir cet utilisateur ?")) return;
-    try {
-      await supabase.from('banned_users').delete().eq('user_id', id);
-      toast.success("Utilisateur réactivé.");
-      loadData();
-    } catch (e) {
-      toast.error("Erreur");
-    }
-  };
-
-  // Voir fiche client
-  const openDetails = (user: UserProfile) => {
-    setSelectedUser(user);
-    setShowDetailsDialog(true);
+    if(!confirm("Débannir ?")) return;
+    await supabase.from('banned_users').delete().eq('user_id', id);
+    toast.success("Utilisateur rétabli.");
+    loadData();
   };
 
   return (
     <div className="space-y-6">
       
-      {/* --- HEADER STATS --- */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 flex flex-col items-center">
-            <span className="text-xs text-muted-foreground uppercase font-bold">Total Clients</span>
-            <span className="text-2xl font-bold text-blue-600">{users.length}</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex flex-col items-center">
-            <span className="text-xs text-muted-foreground uppercase font-bold">Nouveaux (24h)</span>
-            <span className="text-2xl font-bold text-green-600">
-              {users.filter(u => (Date.now() - new Date(u.created_at).getTime()) < 86400000).length}
-            </span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex flex-col items-center">
-            <span className="text-xs text-muted-foreground uppercase font-bold">Total Dépensé</span>
-            <span className="text-2xl font-bold text-amber-600">
-              ${users.reduce((acc, u) => acc + u.total_spent, 0).toLocaleString()}
-            </span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex flex-col items-center">
-            <span className="text-xs text-muted-foreground uppercase font-bold">Bannis</span>
-            <span className="text-2xl font-bold text-red-600">
-              {users.filter(u => u.is_banned).length}
-            </span>
-          </CardContent>
-        </Card>
+      {/* STATS RAPIDES */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card className="bg-slate-50 border-slate-200"><CardContent className="p-4 text-center"><div className="text-xs text-slate-500 uppercase font-bold">Clients</div><div className="text-xl font-bold text-slate-900">{users.length}</div></CardContent></Card>
+        <Card className="bg-slate-50 border-slate-200"><CardContent className="p-4 text-center"><div className="text-xs text-slate-500 uppercase font-bold">CA Ventes</div><div className="text-xl font-bold text-green-600">${users.reduce((acc, u) => acc + u.total_spent, 0).toFixed(0)}</div></CardContent></Card>
+        <Card className="bg-slate-50 border-slate-200"><CardContent className="p-4 text-center"><div className="text-xs text-slate-500 uppercase font-bold">Vol. Reventes</div><div className="text-xl font-bold text-blue-600">${users.reduce((acc, u) => acc + u.total_sales, 0).toFixed(0)}</div></CardContent></Card>
+        <Card className="bg-slate-50 border-slate-200"><CardContent className="p-4 text-center"><div className="text-xs text-slate-500 uppercase font-bold">Cadenas</div><div className="text-xl font-bold text-amber-600">{users.reduce((acc, u) => acc + u.locks_count, 0)}</div></CardContent></Card>
+        <Card className="bg-slate-50 border-slate-200"><CardContent className="p-4 text-center"><div className="text-xs text-slate-500 uppercase font-bold">Bannis</div><div className="text-xl font-bold text-red-600">{users.filter(u => u.is_banned).length}</div></CardContent></Card>
       </div>
 
-      {/* --- CONTROLES --- */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-lg border border-slate-200">
+      {/* BARRE OUTILS */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input 
-            placeholder="Rechercher (Nom, Email, Tel, ID)..." 
-            className="pl-9"
+            placeholder="Rechercher un client..." 
+            className="pl-9 bg-slate-50 border-slate-200"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <Filter className="h-4 w-4 text-slate-500" />
-          <Select value={sortFilter} onValueChange={setSortFilter}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Trier par..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">📅 Plus récents</SelectItem>
-              <SelectItem value="oldest">⏳ Plus anciens</SelectItem>
-              <SelectItem value="richest">💎 Gros Acheteurs ($)</SelectItem>
-              <SelectItem value="most_locks">🔒 Collectionneurs</SelectItem>
-              <SelectItem value="banned">🚫 Bannis</SelectItem>
-              <SelectItem value="admins">🛡️ Admins</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={sortFilter} onValueChange={setSortFilter}>
+          <SelectTrigger className="w-[220px]">
+            <SelectValue placeholder="Trier par..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">📅 Inscription récente</SelectItem>
+            <SelectItem value="active">🟢 Dernière connexion</SelectItem>
+            <SelectItem value="richest">💎 Gros Acheteurs</SelectItem>
+            <SelectItem value="sellers">💰 Gros Vendeurs</SelectItem>
+            <SelectItem value="banned">🚫 Bannis</SelectItem>
+            <SelectItem value="admins">🛡️ Admins</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* --- TABLEAU LISTE --- */}
+      {/* TABLEAU */}
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Utilisateur</TableHead>
-                <TableHead className="hidden md:table-cell">Contact</TableHead>
+              <TableRow className="bg-slate-50/50">
+                <TableHead>Client</TableHead>
+                <TableHead>Activité</TableHead>
+                <TableHead>Finances</TableHead>
                 <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Dépenses</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -284,58 +260,77 @@ export function UserManagement() {
               {loading ? (
                 <TableRow><TableCell colSpan={5} className="text-center py-8">Chargement...</TableCell></TableRow>
               ) : filteredUsers.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Aucun résultat</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Aucun client trouvé</TableCell></TableRow>
               ) : (
                 filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow key={user.id} className="hover:bg-slate-50 transition-colors">
+                    
+                    {/* COL 1 : IDENTITÉ */}
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-900">{user.full_name || 'Sans Nom'}</span>
-                        <span className="text-xs text-slate-500">{user.email}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">{user.id.slice(0, 8)}...</span>
+                        <span className="text-xs text-slate-500 font-mono">{user.email}</span>
+                        {user.phone && <span className="text-[10px] text-slate-400 mt-1 flex items-center gap-1"><Phone size={10}/> {user.phone}</span>}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="flex flex-col gap-1">
-                        {user.phone ? (
-                          <span className="text-xs flex items-center gap-1"><Phone size={10}/> {user.phone}</span>
-                        ) : <span className="text-xs text-slate-300">-</span>}
-                        <span className="text-xs text-slate-400 flex items-center gap-1">
-                          <Calendar size={10}/> Inscrit: {new Date(user.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </TableCell>
+
+                    {/* COL 2 : ACTIVITÉ */}
                     <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        {user.role === 'admin' && <Badge className="bg-amber-500 text-[10px]">Admin</Badge>}
-                        {user.is_banned ? (
-                          <Badge variant="destructive" className="text-[10px]">BANNI</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 text-[10px]">Actif</Badge>
+                      <div className="flex flex-col gap-1 text-xs text-slate-500">
+                        <span>Inscrit: {new Date(user.created_at).toLocaleDateString()}</span>
+                        <span className={user.last_sign_in_at ? "text-green-600 font-medium" : "text-slate-300"}>
+                          Vu: {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Jamais'}
+                        </span>
+                        {user.last_sale_date && (
+                          <span className="text-blue-600 font-medium flex items-center gap-1">
+                            <Tag size={10}/> Vente: {new Date(user.last_sale_date).toLocaleDateString()}
+                          </span>
                         )}
-                        <Badge variant="secondary" className="text-[10px]">{user.locks_count} Cadenas</Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="font-bold text-slate-900">${user.total_spent.toFixed(2)}</div>
-                      {user.last_purchase_date && (
-                        <div className="text-[10px] text-slate-400">
-                          Dernier: {new Date(user.last_purchase_date).toLocaleDateString()}
+
+                    {/* COL 3 : FINANCES */}
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <div className="text-sm">
+                          <span className="text-slate-400 text-xs">Achat: </span>
+                          <span className="font-bold text-slate-900">${user.total_spent.toFixed(0)}</span>
                         </div>
+                        <div className="text-sm">
+                          <span className="text-slate-400 text-xs">Vente: </span>
+                          <span className="font-bold text-green-600">+${user.total_sales.toFixed(0)}</span>
+                        </div>
+                        <div className="text-[10px] bg-slate-100 px-2 py-0.5 rounded w-fit text-slate-500">
+                          {user.locks_count} cadenas
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    {/* COL 4 : STATUT */}
+                    <TableCell>
+                      {user.is_banned ? (
+                        <Badge variant="destructive">BANNI</Badge>
+                      ) : user.role === 'admin' ? (
+                        <Badge className="bg-amber-500"><Crown size={10} className="mr-1"/> Admin</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-slate-500">User</Badge>
                       )}
                     </TableCell>
+
+                    {/* COL 5 : ACTIONS */}
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="ghost" onClick={() => openDetails(user)}>
-                          <Eye className="h-4 w-4 text-blue-500" />
+                        <Button size="sm" variant="outline" onClick={() => openEdit(user)} title="Modifier">
+                          <PenSquare className="h-4 w-4 text-slate-600" />
                         </Button>
+                        
                         {user.is_banned ? (
-                          <Button size="sm" variant="outline" onClick={() => handleUnbanUser(user.id)} className="text-green-600 border-green-200">
+                          <Button size="sm" variant="outline" onClick={() => handleUnbanUser(user.id)} className="text-green-600 border-green-200 bg-green-50">
                             Déban
                           </Button>
                         ) : (
                           !user.role.includes('admin') && (
-                            <Button size="sm" variant="ghost" onClick={() => {setSelectedUser(user); setShowBanDialog(true)}} className="text-red-400 hover:text-red-600">
+                            <Button size="sm" variant="ghost" onClick={() => {setSelectedUser(user); setShowBanDialog(true)}} className="text-red-400 hover:text-red-600 hover:bg-red-50">
                               <Ban className="h-4 w-4" />
                             </Button>
                           )
@@ -350,88 +345,65 @@ export function UserManagement() {
         </CardContent>
       </Card>
 
-      {/* --- DIALOGUE FICHE CLIENT --- */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-xl">
+      {/* --- MODAL ÉDITION --- */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Users className="h-6 w-6 text-slate-500" />
-              Fiche Client
-            </DialogTitle>
+            <DialogTitle>Modifier Utilisateur</DialogTitle>
             <DialogDescription>ID: {selectedUser?.id}</DialogDescription>
           </DialogHeader>
           
-          {selectedUser && (
-            <div className="space-y-6 py-4">
-              
-              {/* Infos Générales */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-3 rounded-lg">
-                  <span className="text-xs font-bold text-slate-400 uppercase">Nom Complet</span>
-                  <div className="font-bold">{selectedUser.full_name || 'Non renseigné'}</div>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-lg">
-                  <span className="text-xs font-bold text-slate-400 uppercase">Email</span>
-                  <div className="font-bold">{selectedUser.email}</div>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-lg">
-                  <span className="text-xs font-bold text-slate-400 uppercase">Téléphone</span>
-                  <div className="font-bold">{selectedUser.phone || '-'}</div>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-lg">
-                  <span className="text-xs font-bold text-slate-400 uppercase">Inscription</span>
-                  <div className="font-bold">{new Date(selectedUser.created_at).toLocaleString()}</div>
-                </div>
-              </div>
-
-              {/* Infos Financières */}
-              <div className="border-t pt-4">
-                <h4 className="flex items-center gap-2 font-bold mb-3 text-slate-700">
-                  <CreditCard className="h-4 w-4" /> Données Bancaires & Achat
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-slate-500">Total Dépensé:</span>
-                    <span className="ml-2 font-bold text-green-600">${selectedUser.total_spent.toFixed(2)}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Cadenas:</span>
-                    <span className="ml-2 font-bold">{selectedUser.locks_count}</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-500">IBAN / Compte:</span>
-                    <span className="ml-2 font-mono bg-slate-100 px-2 rounded">
-                      {selectedUser.iban || 'Aucun RIB enregistré'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Zone Bancaire:</span>
-                    <span className="ml-2 font-bold">{selectedUser.bank_country || '-'}</span>
-                  </div>
-                </div>
-              </div>
-
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nom Complet</Label>
+              <Input 
+                value={editForm.full_name} 
+                onChange={(e) => setEditForm({...editForm, full_name: e.target.value})} 
+              />
             </div>
-          )}
-          
+            <div className="space-y-2">
+              <Label>Téléphone</Label>
+              <Input 
+                value={editForm.phone} 
+                onChange={(e) => setEditForm({...editForm, phone: e.target.value})} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Rôle (Attention !)</Label>
+              <Select 
+                value={editForm.role} 
+                onValueChange={(val) => setEditForm({...editForm, role: val})}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Utilisateur Standard</SelectItem>
+                  <SelectItem value="admin">Administrateur</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <DialogFooter>
-            <Button onClick={() => setShowDetailsDialog(false)}>Fermer</Button>
+            <Button variant="ghost" onClick={() => setShowEditDialog(false)}>Annuler</Button>
+            <Button onClick={handleUpdateUser} className="bg-blue-600 text-white">
+              <Save className="w-4 h-4 mr-2"/> Enregistrer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* --- DIALOGUE BAN --- */}
+      {/* --- MODAL BAN --- */}
       <Dialog open={showBanDialog} onOpenChange={setShowBanDialog}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Bannir l'utilisateur</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-red-600">Bannir l'utilisateur</DialogTitle></DialogHeader>
           <Textarea 
-            placeholder="Raison du ban..." 
+            placeholder="Motif du bannissement..." 
             value={banReason} 
             onChange={(e) => setBanReason(e.target.value)}
           />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setShowBanDialog(false)}>Annuler</Button>
-            <Button variant="destructive" onClick={handleBanUser}>Confirmer</Button>
+            <Button variant="destructive" onClick={handleBanUser}>Confirmer Ban</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
