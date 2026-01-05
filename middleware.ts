@@ -43,7 +43,7 @@ export default async function middleware(req: NextRequest) {
 
   // A. Protection ADMIN
   if (path.includes('/admin')) {
-    // Si pas connecté OU email incorrect
+    // Si pas connecté OU email incorrect (insensible à la casse)
     if (!user || user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       return NextResponse.redirect(new URL('/', req.url));
     }
@@ -60,7 +60,7 @@ export default async function middleware(req: NextRequest) {
   return res;
 }
 
-// C'est ici qu'il y avait le doublon : on ne garde que celui-ci
+// C'est la SEULE et UNIQUE configuration à garder à la fin
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)']
 };
