@@ -1,6 +1,6 @@
 'use client';
 
-// Force le rendu dynamique pour éviter l'erreur de build
+// 1. Force le mode dynamique pour éviter les erreurs Vercel
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -36,25 +36,27 @@ const getSkinImage = (skin: string | null) => {
   return `/images/skin-${s}.png`;
 };
 
-// --- TICKER ---
+// --- COMPOSANT TICKER SÉCURISÉ ---
 const LiveTicker = () => {
   return (
-    <div className="bg-black text-white py-1 border-b border-white/10 text-[10px] uppercase tracking-widest font-bold overflow-hidden">
+    <div className="bg-black text-white py-1 border-b border-white/10 text-[10px] uppercase tracking-widest font-bold overflow-hidden relative">
       <div className="flex items-center gap-8 whitespace-nowrap px-4 overflow-x-auto no-scrollbar">
         <span className="text-emerald-400 flex gap-1 shrink-0 animate-pulse"><Activity size={12}/> MARKET ACTIVE</span>
         <span className="shrink-0">🔥 #777 sold $12,500</span>
         <span className="text-white/20 shrink-0">|</span>
         <span className="shrink-0">💎 #1313 VIP Listed</span>
         <span className="text-white/20 shrink-0">|</span>
-        <span className="text-amber-400 shrink-0">⚡ 1,242 Buyers Online</span>
+        <span className="text-amber-400 shrink-0">⚡ Buyers Online</span>
         <span className="text-white/20 shrink-0">|</span>
-        <span className="shrink-0 text-emerald-400">💰 24h Vol: $142,000</span>
+        <span className="shrink-0">🚀 #2024 Offer Received</span>
+        <span className="text-white/20 shrink-0">|</span>
+        <span className="shrink-0 text-emerald-400">💰 Vol: $142k</span>
       </div>
     </div>
   );
 };
 
-// --- MARKET PULSE ---
+// --- COMPOSANT MARKET PULSE ---
 const MarketPulse = () => (
   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6 mt-6">
     <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 flex items-center justify-between">
@@ -62,11 +64,11 @@ const MarketPulse = () => (
       <TrendingUp size={20} className="text-emerald-500" />
     </div>
     <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 flex items-center justify-between">
-      <div><div className="text-[10px] text-slate-400 uppercase">Total Listed</div><div className="text-lg font-bold text-white">12,405</div></div>
+      <div><div className="text-[10px] text-slate-400 uppercase">Listed</div><div className="text-lg font-bold text-white">12k+</div></div>
       <ShoppingCart size={20} className="text-blue-500" />
     </div>
     <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 flex items-center justify-between">
-      <div><div className="text-[10px] text-slate-400 uppercase">Avg. Sale</div><div className="text-lg font-bold text-white">$145.00</div></div>
+      <div><div className="text-[10px] text-slate-400 uppercase">Avg. Sale</div><div className="text-lg font-bold text-white">$145</div></div>
       <BarChart3 size={20} className="text-purple-500" />
     </div>
     <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 flex items-center justify-between">
@@ -80,17 +82,22 @@ function MarketplaceContent() {
   const router = useRouter();
   const { user } = useAuth();
   
+  // États
   const [locks, setLocks] = useState<MarketLock[]>([]);
   const [vipLocks, setVipLocks] = useState<MarketLock[]>([]);
   const [filteredLocks, setFilteredLocks] = useState<MarketLock[]>([]);
+  
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false); // CLEF DE LA SÉCURITÉ
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<'trending' | 'price_low' | 'price_high'>('trending');
   
-  const ITEMS_PER_PAGE = 60; // 60 PAR PAGE DEMANDÉ
+  const ITEMS_PER_PAGE = 60;
 
+  // 1. Protection Hydratation
   useEffect(() => {
+    setMounted(true);
     loadMarketplaceLocks();
   }, []);
 
@@ -106,12 +113,17 @@ function MarketplaceContent() {
 
       const formattedLocks = (data || []).map(lock => {
         const isGolden = lock.status === 'Reserved_Admin';
+        
         let finalPrice = isGolden ? lock.golden_asset_price : lock.resale_price;
-        if (!finalPrice || isNaN(Number(finalPrice)) || Number(finalPrice) <= 0) finalPrice = 29.99;
+        // Sécurité prix
+        if (!finalPrice || isNaN(Number(finalPrice)) || Number(finalPrice) <= 0) {
+            finalPrice = 29.99;
+        }
 
         let boostLvl = lock.boost_level || 'none';
         if (isGolden) boostLvl = 'golden';
 
+        // Calculs stables
         const viewers = (lock.id % 12) + 2; 
 
         return {
@@ -128,10 +140,10 @@ function MarketplaceContent() {
         };
       });
 
-      // Top 10 VIP en haut
+      // Top 10 VIP
       const vips = formattedLocks
         .filter(l => l.boost_level === 'vip' || l.boost_level === 'golden' || l.price >= 500)
-        .slice(0, 10); // 10 EN HAUT DEMANDÉ
+        .slice(0, 10);
       
       setVipLocks(vips);
       setLocks(formattedLocks);
@@ -144,8 +156,9 @@ function MarketplaceContent() {
   };
 
   useEffect(() => {
-    if (!locks.length) return;
+    if (!mounted || locks.length === 0) return;
     let result = [...locks];
+
     if (search) result = result.filter(l => l.id.toString().includes(search));
     
     if (sortBy === 'price_low') result.sort((a, b) => a.price - b.price);
@@ -154,30 +167,40 @@ function MarketplaceContent() {
 
     setFilteredLocks(result);
     setCurrentPage(1);
-  }, [search, sortBy, locks]);
+  }, [search, sortBy, locks, mounted]);
 
   const handleQuickBuy = (lockId: number, price: number) => {
     if (!user) {
       if (typeof window !== 'undefined') sessionStorage.setItem('pendingBuy', JSON.stringify({ lockId, price }));
-      router.push('/purchase'); // Connexion
+      router.push('/purchase');
       return;
     }
     router.push(`/checkout?lock_id=${lockId}&price=${price}&type=marketplace`);
   };
 
+  const getBoostBadge = (level: string) => {
+    if (level === 'golden') return <Badge className="bg-gradient-to-r from-yellow-400 via-orange-500 to-yellow-400 text-white border-none shadow-md animate-pulse"><Crown className="h-3 w-3 mr-1" /> GOLDEN</Badge>;
+    if (level === 'vip') return <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white"><Trophy className="h-3 w-3 mr-1" /> VIP</Badge>;
+    if (level === 'premium') return <Badge className="bg-gradient-to-r from-amber-600 to-orange-600 text-white"><Crown className="h-3 w-3 mr-1" /> PREMIUM</Badge>;
+    if (level === 'basic') return <Badge className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white"><Sparkles className="h-3 w-3 mr-1" /> BOOSTED</Badge>;
+    return null;
+  };
+
+  // 2. Pagination
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
   const currentItems = filteredLocks.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredLocks.length / ITEMS_PER_PAGE);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-900"><Loader2 className="animate-spin h-10 w-10 text-emerald-500"/></div>;
+  // 3. ÉCRAN DE CHARGEMENT PROTECTEUR
+  if (!mounted || loading) return <div className="min-h-screen flex items-center justify-center bg-slate-900"><Loader2 className="animate-spin h-10 w-10 text-emerald-500"/></div>;
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
       
       <LiveTicker />
 
-      {/* --- SECTION HERO (NOIR) --- */}
+      {/* --- HERO (NOIR) --- */}
       <section className="bg-slate-900 py-8 px-4 border-b border-slate-800">
         <div className="container mx-auto">
           
@@ -190,10 +213,10 @@ function MarketplaceContent() {
             </div>
             
             <div className="flex gap-3 w-full md:w-auto">
-              <Button onClick={() => router.push('/sell')} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 px-6 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+              <Button onClick={() => router.push('/sell')} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 px-6 shadow-[0_0_20px_rgba(16,185,129,0.3)] border border-emerald-400/20">
                 <DollarSign className="mr-2 h-5 w-5"/> SELL LOCK
               </Button>
-              <Button onClick={() => router.push('/boost')} className="flex-1 md:flex-none bg-amber-600 hover:bg-amber-500 text-white font-bold h-12 px-6 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+              <Button onClick={() => router.push('/boost')} className="flex-1 md:flex-none bg-amber-600 hover:bg-amber-500 text-white font-bold h-12 px-6 shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-400/20">
                 <Zap className="mr-2 h-5 w-5"/> BOOST
               </Button>
             </div>
@@ -204,84 +227,118 @@ function MarketplaceContent() {
           <div className="flex flex-col md:flex-row gap-3 bg-slate-800/50 p-2 rounded-xl border border-slate-700">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
-              <Input placeholder="Search Lock ID #..." className="pl-10 h-11 bg-slate-900 border-slate-700 text-white focus:ring-emerald-500" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input 
+                placeholder="Search Lock ID #..." 
+                className="pl-10 h-11 bg-slate-900 border-slate-700 text-white focus:ring-emerald-500 focus:border-emerald-500"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
             <div className="flex gap-2 overflow-x-auto no-scrollbar">
-               <Button onClick={() => setSortBy('trending')} size="sm" className={`h-11 ${sortBy === 'trending' ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400'}`}>Trending</Button>
-               <Button onClick={() => setSortBy('price_low')} size="sm" className={`h-11 ${sortBy === 'price_low' ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400'}`}>Low $</Button>
-               <Button onClick={() => setSortBy('price_high')} size="sm" className={`h-11 ${sortBy === 'price_high' ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400'}`}>High $</Button>
+               <Button onClick={() => setSortBy('trending')} size="sm" className={`h-11 ${sortBy === 'trending' ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'}`}>Trending</Button>
+               <Button onClick={() => setSortBy('price_low')} size="sm" className={`h-11 ${sortBy === 'price_low' ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'}`}>Low $</Button>
+               <Button onClick={() => setSortBy('price_high')} size="sm" className={`h-11 ${sortBy === 'price_high' ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'}`}>High $</Button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* --- VIP SECTION (10 ITEMS) --- */}
-      {vipLocks.length > 0 && (
-        <section className="bg-slate-900 pb-12 px-4 border-b border-slate-800 -mt-1 pt-6">
-          <div className="container mx-auto">
-            <div className="flex items-center gap-2 mb-4 text-amber-400 font-bold tracking-widest text-xs uppercase">
-              <Crown size={14} /> Spotlight Collection
+      <div className="container mx-auto px-4 py-12 space-y-12">
+        
+        {/* --- VIP SECTION (10 ITEMS) --- */}
+        {vipLocks.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-6">
+              <Trophy className="h-6 w-6 text-purple-600" />
+              <h2 className="text-2xl font-bold">Featured & Golden Assets</h2>
             </div>
-            {/* GRILLE 5 PAR LIGNE (md:grid-cols-5) */}
+            {/* GRILLE 5 COLONNES */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {vipLocks.map(lock => (
-                <div key={lock.id} onClick={() => handleQuickBuy(lock.id, lock.price)} className="relative group cursor-pointer bg-slate-800 rounded-xl border border-amber-500/30 hover:border-amber-400 transition-all overflow-hidden hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(245,158,11,0.2)]">
-                  <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-transparent text-white text-[10px] font-bold px-3 py-1 z-10">VIP</div>
-                  <div className="p-4 flex flex-col items-center relative">
-                    <div className="relative z-10 w-20 h-20 mb-2 transition-transform duration-300 group-hover:scale-110">
-                      <Image src={getSkinImage(lock.skin)} alt={lock.skin} fill className="object-contain drop-shadow-2xl" />
-                    </div>
-                    <div className="relative z-10 text-center w-full">
-                      <div className="font-black text-xl text-white">#{lock.id}</div>
-                      <div className="text-amber-400 font-bold text-lg">${lock.price.toLocaleString()}</div>
-                      <Button size="sm" className="w-full mt-2 bg-amber-600 hover:bg-amber-500 text-white border-0 font-bold h-7 text-[10px] uppercase tracking-wide">Buy Now</Button>
-                    </div>
+              {vipLocks.map((lock) => (
+                <Card key={lock.id} onClick={() => handleQuickBuy(lock.id, lock.price)} className={`cursor-pointer border-2 shadow-xl overflow-hidden hover:scale-[1.02] transition-transform group ${lock.is_golden ? 'border-amber-400/50' : 'border-purple-200'}`}>
+                  <div className={`p-1 text-center text-white text-[10px] font-bold tracking-widest ${lock.is_golden ? 'bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-500' : 'bg-gradient-to-r from-purple-600 to-pink-600'}`}>
+                    {lock.is_golden ? '👑 GOLDEN' : 'VIP'}
                   </div>
-                </div>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="text-xl font-black text-slate-900">#{lock.id}</div>
+                      {getBoostBadge(lock.boost_level)}
+                    </div>
+                    
+                    <div className="h-24 bg-slate-50 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                       <Image src={getSkinImage(lock.skin)} alt="lock" width={60} height={60} className="object-contain drop-shadow-lg" />
+                    </div>
+
+                    <div className="flex justify-between items-end mb-2">
+                       <div>
+                         <p className="text-[10px] text-slate-400 font-bold uppercase">Price</p>
+                         <div className="text-2xl font-bold text-slate-900">${lock.price.toLocaleString()}</div>
+                       </div>
+                       <div className="text-right text-xs text-emerald-600 font-bold">
+                         <TrendingUp className="h-3 w-3 inline mr-1" />+{lock.price_increase}%
+                       </div>
+                    </div>
+                    <Button size="sm" className={`w-full font-bold shadow-lg h-9 text-xs ${lock.is_golden ? 'bg-amber-600 hover:bg-amber-700' : 'bg-purple-600 hover:bg-purple-700'}`}>
+                      Buy Now
+                    </Button>
+                  </CardContent>
+                </Card>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* --- LE MUR (GRILLE DENSE 5 COLONNES) --- */}
+        <section>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-slate-900">Latest Listings</h2>
           </div>
-        </section>
-      )}
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {currentItems.map((lock) => {
+              const isVip = lock.boost_level === 'vip' || lock.boost_level === 'golden';
+              const isPremium = lock.boost_level === 'premium';
+              
+              let borderClass = 'border-slate-200';
+              if (isVip) borderClass = 'border-purple-300 ring-1 ring-purple-100';
+              else if (isPremium) borderClass = 'border-amber-300 ring-1 ring-amber-100';
 
-      {/* --- LE MUR (GRILLE DENSE 5 PAR LIGNE) --- */}
-      <div className="container mx-auto px-2 md:px-4 py-8">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3">
-          {currentItems.map((lock) => {
-            const isVip = lock.boost_level === 'vip' || lock.boost_level === 'golden';
-            const isPremium = lock.boost_level === 'premium';
-            
-            let borderClass = 'border-slate-200';
-            if (isVip) borderClass = 'border-purple-400 ring-2 ring-purple-100';
-            else if (isPremium) borderClass = 'border-amber-400 ring-2 ring-amber-100';
-
-            return (
-              <div key={lock.id} onClick={() => handleQuickBuy(lock.id, lock.price)} className={`relative group cursor-pointer rounded-xl border transition-all duration-200 hover:-translate-y-1 hover:shadow-xl overflow-hidden bg-white ${borderClass}`}>
-                {isVip && <div className="absolute top-0 right-0 z-20 px-2 py-0.5 text-[8px] font-black text-white rounded-bl-lg bg-purple-600">VIP</div>}
-                
-                <div className="p-2 flex flex-col h-full items-center text-center">
-                  <div className="relative w-16 h-16 mb-2">
-                     <Image src={getSkinImage(lock.skin)} alt={lock.skin} fill className="object-contain group-hover:scale-110 transition-transform duration-300 drop-shadow-sm" />
-                  </div>
-                  <div className="w-full mt-auto">
-                    <div className="text-[9px] text-slate-400 uppercase font-bold leading-none mb-1 truncate">{lock.zone}</div>
-                    <div className="text-xs font-black text-slate-800 leading-none mb-1">#{lock.id}</div>
-                    <div className={`text-sm font-bold ${isVip ? 'text-purple-600' : 'text-emerald-600'}`}>${lock.price.toLocaleString()}</div>
+              return (
+                <div key={lock.id} onClick={() => handleQuickBuy(lock.id, lock.price)} className={`relative group cursor-pointer rounded-xl border transition-all duration-200 hover:-translate-y-1 hover:shadow-lg overflow-hidden bg-white ${borderClass}`}>
+                  {isVip && <div className="absolute top-0 right-0 z-20 px-2 py-0.5 text-[8px] font-black text-white rounded-bl-lg bg-purple-600">VIP</div>}
+                  
+                  <div className="p-3 flex flex-col h-full items-center text-center">
+                    <div className="relative w-16 h-16 mb-2">
+                       <Image src={getSkinImage(lock.skin)} alt={lock.skin} fill className="object-contain group-hover:scale-110 transition-transform duration-300 drop-shadow-sm" />
+                    </div>
+                    <div className="w-full mt-auto">
+                      <div className="text-[9px] text-slate-400 uppercase font-bold leading-none mb-1 truncate">{lock.zone}</div>
+                      <div className="text-xs font-black text-slate-800 leading-none mb-1">#{lock.id}</div>
+                      <div className={`text-sm font-bold ${isVip ? 'text-purple-600' : 'text-emerald-600'}`}>${lock.price.toLocaleString()}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* PAGINATION */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-4 py-10">
-            <Button variant="outline" size="sm" onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo(0,0); }} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4 mr-1" /> Prev</Button>
-            <span className="text-xs font-bold text-slate-500">Page {currentPage} / {totalPages}</span>
-            <Button variant="outline" size="sm" onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo(0,0); }} disabled={currentPage === totalPages}>Next <ChevronRight className="h-4 w-4 ml-1" /></Button>
+              );
+            })}
           </div>
-        )}
+          
+          {/* PAGINATION */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-4 py-10">
+              <Button variant="outline" size="sm" onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo(0,0); }} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4 mr-1" /> Prev</Button>
+              <span className="text-xs font-bold text-slate-500">Page {currentPage} / {totalPages}</span>
+              <Button variant="outline" size="sm" onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo(0,0); }} disabled={currentPage === totalPages}>Next <ChevronRight className="h-4 w-4 ml-1" /></Button>
+            </div>
+          )}
+
+          {locks.length === 0 && (
+            <div className="text-center py-20 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+               <p className="text-slate-500 font-medium">Marketplace is quiet today.</p>
+               <Button variant="link" onClick={() => router.push('/sell')} className="text-emerald-600">Be the first to list a lock!</Button>
+            </div>
+          )}
+        </section>
+
       </div>
     </div>
   );
