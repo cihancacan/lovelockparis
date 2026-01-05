@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { 
   Users, Search, Crown, Ban, Eye, Phone, CreditCard, Calendar, 
-  Tag, Edit, Save, X, Lock, DollarSign 
+  Tag, Edit, Save, X, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
@@ -17,7 +17,7 @@ import { useAuth } from '@/lib/auth-context';
 type UserProfile = {
   id: string;
   email: string;
-  full_name: string;
+  full_name: string; // On force string ici pour le TS
   phone: string;
   created_at: string;
   role: string;
@@ -37,13 +37,10 @@ const formatDate = (dateString: string | null | undefined) => {
   if (!dateString) return '-';
   try {
     const d = new Date(dateString);
-    if (isNaN(d.getTime())) return '-'; // Si date invalide
-    // On force la locale pour éviter les erreurs serveur/client
-    return d.toLocaleDateString('fr-FR', {
-      day: 'numeric', month: 'numeric', year: 'numeric'
-    });
+    if (isNaN(d.getTime())) return '-'; 
+    return d.toLocaleDateString('fr-FR');
   } catch (e) {
-    return 'Date erreur';
+    return '-';
   }
 };
 
@@ -62,6 +59,8 @@ export function UserManagement() {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  
+  // Initialisation avec des chaînes vides pour éviter le crash "Null Input"
   const [editForm, setEditForm] = useState({ full_name: '', phone: '', role: 'user' });
   const [banReason, setBanReason] = useState('');
 
@@ -86,30 +85,20 @@ export function UserManagement() {
         const totalSpent = userPurchases.reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
         const totalSales = userSales.reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
 
-        // Calcul sécurisé de la date (Correction du bug -Infinity)
-        let lastActivity = p.created_at;
-        try {
-            const validDates = [
-              p.last_sign_in_at,
-              p.created_at,
-              ...userLocks.map((l: any) => l.created_at),
-              ...userPurchases.map((t: any) => t.created_at)
-            ].filter(d => d && !isNaN(new Date(d).getTime())); // Filtre les dates nulles ou invalides
-
-            if (validDates.length > 0) {
-                // On convertit en timestamp pour Math.max
-                const maxTime = Math.max(...validDates.map(d => new Date(d).getTime()));
-                lastActivity = new Date(maxTime).toISOString();
+        // Calcul simple de date pour éviter le crash Math.max
+        let lastActivity = p.created_at || new Date().toISOString();
+        if (p.last_sign_in_at) {
+            // Si une connexion est plus récente que la création
+            if (new Date(p.last_sign_in_at) > new Date(lastActivity)) {
+                lastActivity = p.last_sign_in_at;
             }
-        } catch (e) {
-            console.warn("Erreur date pour", p.id);
         }
 
         return {
           id: p.id || 'Unknown',
           email: p.email || 'No Email',
-          full_name: p.full_name || '',
-          phone: p.phone || '',
+          full_name: p.full_name || '', // Protection anti-null
+          phone: p.phone || '', // Protection anti-null
           created_at: p.created_at || new Date().toISOString(),
           role: p.role || 'user',
           last_sign_in_at: p.last_sign_in_at,
@@ -127,7 +116,6 @@ export function UserManagement() {
       setUsers(enrichedUsers);
     } catch (err) {
       console.error(err);
-      // Pas de toast ici pour éviter les boucles en cas d'erreur de rendu
     } finally {
       setLoading(false);
     }
@@ -139,9 +127,9 @@ export function UserManagement() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(u => 
-        (u.email && u.email.toLowerCase().includes(q)) || 
-        (u.full_name && u.full_name.toLowerCase().includes(q)) ||
-        (u.id && u.id.toLowerCase().includes(q))
+        u.email.toLowerCase().includes(q) || 
+        u.full_name.toLowerCase().includes(q) ||
+        u.id.toLowerCase().includes(q)
       );
     }
 
@@ -159,7 +147,12 @@ export function UserManagement() {
 
   const openEdit = (user: UserProfile) => {
     setSelectedUser(user);
-    setEditForm({ full_name: user.full_name, phone: user.phone, role: user.role });
+    // ICI : Protection cruciale. On s'assure de ne jamais envoyer 'null'
+    setEditForm({ 
+        full_name: user.full_name || '', 
+        phone: user.phone || '', 
+        role: user.role || 'user' 
+    });
     setShowEditDialog(true);
   };
 
