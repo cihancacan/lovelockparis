@@ -828,7 +828,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
           <p className="text-slate-300">
             {locale === 'fr' ? 'Acquérez le cadenas numérique à partir de $19.99 seulement' :
              locale === 'zh-CN' ? '仅需$19.99起购买数字锁' :
-             'Purchase the digital lock starting from $19.99'}
+             'Purchase the digital lock starting from $29.99'}
           </p>
         </div>
         
@@ -865,50 +865,51 @@ export default async function Home({ params }: { params: { locale: string } }) {
       </div>
     </div>
 
-    {/* Numéros Fétiches à Recommander */}
-    <div className="mb-16">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-10">
-        <div>
-          <h3 className="text-3xl font-bold text-slate-900 mb-3">
-            {locale === 'fr' ? 'Top 10 Numéros Fétiches Disponibles' :
-             locale === 'zh-CN' ? '十大热门编号可用' :
-             'Top 10 Hot Numbers Available'}
-          </h3>
-          <p className="text-slate-600">
-            {locale === 'fr' ? 'Ces numéros sont très recherchés par les collectionneurs' :
-             locale === 'zh-CN' ? '这些编号受到收藏家的高度追捧' :
-             'These numbers are highly sought after by collectors'}
-          </p>
-        </div>
-        <div className="mt-4 md:mt-0">
-          <span className="inline-flex items-center gap-2 px-4 py-2 bg-rose-100 text-rose-800 rounded-full text-sm font-bold">
-            <Clock className="h-4 w-4" />
-            {locale === 'fr' ? 'Disponibles pour 1 semaine' :
-             locale === 'zh-CN' ? '限时一周可用' :
-             'Available for 1 week only'}
-          </span>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        {[7, 13, 21, 33, 42, 69, 88, 99, 101, 123].map((num) => (
-          <div key={num} className="bg-white border-2 border-emerald-100 rounded-2xl p-4 text-center hover:border-emerald-300 hover:shadow-lg transition-all cursor-pointer">
-            <div className="text-2xl font-bold text-emerald-700 mb-2">#{num}</div>
-            <div className="text-sm text-slate-600 mb-3">
-              {locale === 'fr' ? 'Numéro Porte-Bonheur' :
-               locale === 'zh-CN' ? '幸运数字' :
-               'Lucky Number'}
-            </div>
-            <div className="text-lg font-bold text-slate-900">$49</div>
-            <div className="text-xs text-emerald-600 font-bold mt-2">
-              {locale === 'fr' ? 'Potentiel +500%' :
-               locale === 'zh-CN' ? '潜力+500%' :
-               'Potential +500%'}
-            </div>
-          </div>
-        ))}
-      </div>
+{/* Numéros Boostés par les Vendeurs */}
+<div className="mb-16">
+  <div className="flex flex-col md:flex-row justify-between items-center mb-10">
+    <div>
+      <h3 className="text-3xl font-bold text-slate-900 mb-3">
+        🔥 Featured by Sellers
+      </h3>
+      <p className="text-slate-600">
+        Locks boosted by sellers • Starting from $19.99 boost
+      </p>
     </div>
+    <div className="mt-4 md:mt-0">
+      <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+        <Sparkles className="h-3 w-3 mr-1" /> SELLER BOOSTED
+      </Badge>
+    </div>
+  </div>
+  
+  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+    {[777, 1313, 2024, 888, 123, 456, 789, 1010, 2020, 3030].map((num, index) => (
+      <Card key={num} className="border-2 border-amber-100 hover:border-amber-300 hover:shadow-xl transition-all cursor-pointer">
+        <CardContent className="p-6 text-center">
+          <div className="text-2xl font-bold text-amber-700 mb-2">#{num}</div>
+          <div className="text-sm text-slate-600 mb-3">
+            {index < 3 ? 'VIP Boosted' : index < 7 ? 'Premium Boosted' : 'Basic Boosted'}
+          </div>
+          <div className="text-lg font-bold text-slate-900 mb-4">
+            ${(299 + (index * 100)).toFixed(2)}
+          </div>
+          <div className="text-xs text-amber-600 font-bold mb-4">
+            <DollarSign className="inline h-3 w-3 mr-1" />
+            {index < 3 ? '$99.99' : index < 7 ? '$49.99' : '$19.99'} boost
+          </div>
+          <Button 
+            size="sm" 
+            className="w-full bg-amber-600 hover:bg-amber-700"
+            onClick={() => handleQuickBuy(num, 299 + (index * 100))}
+          >
+            <ShoppingCart className="h-3 w-3 mr-2" /> Quick Buy
+          </Button>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+</div>
 
     {/* CTA pour la marketplace */}
     <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-12 text-center relative overflow-hidden">
@@ -919,11 +920,11 @@ export default async function Home({ params }: { params: { locale: string } }) {
       <div className="relative z-10">
         <h3 className="text-4xl font-bold text-white mb-6">
           {locale === 'fr' ? (
-            <>Prêt à <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Transformer $19.99 en $12,500</span> ?</>
+            <>Prêt à <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Transformer $49.99 en $12,500</span> ?</>
           ) : locale === 'zh-CN' ? (
-            <>准备好将<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">$19.99变成$12,500</span>吗？</>
+            <>准备好将<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">$49.99变成$12,500</span>吗？</>
           ) : (
-            <>Ready to <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Turn $19.99 into $12,500</span> ?</>
+            <>Ready to <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Turn $49.99 into $12,500</span> ?</>
           )}
         </h3>
         
@@ -945,9 +946,9 @@ export default async function Home({ params }: { params: { locale: string } }) {
           <Link href="/purchase?investment=true" className="w-full sm:w-auto">
             <Button size="lg" variant="outline" className="w-full sm:w-auto border-3 border-white/40 bg-white/5 hover:bg-white/10 text-white font-bold px-10 py-8 text-xl rounded-full">
               <Coins className="mr-3" />
-              {locale === 'fr' ? 'Acheter à $19.99' :
-               locale === 'zh-CN' ? '以$19.99购买' :
-               'Buy Starting at $19.99'}
+              {locale === 'fr' ? 'Acheter à $29.99' :
+               locale === 'zh-CN' ? '以$29.99购买' :
+               'Buy Starting at $29.99'}
             </Button>
           </Link>
         </div>
