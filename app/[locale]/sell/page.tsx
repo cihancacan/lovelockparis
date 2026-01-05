@@ -2,13 +2,14 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, ShieldCheck, Loader2, TrendingUp } from 'lucide-react';
+import { DollarSign, ShieldCheck, Loader2, TrendingUp, ArrowLeft, Wallet, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
@@ -19,8 +20,10 @@ type UserLock = {
   skin: string;
   content_text: string;
   status: string;
-  price: number; // Prix achat original
+  price: number;
 };
+
+const getSkinImage = (skin: string) => `/images/skin-${skin ? skin.toLowerCase() : 'gold'}.png`;
 
 function SellPageContent() {
   const router = useRouter();
@@ -30,10 +33,11 @@ function SellPageContent() {
   const [salePrice, setSalePrice] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
-  const [platformCommission] = useState(0.20); // 20% commission (ajusté selon ta politique)
+  const [platformCommission] = useState(0.20); 
 
   useEffect(() => {
     if (user) loadUserLocks();
+    else router.push('/purchase'); // Redirection si pas connecté
   }, [user]);
 
   const loadUserLocks = async () => {
@@ -43,14 +47,16 @@ function SellPageContent() {
         .from('locks')
         .select('*')
         .eq('owner_id', user.id)
-        .eq('status', 'Active') // On ne peut vendre que les actifs
+        .eq('status', 'Active') 
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setUserLocks(data || []);
+      
+      // Auto-select premier lock si dispo
       if (data && data.length > 0) {
         setSelectedLockId(data[0].id);
-        setSalePrice((data[0].price * 2).toFixed(2)); // Suggestion x2
+        setSalePrice((data[0].price * 2).toFixed(2));
       }
     } catch (error) {
       console.error(error);
@@ -73,12 +79,11 @@ function SellPageContent() {
     setLoading(true);
 
     try {
-      // CORRECTION IMPORTANTE : resale_price
       const { error } = await supabase
         .from('locks')
         .update({
           status: 'For_Sale',
-          resale_price: price, // Champ correct
+          resale_price: price,
           sale_description: description.trim() || null
         })
         .eq('id', selectedLockId)
@@ -88,10 +93,8 @@ function SellPageContent() {
 
       toast.success('Lock listed successfully!');
       
-      // Redirection vers Boost pour upsell
-      setTimeout(() => {
-        router.push(`/boost?lock_id=${selectedLockId}`);
-      }, 1500);
+      // Redirection intelligente : Proposer le Boost après la mise en vente
+      router.push(`/boost?lock_id=${selectedLockId}`);
 
     } catch (error) {
       console.error(error);
@@ -102,101 +105,124 @@ function SellPageContent() {
   };
 
   const earnings = parseFloat(salePrice) * (1 - platformCommission);
+  const selectedLock = userLocks.find(l => l.id === selectedLockId);
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-10">
-          <Badge className="bg-amber-500 mb-4">SELL & EARN</Badge>
-          <h1 className="text-4xl font-bold mb-4">List Your Lock for Sale</h1>
-          <p className="text-slate-500">Reach 85,000+ collectors. Average profit: 3x.</p>
+    <div className="min-h-screen bg-slate-50">
+      
+      {/* Header Retour */}
+      <div className="bg-white border-b px-4 py-4 sticky top-0 z-20">
+        <div className="container mx-auto max-w-5xl flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="font-bold text-lg">Sell Asset</h1>
         </div>
+      </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        
+        <div className="grid lg:grid-cols-2 gap-8">
           
-          {/* Sélection */}
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="font-bold mb-4">1. Select Lock</h2>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {userLocks.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400">No active locks found.</div>
-                ) : (
-                  userLocks.map(lock => (
+          {/* COLONNE GAUCHE : SÉLECTION */}
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <span className="bg-slate-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                Select Lock to Sell
+              </h2>
+              
+              {userLocks.length === 0 ? (
+                <div className="text-center py-10 bg-white rounded-xl border border-dashed">
+                  <p className="text-slate-400 mb-4">You don't have any active locks to sell.</p>
+                  <Button onClick={() => router.push('/purchase')}>Buy a Lock</Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto p-1">
+                  {userLocks.map(lock => (
                     <div 
                       key={lock.id}
                       onClick={() => setSelectedLockId(lock.id)}
-                      className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedLockId === lock.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-slate-300'}`}
+                      className={`
+                        relative group cursor-pointer rounded-xl border-2 transition-all overflow-hidden
+                        ${selectedLockId === lock.id ? 'border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-200' : 'border-slate-200 bg-white hover:border-emerald-300'}
+                      `}
                     >
-                      <div className="flex justify-between">
-                        <span className="font-bold">Lock #{lock.id}</span>
-                        <Badge variant="outline">${lock.price}</Badge>
+                      {selectedLockId === lock.id && (
+                        <div className="absolute top-2 right-2 bg-emerald-500 text-white rounded-full p-0.5"><Check size={12}/></div>
+                      )}
+                      
+                      <div className="p-3 text-center">
+                        <div className="relative w-full aspect-square mb-2">
+                           <Image src={getSkinImage(lock.skin)} alt={lock.skin} fill className="object-contain" />
+                        </div>
+                        <div className="font-black text-slate-900 text-sm">#{lock.id}</div>
+                        <div className="text-[10px] text-slate-500">{lock.zone}</div>
                       </div>
-                      <div className="text-xs text-slate-500 mt-1">{lock.zone} • {lock.skin}</div>
                     </div>
-                  ))
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* COLONNE DROITE : PRIX & VALIDATION */}
+          <div>
+            <Card className="sticky top-24 border-0 shadow-xl ring-1 ring-slate-200">
+              <CardContent className="p-6 space-y-6">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                   <span className="bg-slate-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                   Set Price
+                </h2>
+                
+                {selectedLock ? (
+                  <>
+                    <div>
+                      <Label className="text-xs font-bold text-slate-500 uppercase">Sale Price (USD)</Label>
+                      <div className="relative mt-2">
+                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-6 w-6"/>
+                        <Input 
+                          type="number" 
+                          value={salePrice} 
+                          onChange={e => setSalePrice(e.target.value)} 
+                          className="pl-12 h-14 text-2xl font-bold bg-slate-50 border-slate-200 focus:ring-emerald-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-5 rounded-xl border border-emerald-100 space-y-3">
+                      <div className="flex justify-between text-slate-600 text-sm">
+                        <span>Sale Price</span>
+                        <span className="font-medium">${parseFloat(salePrice || '0').toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-600 text-sm">
+                        <span>Platform Fee (20%)</span>
+                        <span className="text-red-500">-${(parseFloat(salePrice || '0') * platformCommission).toFixed(2)}</span>
+                      </div>
+                      <div className="h-px bg-emerald-200/50 my-2"></div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-emerald-800">You Receive</span>
+                        <span className="text-3xl font-black text-emerald-600">
+                          ${!isNaN(earnings) ? earnings.toFixed(2) : '0.00'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={handleListForSale} 
+                      disabled={loading}
+                      className="w-full bg-slate-900 hover:bg-emerald-600 h-14 text-lg font-bold shadow-lg transition-all"
+                    >
+                      {loading ? <Loader2 className="animate-spin"/> : <TrendingUp className="mr-2 h-5 w-5"/>}
+                      List on Marketplace
+                    </Button>
+                  </>
+                ) : (
+                  <div className="text-center py-10 text-slate-400 italic">Select a lock on the left to start.</div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Prix & Validation */}
-          <Card>
-            <CardContent className="p-6 space-y-6">
-              <h2 className="font-bold mb-4">2. Set Price</h2>
-              
-              <div>
-                <Label>Sale Price ($)</Label>
-                <div className="relative mt-2">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4"/>
-                  <Input 
-                    type="number" 
-                    value={salePrice} 
-                    onChange={e => setSalePrice(e.target.value)} 
-                    className="pl-9 text-lg font-bold"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-4 rounded-lg space-y-2 text-sm">
-                <div className="flex justify-between text-slate-500">
-                  <span>Sale Price</span>
-                  <span>${parseFloat(salePrice || '0').toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-slate-500">
-                  <span>Commission (20%)</span>
-                  <span className="text-red-500">-${(parseFloat(salePrice || '0') * platformCommission).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between font-bold text-lg pt-2 border-t">
-                  <span>You Receive</span>
-                  <span className="text-emerald-600">${!isNaN(earnings) ? earnings.toFixed(2) : '0.00'}</span>
-                </div>
-              </div>
-
-              <div>
-                <Label>Description (Optional)</Label>
-                <Textarea 
-                  placeholder="Why is this lock special?" 
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  className="mt-2"
-                />
-              </div>
-
-              <Button 
-                onClick={handleListForSale} 
-                disabled={loading || !selectedLockId}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-lg"
-              >
-                {loading ? <Loader2 className="animate-spin"/> : <TrendingUp className="mr-2 h-5 w-5"/>}
-                List for Sale
-              </Button>
-              
-              <p className="text-xs text-center text-slate-400 flex items-center justify-center gap-1">
-                <ShieldCheck size={12}/> Secure transaction
-              </p>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
         </div>
       </div>
