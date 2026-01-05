@@ -61,6 +61,46 @@ export default function MarketplacePage() {
   const [basicLocks, setBasicLocks] = useState<MarketLock[]>([]);
   const [regularLocks, setRegularLocks] = useState<MarketLock[]>([]);
 
+  // Fonctions helper - DÉFINIES AVANT LEUR UTILISATION
+  const getBoostBadge = (level: string) => {
+    switch (level) {
+      case 'vip':
+        return (
+          <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+            <Trophy className="h-3 w-3 mr-1" /> VIP
+          </Badge>
+        );
+      case 'premium':
+        return (
+          <Badge className="bg-gradient-to-r from-amber-600 to-orange-600 text-white">
+            <Crown className="h-3 w-3 mr-1" /> PREMIUM
+          </Badge>
+        );
+      case 'basic':
+        return (
+          <Badge className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
+            <Sparkles className="h-3 w-3 mr-1" /> BOOSTED
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const handleQuickBuy = async (lockId: number, price: number) => {
+    if (!user) {
+      toast.error('Please login to purchase');
+      router.push('/login');
+      return;
+    }
+
+    router.push(`/checkout?lock_id=${lockId}&price=${price}&type=marketplace`);
+  };
+
+  const handleBoostLock = (lockId: number) => {
+    router.push(`/boost/${lockId}`);
+  };
+
   useEffect(() => {
     loadMarketplaceLocks();
   }, []);
@@ -132,45 +172,6 @@ export default function MarketplacePage() {
       toast.error('Error loading marketplace data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleQuickBuy = async (lockId: number, price: number) => {
-    if (!user) {
-      toast.error('Please login to purchase');
-      router.push('/login');
-      return;
-    }
-
-    router.push(`/checkout?lock_id=${lockId}&price=${price}&type=marketplace`);
-  };
-
-  const handleBoostLock = (lockId: number) => {
-    router.push(`/boost/${lockId}`);
-  };
-
-  const getBoostBadge = (level: string) => {
-    switch (level) {
-      case 'vip':
-        return (
-          <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-            <Trophy className="h-3 w-3 mr-1" /> VIP
-          </Badge>
-        );
-      case 'premium':
-        return (
-          <Badge className="bg-gradient-to-r from-amber-600 to-orange-600 text-white">
-            <Crown className="h-3 w-3 mr-1" /> PREMIUM
-          </Badge>
-        );
-      case 'basic':
-        return (
-          <Badge className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
-            <Sparkles className="h-3 w-3 mr-1" /> BOOSTED
-          </Badge>
-        );
-      default:
-        return null;
     }
   };
 
