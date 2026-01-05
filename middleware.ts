@@ -32,27 +32,24 @@ export default async function middleware(req: NextRequest) {
     }
   );
 
-  // REVENIR À getSession (Plus rapide et stable que getUser pour le middleware)
+  // Utilisation de getSession pour éviter les boucles de redirection
   const { data: { session } } = await supabase.auth.getSession();
-  
   const path = req.nextUrl.pathname;
 
   // --- SÉCURITÉ ---
 
   // A. Protection ADMIN
   if (path.includes('/admin')) {
-    // 1. Si pas connecté du tout -> Redirection vers Login
+    // 1. Si pas connecté -> Login
     if (!session) {
       return NextResponse.redirect(new URL('/purchase', req.url));
     }
 
-    // 2. Vérification email (Nettoyage majuscules/espaces pour éviter les bugs)
+    // 2. Vérification email (Nettoyé)
     const userEmail = session.user.email?.trim().toLowerCase();
     const adminEmail = ADMIN_EMAIL.trim().toLowerCase();
 
-    // Si l'email ne correspond pas -> Redirection vers Accueil
     if (userEmail !== adminEmail) {
-      console.log(`[Middleware] Accès refusé à ${userEmail} (Attendu: ${adminEmail})`);
       return NextResponse.redirect(new URL('/', req.url));
     }
   }
@@ -67,10 +64,6 @@ export default async function middleware(req: NextRequest) {
   return res;
 }
 
-export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)']
-};
-// C'est la SEULE et UNIQUE configuration à garder à la fin
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)']
 };
