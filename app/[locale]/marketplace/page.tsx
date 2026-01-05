@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Search, Crown, Sparkles, Trophy, ShoppingCart, 
-  Loader2, DollarSign, Activity, Zap, ArrowRight, Eye, TrendingUp, Filter
+  Loader2, DollarSign, Activity, Zap, ArrowRight, Eye, TrendingUp, BarChart3, Globe
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
@@ -28,49 +28,83 @@ type MarketLock = {
 
 // --- HELPER IMAGE ---
 const getSkinImage = (skin: string) => {
-  // Fallback sécurisé : si skin est null, on met 'gold'
   const s = skin ? skin.toLowerCase() : 'gold';
   return `/images/skin-${s}.png`;
 };
 
-// --- COMPOSANT TICKER (Version Sans Crash) ---
+// --- COMPOSANT TICKER (HAUT) ---
 const LiveTicker = () => {
   return (
-    <div className="bg-black text-white py-1 border-b border-white/10 text-[10px] uppercase tracking-widest font-bold overflow-hidden">
-      <div className="flex items-center gap-6 whitespace-nowrap px-4 overflow-x-auto no-scrollbar">
-        <span className="text-emerald-400 flex gap-1 shrink-0"><Activity size={12}/> LIVE MARKET</span>
+    <div className="bg-emerald-950 text-emerald-100 py-1 border-b border-emerald-900 text-[10px] uppercase tracking-widest font-bold overflow-hidden">
+      <div className="flex items-center gap-8 whitespace-nowrap px-4 overflow-x-auto no-scrollbar">
+        <span className="text-emerald-400 flex gap-1 shrink-0 animate-pulse"><Activity size={12}/> MARKET ACTIVE</span>
         <span className="shrink-0">🔥 #777 sold $12,500</span>
-        <span className="text-white/20 shrink-0">|</span>
+        <span className="text-emerald-800 shrink-0">|</span>
         <span className="shrink-0">💎 #1313 VIP Listed</span>
-        <span className="text-white/20 shrink-0">|</span>
-        <span className="text-amber-400 shrink-0">⚡ 542 Buyers Online</span>
-        <span className="text-white/20 shrink-0">|</span>
-        <span className="shrink-0">🚀 #2024 Offer Received</span>
-        <span className="text-white/20 shrink-0">|</span>
-        <span className="shrink-0 text-emerald-400">💰 Total Vol: $1.2M</span>
+        <span className="text-emerald-800 shrink-0">|</span>
+        <span className="text-white shrink-0">⚡ 542 Buyers Online</span>
+        <span className="text-emerald-800 shrink-0">|</span>
+        <span className="shrink-0 text-emerald-400">💰 24h Vol: $142,000</span>
       </div>
     </div>
   );
 };
 
+// --- COMPOSANT MARKET PULSE (STATS EN TEMPS RÉEL) ---
+const MarketPulse = () => (
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
+    <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 flex items-center justify-between">
+      <div>
+        <div className="text-[10px] text-slate-400 uppercase">Floor Price</div>
+        <div className="text-lg font-bold text-white">$29.99</div>
+      </div>
+      <TrendingUp size={20} className="text-emerald-500" />
+    </div>
+    <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 flex items-center justify-between">
+      <div>
+        <div className="text-[10px] text-slate-400 uppercase">Total Listed</div>
+        <div className="text-lg font-bold text-white">12,405</div>
+      </div>
+      <LockIcon size={20} className="text-blue-500" />
+    </div>
+    <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 flex items-center justify-between">
+      <div>
+        <div className="text-[10px] text-slate-400 uppercase">Avg. Sale</div>
+        <div className="text-lg font-bold text-white">$145.00</div>
+      </div>
+      <BarChart3 size={20} className="text-purple-500" />
+    </div>
+    <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 flex items-center justify-between">
+      <div>
+        <div className="text-[10px] text-slate-400 uppercase">Traders</div>
+        <div className="text-lg font-bold text-white">85k+</div>
+      </div>
+      <Globe size={20} className="text-amber-500" />
+    </div>
+  </div>
+);
+
+// Petite icône cadenas pour le MarketPulse
+const LockIcon = ({size, className}: {size: number, className?: string}) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+);
+
 function MarketplaceContent() {
   const router = useRouter();
   const { user } = useAuth();
   
-  // États
   const [locks, setLocks] = useState<MarketLock[]>([]);
   const [vipLocks, setVipLocks] = useState<MarketLock[]>([]);
   const [filteredLocks, setFilteredLocks] = useState<MarketLock[]>([]);
   
   const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false); // Protection Hydration
+  const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<'trending' | 'price_low' | 'price_high'>('trending');
   
   const ITEMS_PER_PAGE = 60;
 
-  // 1. Protection Anti-Crash (On attend que le navigateur soit prêt)
   useEffect(() => {
     setMounted(true);
     loadMarketplaceLocks();
@@ -90,7 +124,6 @@ function MarketplaceContent() {
         const isGolden = lock.status === 'Reserved_Admin';
         
         let finalPrice = isGolden ? lock.golden_asset_price : lock.resale_price;
-        // Sécurité prix
         if (!finalPrice || isNaN(Number(finalPrice)) || Number(finalPrice) <= 0) {
             finalPrice = 29.99;
         }
@@ -98,7 +131,6 @@ function MarketplaceContent() {
         let boostLvl = lock.boost_level || 'none';
         if (isGolden) boostLvl = 'golden';
 
-        // Calculs stables (basés sur ID)
         const viewers = (lock.id % 12) + 2; 
 
         return {
@@ -114,7 +146,7 @@ function MarketplaceContent() {
         };
       });
 
-      // Séparation VIP (Top 4 chers ou boostés)
+      // VIPs en haut (Golden + VIP + Chers)
       const vips = formattedLocks
         .filter(l => l.boost_level === 'vip' || l.boost_level === 'golden' || l.price >= 500)
         .slice(0, 4);
@@ -129,7 +161,6 @@ function MarketplaceContent() {
     }
   };
 
-  // Filtrage
   useEffect(() => {
     if (!mounted || locks.length === 0) return;
 
@@ -138,7 +169,7 @@ function MarketplaceContent() {
     
     if (sortBy === 'price_low') result.sort((a, b) => a.price - b.price);
     else if (sortBy === 'price_high') result.sort((a, b) => b.price - a.price);
-    else if (sortBy === 'trending') result.sort((a, b) => b.price - a.price); // Les plus chers d'abord pour le show
+    else if (sortBy === 'trending') result.sort((a, b) => b.price - a.price);
 
     setFilteredLocks(result);
     setCurrentPage(1);
@@ -153,54 +184,97 @@ function MarketplaceContent() {
     router.push(`/checkout?lock_id=${lockId}&price=${price}&type=marketplace`);
   };
 
-  // Pagination
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
   const currentItems = filteredLocks.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredLocks.length / ITEMS_PER_PAGE);
 
-  // Écran de chargement initial
-  if (!mounted || loading) return <div className="min-h-screen flex items-center justify-center bg-slate-950"><Loader2 className="animate-spin h-10 w-10 text-emerald-500"/></div>;
+  if (!mounted || loading) return <div className="min-h-screen flex items-center justify-center bg-slate-900"><Loader2 className="animate-spin h-10 w-10 text-emerald-500"/></div>;
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
       
       <LiveTicker />
 
-      {/* --- SECTION 1 : VIP SHOWCASE (NOIR & LUXE) --- */}
-      {vipLocks.length > 0 && (
-        <section className="bg-slate-900 py-10 px-4 border-b border-slate-800">
-          <div className="container mx-auto">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="bg-amber-500 p-1.5 rounded text-white shadow-[0_0_15px_rgba(245,158,11,0.5)]">
-                <Crown size={20} />
-              </div>
-              <h2 className="text-xl md:text-2xl font-black text-white tracking-tight uppercase">Premium & Rare Assets</h2>
+      {/* --- SECTION HERO : ACTIONS & STATS (NOIR) --- */}
+      <section className="bg-slate-900 py-8 px-4 border-b border-slate-800">
+        <div className="container mx-auto">
+          
+          <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-8">
+            <div>
+              <h1 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter">
+                Market<span className="text-emerald-500">Place</span>
+              </h1>
+              <p className="text-slate-400 mt-1">Buy rare assets. Sell for profit.</p>
             </div>
+            
+            {/* BOUTONS D'ACTION (RESTAURÉS) */}
+            <div className="flex gap-3 w-full md:w-auto">
+              <Button 
+                onClick={() => router.push('/sell')} 
+                className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 px-6 shadow-[0_0_20px_rgba(16,185,129,0.3)] border border-emerald-400/20"
+              >
+                <DollarSign className="mr-2 h-5 w-5"/> SELL LOCK
+              </Button>
+              <Button 
+                onClick={() => router.push('/boost')} 
+                className="flex-1 md:flex-none bg-amber-600 hover:bg-amber-500 text-white font-bold h-12 px-6 shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-400/20"
+              >
+                <Zap className="mr-2 h-5 w-5"/> BOOST
+              </Button>
+            </div>
+          </div>
 
+          {/* BARRE DE STATS VIVANTE */}
+          <MarketPulse />
+
+          {/* BARRE DE RECHERCHE & FILTRES */}
+          <div className="flex flex-col md:flex-row gap-3 bg-slate-800/50 p-2 rounded-xl border border-slate-700">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
+              <Input 
+                placeholder="Search Lock ID #..." 
+                className="pl-10 h-11 bg-slate-900 border-slate-700 text-white focus:ring-emerald-500 focus:border-emerald-500"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+               <Button onClick={() => setSortBy('trending')} size="sm" className={`h-11 ${sortBy === 'trending' ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'}`}>Trending</Button>
+               <Button onClick={() => setSortBy('price_low')} size="sm" className={`h-11 ${sortBy === 'price_low' ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'}`}>Low $</Button>
+               <Button onClick={() => setSortBy('price_high')} size="sm" className={`h-11 ${sortBy === 'price_high' ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-400 hover:text-white'}`}>High $</Button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* --- SECTION VIP (Luxe) --- */}
+      {vipLocks.length > 0 && (
+        <section className="bg-slate-900 pb-12 px-4 border-b border-slate-800 -mt-1 pt-6">
+          <div className="container mx-auto">
+            <div className="flex items-center gap-2 mb-4 text-amber-400 font-bold tracking-widest text-xs uppercase">
+              <Crown size={14} /> Spotlight Collection
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {vipLocks.map(lock => (
                 <div 
                   key={lock.id}
                   onClick={() => handleQuickBuy(lock.id, lock.price)}
-                  className="relative group cursor-pointer bg-slate-800 rounded-xl border border-slate-700 hover:border-amber-500/50 transition-all overflow-hidden hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)]"
+                  className="relative group cursor-pointer bg-slate-800 rounded-xl border border-amber-500/30 hover:border-amber-400 transition-all overflow-hidden hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(245,158,11,0.2)]"
                 >
-                  <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-transparent text-white text-[10px] font-bold px-3 py-1 z-10">VIP</div>
+                  <div className="absolute top-2 right-2 bg-amber-500 text-black text-[10px] font-black px-2 py-0.5 rounded z-10 animate-pulse">VIP</div>
                   
                   <div className="p-4 flex flex-col items-center relative">
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-80 z-0"></div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-amber-500/10 blur-3xl rounded-full group-hover:bg-amber-500/20 transition-all"></div>
-
-                    <div className="relative z-10 w-24 h-24 mb-3 transition-transform duration-300 group-hover:scale-110">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60 z-0"></div>
+                    
+                    <div className="relative z-10 w-20 h-20 mb-2 transition-transform duration-300 group-hover:scale-110">
                       <Image src={getSkinImage(lock.skin)} alt={lock.skin} fill className="object-contain drop-shadow-2xl" />
                     </div>
 
                     <div className="relative z-10 text-center w-full">
-                      <div className="font-black text-2xl text-white mb-1">#{lock.id}</div>
-                      <div className="text-amber-400 font-bold text-lg mb-2">${lock.price.toLocaleString()}</div>
-                      <Button size="sm" className="w-full bg-amber-600 hover:bg-amber-500 text-white border-0 font-bold h-8 text-xs uppercase tracking-wide">
-                        Buy Now
-                      </Button>
+                      <div className="font-black text-xl text-white">#{lock.id}</div>
+                      <div className="text-amber-400 font-bold text-lg">${lock.price.toLocaleString()}</div>
                     </div>
                   </div>
                 </div>
@@ -210,41 +284,19 @@ function MarketplaceContent() {
         </section>
       )}
 
-      {/* --- SECTION 2 : LE MUR (THE WALL) --- */}
+      {/* --- LE MUR (GRILLE DENSE) --- */}
       <div className="container mx-auto px-2 md:px-4 py-8">
         
-        {/* Barre d'outils */}
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6 bg-white p-3 rounded-xl border border-slate-200 shadow-sm sticky top-20 z-30">
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Search className="text-slate-400" size={18}/>
-            <Input 
-              placeholder="Search ID..." 
-              className="border-none bg-transparent h-8 focus-visible:ring-0 p-0 text-base w-full"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
-             <Button onClick={() => setSortBy('trending')} variant={sortBy === 'trending' ? 'default' : 'ghost'} size="sm" className={`h-8 text-xs ${sortBy === 'trending' ? 'bg-slate-900 text-white' : ''}`}>Trending</Button>
-             <Button onClick={() => setSortBy('price_low')} variant={sortBy === 'price_low' ? 'default' : 'ghost'} size="sm" className={`h-8 text-xs ${sortBy === 'price_low' ? 'bg-slate-900 text-white' : ''}`}>Lowest Price</Button>
-             <Button onClick={() => router.push('/sell')} size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white ml-auto whitespace-nowrap">
-                <DollarSign size={12} className="mr-1"/> Sell
-             </Button>
-          </div>
-        </div>
-
-        {/* LA GRILLE DENSE */}
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 md:gap-3">
           {currentItems.map((lock) => {
             const isVip = lock.boost_level === 'vip' || lock.boost_level === 'golden';
             const isPremium = lock.boost_level === 'premium';
             
             let borderClass = 'border-slate-200';
-            if (isVip) borderClass = 'border-purple-400 ring-2 ring-purple-100';
-            if (isPremium) borderClass = 'border-amber-400 ring-2 ring-amber-100';
-
             let bgClass = 'bg-white';
-            if (isVip) bgClass = 'bg-gradient-to-b from-purple-50 to-white';
+            
+            if (isVip) { borderClass = 'border-purple-400 ring-2 ring-purple-100'; bgClass = 'bg-purple-50'; }
+            else if (isPremium) { borderClass = 'border-amber-400 ring-2 ring-amber-100'; bgClass = 'bg-amber-50'; }
 
             return (
               <div 
@@ -257,35 +309,28 @@ function MarketplaceContent() {
                 `}
               >
                 {/* Pastille Viewers */}
-                <div className="absolute top-1 left-1 z-20 bg-black/60 backdrop-blur text-white text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                   <Eye size={8} className="text-green-400"/> {lock.viewers_count}
+                <div className="absolute top-1 left-1 z-20 bg-black/80 backdrop-blur text-white text-[8px] px-1.5 py-0.5 rounded-full flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <Eye size={8} className="text-green-400"/> {lock.viewers_now}
                 </div>
 
-                {/* Badge Boost */}
-                {(isVip || isPremium) && (
-                  <div className={`absolute top-0 right-0 z-20 px-2 py-0.5 text-[8px] font-black text-white rounded-bl-lg ${isVip ? 'bg-purple-600' : 'bg-amber-500'}`}>
-                    {isVip ? 'VIP' : 'PRO'}
-                  </div>
-                )}
-
-                <div className="p-2 flex flex-col h-full">
-                  <div className="relative w-full aspect-square mb-2 flex items-center justify-center">
+                <div className="p-2 flex flex-col h-full items-center text-center">
+                  <div className="relative w-16 h-16 mb-2">
                      <Image 
                        src={getSkinImage(lock.skin)} 
                        alt={lock.skin} 
-                       width={80} height={80} 
-                       className="object-contain w-3/4 h-3/4 group-hover:scale-110 transition-transform duration-300 drop-shadow-md"
+                       fill
+                       className="object-contain group-hover:scale-110 transition-transform duration-300 drop-shadow-sm"
                      />
                   </div>
 
-                  <div className="mt-auto text-center">
-                    <div className="text-[10px] text-slate-400 uppercase font-bold leading-none mb-0.5 truncate">
-                      {lock.zone}
+                  <div className="w-full mt-auto">
+                    <div className="text-[9px] text-slate-400 uppercase font-bold leading-none mb-1 truncate">
+                      {lock.zone === 'Standard' ? 'Bridge' : 'Premium'}
                     </div>
-                    <div className="text-sm font-black text-slate-800 leading-none mb-1">
+                    <div className="text-xs font-black text-slate-800 leading-none mb-1">
                       #{lock.id}
                     </div>
-                    <div className={`text-sm font-bold leading-tight ${isVip ? 'text-purple-600' : 'text-emerald-600'}`}>
+                    <div className={`text-sm font-bold ${isVip ? 'text-purple-600' : 'text-emerald-600'}`}>
                       ${lock.price.toLocaleString()}
                     </div>
                   </div>
@@ -298,16 +343,14 @@ function MarketplaceContent() {
         {/* PAGINATION */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-4 py-10">
-             <Button variant="outline" size="sm" onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo(0,0); }} disabled={currentPage === 1}>Précédent</Button>
-             <span className="text-xs font-bold text-slate-500">Page {currentPage} / {totalPages}</span>
-             <Button variant="outline" size="sm" onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo(0,0); }} disabled={currentPage === totalPages}>Suivant</Button>
+            <Button variant="outline" size="icon" onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo(0,0); }} disabled={currentPage === 1}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs font-bold text-slate-500">Page {currentPage} / {totalPages}</span>
+            <Button variant="outline" size="icon" onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo(0,0); }} disabled={currentPage === totalPages}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-        )}
-
-        {locks.length === 0 && (
-            <div className="text-center py-20">
-               <p className="text-slate-400">Marketplace is initializing...</p>
-            </div>
         )}
 
       </div>
@@ -317,7 +360,7 @@ function MarketplaceContent() {
 
 export default function MarketplacePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-white" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-900"><Loader2 className="animate-spin text-white" /></div>}>
       <MarketplaceContent />
     </Suspense>
   );
