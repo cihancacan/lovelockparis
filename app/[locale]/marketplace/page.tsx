@@ -7,13 +7,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  Search, Crown, Sparkles, Target, Trophy, Eye, ShoppingCart, TrendingUp, Loader2, DollarSign, Activity
+  Search, Crown, Sparkles, Target, Trophy, ShoppingCart, TrendingUp, Loader2, DollarSign, Activity, Zap, ArrowRight
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 
-// --- TYPES ---
+// --- TYPES SÉCURISÉS ---
 type MarketLock = {
   id: number;
   zone: string;
@@ -26,34 +26,20 @@ type MarketLock = {
   is_golden: boolean;
 };
 
-// --- COMPOSANT TICKER SÉCURISÉ ---
+// --- COMPOSANT TICKER STABILISÉ ---
 const LiveTicker = () => {
   return (
-    <div className="bg-slate-900 text-white overflow-hidden py-2 relative border-b border-slate-800">
-      {/* Animation via style en ligne pour éviter le crash <style jsx> */}
-      <div 
-        className="flex items-center gap-8 whitespace-nowrap"
-        style={{ animation: 'marquee 40s linear infinite' }}
-      >
-        <span className="flex items-center gap-2 text-xs font-mono text-emerald-400"><Activity size={12}/> MARKET LIVE</span>
-        <span className="text-sm">🔥 Lock #777 sold for $12,500</span>
-        <span className="text-slate-600">|</span>
-        <span className="text-sm">💎 Lock #1313 received a VIP Boost</span>
-        <span className="text-slate-600">|</span>
-        <span className="text-sm">🚀 New listing: #2024 for $500</span>
-        <span className="text-slate-600">|</span>
-        <span className="text-sm">💰 User @Julie just cashed out $850</span>
-        <span className="text-slate-600">|</span>
-        <span className="text-sm">🔥 Lock #888 sold for $2,900</span>
-        <span className="text-slate-600">|</span>
-        <span className="text-sm">✨ 142 active collectors online</span>
+    <div className="bg-slate-900 text-white overflow-hidden py-2 border-b border-slate-800">
+      <div className="flex items-center gap-8 whitespace-nowrap overflow-x-auto no-scrollbar px-4">
+        <span className="flex items-center gap-2 text-xs font-mono text-emerald-400 shrink-0"><Activity size={12}/> MARKET LIVE</span>
+        <span className="text-sm shrink-0">🔥 Lock #777 sold for $12,500</span>
+        <span className="text-slate-600 shrink-0">|</span>
+        <span className="text-sm shrink-0">💎 Lock #1313 VIP Boost active</span>
+        <span className="text-slate-600 shrink-0">|</span>
+        <span className="text-sm shrink-0">🚀 New listing: #2024 for $500</span>
+        <span className="text-slate-600 shrink-0">|</span>
+        <span className="text-sm shrink-0">💰 User just cashed out $850</span>
       </div>
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-100%); }
-        }
-      `}} />
     </div>
   );
 };
@@ -63,6 +49,7 @@ function MarketplaceContent() {
   const { user } = useAuth();
   const [locks, setLocks] = useState<MarketLock[]>([]);
   
+  // États triés
   const [featuredLocks, setFeaturedLocks] = useState<MarketLock[]>([]); 
   const [premiumLocks, setPremiumLocks] = useState<MarketLock[]>([]);
   const [basicLocks, setBasicLocks] = useState<MarketLock[]>([]);
@@ -75,8 +62,6 @@ function MarketplaceContent() {
   useEffect(() => {
     loadMarketplaceLocks();
   }, []);
-
-  const isAdminLock = (lock: any) => lock.status === 'Reserved_Admin';
 
   const loadMarketplaceLocks = async () => {
     setLoading(true);
@@ -92,38 +77,38 @@ function MarketplaceContent() {
       const formattedLocks = (data || []).map(lock => {
         const isGolden = lock.status === 'Reserved_Admin';
         
-        // Logique Prix
+        // Calcul du prix (sécurisé)
         let finalPrice = isGolden ? lock.golden_asset_price : lock.resale_price;
-        if (!finalPrice || finalPrice <= 0) finalPrice = 29.99;
+        if (!finalPrice || isNaN(finalPrice) || finalPrice <= 0) finalPrice = 29.99;
 
-        // Logique Boost
+        // Calcul Boost
         let boostLvl = lock.boost_level || 'none';
         if (isGolden && boostLvl === 'none') {
             boostLvl = finalPrice > 100 ? 'vip' : 'premium';
         }
 
-        // Génération stable des vues (basée sur l'ID pour éviter l'erreur d'hydratation)
-        const stableViews = (lock.views_count || 0) + (lock.id % 500) + 50;
+        // Calculs déterministes (Basés sur l'ID, pas de hasard)
+        // Ceci évite l'erreur "Hydration Mismatch"
+        const stableViews = (lock.views_count || 0) + ((lock.id % 50) * 10);
+        const stableIncrease = ((lock.id % 20) * 5) + 10;
 
         return {
           id: lock.id,
-          zone: lock.zone,
-          skin: lock.skin,
-          content_text: isGolden ? '✨ Golden Asset' : lock.content_text,
+          zone: lock.zone || 'Standard',
+          skin: lock.skin || 'Iron',
+          content_text: isGolden ? '✨ Golden Asset' : (lock.content_text || 'Digital Lock'),
           price: Number(finalPrice),
           views_count: stableViews,
           boost_level: boostLvl,
-          price_increase: (lock.id % 50) + 10, // Stable aussi
+          price_increase: stableIncrease,
           is_golden: isGolden
         };
       });
 
-      // Tri initial
       distributeLocks(formattedLocks);
       setLocks(formattedLocks);
     } catch (error) {
       console.error(error);
-      // Pas de toast ici pour éviter erreur rendu
     } finally {
       setLoading(false);
     }
@@ -143,7 +128,9 @@ function MarketplaceContent() {
 
   // Filtrage
   useEffect(() => {
+    if (!locks.length) return;
     let filtered = [...locks];
+
     if (search) filtered = filtered.filter(l => l.id.toString().includes(search));
     
     if (sortBy === 'price_low') filtered.sort((a, b) => a.price - b.price);
@@ -152,10 +139,8 @@ function MarketplaceContent() {
     distributeLocks(filtered);
   }, [search, sortBy, locks]);
 
-  // Fonction Achat
   const handleQuickBuy = (lockId: number, price: number) => {
     if (!user) {
-      // Sauvegarde intention
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('pendingBuy', JSON.stringify({ lockId, price }));
       }
@@ -166,7 +151,6 @@ function MarketplaceContent() {
   };
 
   const getBoostBadge = (level: string) => {
-    // Note: Golden est visuellement VIP pour le client
     if (level === 'golden' || level === 'vip') return <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white"><Trophy className="h-3 w-3 mr-1" /> VIP</Badge>;
     if (level === 'premium') return <Badge className="bg-gradient-to-r from-amber-600 to-orange-600 text-white"><Crown className="h-3 w-3 mr-1" /> PREMIUM</Badge>;
     if (level === 'basic') return <Badge className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white"><Sparkles className="h-3 w-3 mr-1" /> BOOSTED</Badge>;
@@ -256,9 +240,9 @@ function MarketplaceContent() {
             </div>
             <div className="grid md:grid-cols-3 gap-6">
               {featuredLocks.map((lock) => (
-                <Card key={lock.id} className="border-2 border-purple-200 shadow-xl overflow-hidden hover:scale-[1.02] transition-transform cursor-pointer group">
-                  <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-2 text-center text-white text-xs font-bold tracking-widest">
-                    VIP COLLECTION
+                <Card key={lock.id} className={`border-2 shadow-xl overflow-hidden hover:scale-[1.02] transition-transform cursor-pointer group ${lock.is_golden ? 'border-amber-400/50' : 'border-purple-200'}`}>
+                  <div className={`p-2 text-center text-white text-xs font-bold tracking-widest ${lock.is_golden ? 'bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-500' : 'bg-gradient-to-r from-purple-600 to-pink-600'}`}>
+                    {lock.is_golden ? '👑 OFFICIAL GOLDEN ASSET' : 'VIP COLLECTION'}
                   </div>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
@@ -266,9 +250,10 @@ function MarketplaceContent() {
                       {getBoostBadge(lock.boost_level)}
                     </div>
                     
+                    {/* Placeholder Visuel */}
                     <div className="h-32 bg-slate-50 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                       <div className="absolute inset-0 opacity-10 bg-purple-500"></div>
-                       <Target size={48} className="text-purple-500" />
+                       <div className={`absolute inset-0 opacity-10 ${lock.is_golden ? 'bg-amber-500' : 'bg-purple-500'}`}></div>
+                       <Target size={48} className={lock.is_golden ? 'text-amber-500' : 'text-purple-500'} />
                     </div>
 
                     <div className="flex justify-between items-end mb-4">
@@ -283,7 +268,7 @@ function MarketplaceContent() {
                        </div>
                     </div>
 
-                    <Button onClick={() => handleQuickBuy(lock.id, lock.price)} className="w-full h-12 font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700">
+                    <Button onClick={() => handleQuickBuy(lock.id, lock.price)} className={`w-full h-12 font-bold text-lg shadow-lg ${lock.is_golden ? 'bg-amber-600 hover:bg-amber-700' : 'bg-purple-600 hover:bg-purple-700'}`}>
                       Buy Now
                     </Button>
                   </CardContent>
@@ -309,13 +294,9 @@ function MarketplaceContent() {
                 <CardContent className="p-4">
                   <div className="flex justify-between mb-2">
                     <span className="font-bold text-slate-700">#{lock.id}</span>
-                    {lock.boost_level !== 'none' && <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500" />}
+                    {lock.boost_level !== 'none' && <Sparkles className="h-4 w-4 text-amber-500" />}
                   </div>
                   
-                  <div className="aspect-square bg-slate-50 rounded-lg mb-3 flex items-center justify-center group-hover:bg-slate-100 transition-colors">
-                    <DollarSign className="text-slate-300" size={24}/>
-                  </div>
-
                   <div className="text-lg font-bold text-slate-900 mb-1">${lock.price.toFixed(2)}</div>
                   <div className="text-[10px] text-slate-400 mb-3">{lock.zone}</div>
                   
