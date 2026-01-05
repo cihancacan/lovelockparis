@@ -18,11 +18,12 @@ type MarketLock = {
   zone: string;
   skin: string;
   content_text: string;
-  resale_price: number; // Corrigé ici
-  status: 'For_Sale';
+  resale_price: number;
+  status: 'For_Sale' | 'Reserved_Admin';
   views_count: number;
-  boost_level: 'none' | 'basic' | 'premium' | 'vip';
-  price_increase: number; // Calculé
+  boost_level: 'none' | 'basic' | 'premium' | 'vip' | 'golden'; // Ajout 'golden'
+  price_increase: number;
+  is_golden: boolean; // Pour identifier facilement
 };
 
 function MarketplaceContent() {
@@ -31,7 +32,7 @@ function MarketplaceContent() {
   const [locks, setLocks] = useState<MarketLock[]>([]);
   
   // États pour les sections
-  const [featuredLocks, setFeaturedLocks] = useState<MarketLock[]>([]);
+  const [featuredLocks, setFeaturedLocks] = useState<MarketLock[]>([]); // VIP + Golden
   const [premiumLocks, setPremiumLocks] = useState<MarketLock[]>([]);
   const [basicLocks, setBasicLocks] = useState<MarketLock[]>([]);
   const [regularLocks, setRegularLocks] = useState<MarketLock[]>([]);
@@ -47,28 +48,38 @@ function MarketplaceContent() {
   const loadMarketplaceLocks = async () => {
     setLoading(true);
     try {
-      // On récupère uniquement les cadenas en vente
+      // MODIFICATION ICI : On prend 'For_Sale' (User) OU 'Reserved_Admin' (Toi)
       const { data, error } = await supabase
         .from('locks')
         .select('*')
-        .eq('status', 'For_Sale')
+        .or('status.eq.For_Sale,status.eq.Reserved_Admin') 
+        // On s'assure qu'il y a un prix (soit resale, soit golden)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const formattedLocks = (data || []).map(lock => ({
-        id: lock.id,
-        zone: lock.zone,
-        skin: lock.skin,
-        content_text: lock.content_text,
-        // On utilise resale_price (prix utilisateur) ou golden_asset_price (prix admin) ou defaut
-        resale_price: lock.resale_price || lock.golden_asset_price || 29.99,
-        status: lock.status,
-        views_count: lock.views_count || 0,
-        boost_level: lock.boost_level || 'none',
-        // On simule une augmentation de valeur basée sur l'ID (stable) pour éviter l'erreur d'hydratation
-        price_increase: Math.floor((lock.id % 100) * 3) + 10 
-      }));
+      const formattedLocks = (data || []).map(lock => {
+        const isGolden = lock.status === 'Reserved_Admin';
+        
+        // Logique de prix : Admin prioritaire sur Golden Price, User sur Resale Price
+        const finalPrice = isGolden ? (lock.golden_asset_price || 999) : (lock.resale_price || 29.99);
+
+        // Les Golden Assets sont automatiquement VIP
+        const boostLvl = isGolden ? 'golden' : (lock.boost_level || 'none');
+
+        return {
+          id: lock.id,
+          zone: lock.zone,
+          skin: lock.skin,
+          content_text: isGolden ? '✨ Golden Asset' : lock.content_text, // Masque le texte perso pour les Golden
+          resale_price: finalPrice,
+          status: lock.status,
+          views_count: lock.views_count || 0,
+          boost_level: boostLvl,
+          price_increase: Math.floor((lock.id % 100) * 3) + 10,
+          is_golden: isGolden
+        };
+      });
 
       // Tri initial
       distributeLocks(formattedLocks);
@@ -82,7 +93,8 @@ function MarketplaceContent() {
   };
 
   const distributeLocks = (allLocks: MarketLock[]) => {
-    const featured = allLocks.filter(l => l.boost_level === 'vip');
+    // Les Golden Assets vont directement dans Featured (VIP)
+    const featured = allLocks.filter(l => l.boost_level === 'vip' || l.boost_level === 'golden');
     const premium = allLocks.filter(l => l.boost_level === 'premium');
     const basic = allLocks.filter(l => l.boost_level === 'basic');
     const regular = allLocks.filter(l => l.boost_level === 'none' || !l.boost_level);
@@ -104,21 +116,22 @@ function MarketplaceContent() {
     if (sortBy === 'price_low') filtered.sort((a, b) => a.resale_price - b.resale_price);
     if (sortBy === 'price_high') filtered.sort((a, b) => b.resale_price - a.resale_price);
     
-    // Redistribution après filtre
     distributeLocks(filtered);
   }, [search, sortBy, locks]);
 
   const handleQuickBuy = (lockId: number, price: number) => {
     if (!user) {
       toast.error('Please login to purchase');
-      router.push('/purchase'); // Redirection vers login/purchase
+      router.push('/purchase');
       return;
     }
-    // On redirige vers le checkout en mode revente
+    // Redirection vers le checkout
     router.push(`/checkout?lock_id=${lockId}&price=${price}&type=marketplace`);
   };
 
+  // Badge personnalisé incluant le GOLDEN
   const getBoostBadge = (level: string) => {
+    if (level === 'golden') return <Badge className="bg-gradient-to-r from-yellow-400 via-orange-500 to-yellow-400 text-white border-none shadow-md animate-pulse"><Crown className="h-3 w-3 mr-1" /> GOLDEN ASSET</Badge>;
     if (level === 'vip') return <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white"><Trophy className="h-3 w-3 mr-1" /> VIP</Badge>;
     if (level === 'premium') return <Badge className="bg-gradient-to-r from-amber-600 to-orange-600 text-white"><Crown className="h-3 w-3 mr-1" /> PREMIUM</Badge>;
     if (level === 'basic') return <Badge className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white"><Sparkles className="h-3 w-3 mr-1" /> BOOSTED</Badge>;
@@ -156,29 +169,37 @@ function MarketplaceContent() {
 
       <div className="container mx-auto px-4 py-12 space-y-12">
         
-        {/* VIP SECTION */}
+        {/* VIP & GOLDEN SECTION */}
         {featuredLocks.length > 0 && (
           <section>
             <div className="flex items-center gap-2 mb-6">
               <Trophy className="h-6 w-6 text-purple-600" />
-              <h2 className="text-2xl font-bold">Featured VIP</h2>
+              <h2 className="text-2xl font-bold">Featured & Golden Assets</h2>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
               {featuredLocks.map((lock) => (
-                <Card key={lock.id} className="border-2 border-purple-200 shadow-xl overflow-hidden hover:scale-[1.02] transition-transform">
-                  <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-2 text-center text-white text-xs font-bold tracking-widest">
-                    VIP COLLECTION
+                <Card key={lock.id} className={`border-2 shadow-xl overflow-hidden hover:scale-[1.02] transition-transform ${lock.is_golden ? 'border-amber-400' : 'border-purple-200'}`}>
+                  <div className={`p-2 text-center text-white text-xs font-bold tracking-widest ${lock.is_golden ? 'bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-500' : 'bg-gradient-to-r from-purple-600 to-pink-600'}`}>
+                    {lock.is_golden ? '👑 OFFICIAL GOLDEN ASSET' : 'VIP COLLECTION'}
                   </div>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div className="text-2xl font-bold text-slate-900">#{lock.id}</div>
                       {getBoostBadge(lock.boost_level)}
                     </div>
+                    
+                    {/* Affichage spécial pour Golden Assets */}
+                    {lock.is_golden ? (
+                       <div className="text-sm text-slate-500 mb-2 italic">Official Reserve</div>
+                    ) : (
+                       <div className="text-sm text-slate-500 mb-2 line-clamp-1">"{lock.content_text}"</div>
+                    )}
+
                     <div className="text-3xl font-bold text-slate-900 mb-2">${lock.resale_price.toFixed(2)}</div>
                     <div className="flex items-center gap-2 text-sm text-emerald-600 font-bold mb-6">
-                      <TrendingUp className="h-4 w-4" /> +{lock.price_increase}% Value
+                      <TrendingUp className="h-4 w-4" /> High Demand
                     </div>
-                    <Button onClick={() => handleQuickBuy(lock.id, lock.resale_price)} className="w-full bg-purple-600 hover:bg-purple-700">
+                    <Button onClick={() => handleQuickBuy(lock.id, lock.resale_price)} className={`w-full ${lock.is_golden ? 'bg-amber-600 hover:bg-amber-700' : 'bg-purple-600 hover:bg-purple-700'}`}>
                       <ShoppingCart className="h-4 w-4 mr-2" /> Buy Now
                     </Button>
                   </CardContent>
@@ -191,7 +212,7 @@ function MarketplaceContent() {
         {/* REGULAR LISTINGS */}
         <section>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Latest Listings</h2>
+            <h2 className="text-2xl font-bold">Latest User Listings</h2>
             <div className="flex gap-2">
               <Button variant={sortBy === 'price_low' ? 'default' : 'outline'} size="sm" onClick={() => setSortBy('price_low')}>Price Low</Button>
               <Button variant={sortBy === 'price_high' ? 'default' : 'outline'} size="sm" onClick={() => setSortBy('price_high')}>Price High</Button>
