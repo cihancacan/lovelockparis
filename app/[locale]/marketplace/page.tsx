@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Search, Crown, Sparkles, Trophy, ShoppingCart, 
-  Loader2, DollarSign, Activity, Zap, Flame, Eye, Filter, ArrowRight
+  Loader2, DollarSign, Activity, Zap, ArrowRight, Eye, TrendingUp, Filter
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
@@ -23,33 +23,32 @@ type MarketLock = {
   views_count: number;
   boost_level: 'none' | 'basic' | 'premium' | 'vip' | 'golden';
   price_increase: number;
-  viewers_now: number; // Fausse data pour le "vivant"
+  viewers_now: number;
 };
 
 // --- HELPER IMAGE ---
 const getSkinImage = (skin: string) => {
+  // Fallback sécurisé : si skin est null, on met 'gold'
   const s = skin ? skin.toLowerCase() : 'gold';
-  return `/images/skin-${s}.png`; // Assure-toi d'avoir skin-iron.png, skin-gold.png, etc.
+  return `/images/skin-${s}.png`;
 };
 
-// --- COMPOSANT TICKER ---
+// --- COMPOSANT TICKER (Version Sans Crash) ---
 const LiveTicker = () => {
   return (
-    <div className="bg-black text-white overflow-hidden py-1 border-b border-white/10 text-[10px] uppercase tracking-widest font-bold">
-      <div className="flex items-center gap-8 whitespace-nowrap animate-marquee">
-        <span className="text-emerald-400 flex gap-1"><Activity size={10}/> LIVE MARKET</span>
-        <span>🔥 Lock #777 sold $12,500</span>
-        <span className="text-white/20">|</span>
-        <span>💎 #1313 Just Listed</span>
-        <span className="text-white/20">|</span>
-        <span className="text-amber-400">⚡ 542 Active Buyers</span>
-        <span className="text-white/20">|</span>
-        <span>🚀 #8888 Offer Received</span>
+    <div className="bg-black text-white py-1 border-b border-white/10 text-[10px] uppercase tracking-widest font-bold overflow-hidden">
+      <div className="flex items-center gap-6 whitespace-nowrap px-4 overflow-x-auto no-scrollbar">
+        <span className="text-emerald-400 flex gap-1 shrink-0"><Activity size={12}/> LIVE MARKET</span>
+        <span className="shrink-0">🔥 #777 sold $12,500</span>
+        <span className="text-white/20 shrink-0">|</span>
+        <span className="shrink-0">💎 #1313 VIP Listed</span>
+        <span className="text-white/20 shrink-0">|</span>
+        <span className="text-amber-400 shrink-0">⚡ 542 Buyers Online</span>
+        <span className="text-white/20 shrink-0">|</span>
+        <span className="shrink-0">🚀 #2024 Offer Received</span>
+        <span className="text-white/20 shrink-0">|</span>
+        <span className="shrink-0 text-emerald-400">💰 Total Vol: $1.2M</span>
       </div>
-      <style jsx>{`
-        .animate-marquee { animation: marquee 40s linear infinite; }
-        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-      `}</style>
     </div>
   );
 };
@@ -58,25 +57,26 @@ function MarketplaceContent() {
   const router = useRouter();
   const { user } = useAuth();
   
-  // Données
+  // États
   const [locks, setLocks] = useState<MarketLock[]>([]);
   const [vipLocks, setVipLocks] = useState<MarketLock[]>([]);
   const [filteredLocks, setFilteredLocks] = useState<MarketLock[]>([]);
   
-  // Pagination & Filtres
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false); // Protection Hydration
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<'trending' | 'price_low' | 'price_high'>('trending');
   
-  const ITEMS_PER_PAGE = 60; // Grosse densité
+  const ITEMS_PER_PAGE = 60;
 
+  // 1. Protection Anti-Crash (On attend que le navigateur soit prêt)
   useEffect(() => {
+    setMounted(true);
     loadMarketplaceLocks();
   }, []);
 
   const loadMarketplaceLocks = async () => {
-    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('locks')
@@ -90,14 +90,16 @@ function MarketplaceContent() {
         const isGolden = lock.status === 'Reserved_Admin';
         
         let finalPrice = isGolden ? lock.golden_asset_price : lock.resale_price;
-        if (!finalPrice || finalPrice <= 0) finalPrice = 29.99;
+        // Sécurité prix
+        if (!finalPrice || isNaN(Number(finalPrice)) || Number(finalPrice) <= 0) {
+            finalPrice = 29.99;
+        }
 
-        // Boost Artificiel pour la démo si pas défini
         let boostLvl = lock.boost_level || 'none';
         if (isGolden) boostLvl = 'golden';
-        
-        // Simulation "Vivant" (basée sur ID pour stabilité)
-        const viewers = (lock.id % 15) + 1; 
+
+        // Calculs stables (basés sur ID)
+        const viewers = (lock.id % 12) + 2; 
 
         return {
           id: lock.id,
@@ -107,18 +109,21 @@ function MarketplaceContent() {
           views_count: (lock.views_count || 0) + 100,
           boost_level: boostLvl,
           price_increase: ((lock.id % 20) * 5) + 10,
-          viewers_now: viewers
+          viewers_now: viewers,
+          is_golden: isGolden
         };
       });
 
-      // Séparation VIP pour le haut de page
-      const vips = formattedLocks.filter(l => l.boost_level === 'vip' || l.boost_level === 'golden' || l.price > 500);
-      setVipLocks(vips.slice(0, 4)); // Max 4 en haut
-
+      // Séparation VIP (Top 4 chers ou boostés)
+      const vips = formattedLocks
+        .filter(l => l.boost_level === 'vip' || l.boost_level === 'golden' || l.price >= 500)
+        .slice(0, 4);
+      
+      setVipLocks(vips);
       setLocks(formattedLocks);
       setFilteredLocks(formattedLocks);
     } catch (error) {
-      console.error(error);
+      console.error("Erreur chargement:", error);
     } finally {
       setLoading(false);
     }
@@ -126,16 +131,18 @@ function MarketplaceContent() {
 
   // Filtrage
   useEffect(() => {
+    if (!mounted || locks.length === 0) return;
+
     let result = [...locks];
     if (search) result = result.filter(l => l.id.toString().includes(search));
     
     if (sortBy === 'price_low') result.sort((a, b) => a.price - b.price);
     else if (sortBy === 'price_high') result.sort((a, b) => b.price - a.price);
-    else if (sortBy === 'trending') result.sort((a, b) => b.price - a.price); // Les plus chers en premier pour le show
+    else if (sortBy === 'trending') result.sort((a, b) => b.price - a.price); // Les plus chers d'abord pour le show
 
     setFilteredLocks(result);
     setCurrentPage(1);
-  }, [search, sortBy, locks]);
+  }, [search, sortBy, locks, mounted]);
 
   const handleQuickBuy = (lockId: number, price: number) => {
     if (!user) {
@@ -152,10 +159,11 @@ function MarketplaceContent() {
   const currentItems = filteredLocks.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredLocks.length / ITEMS_PER_PAGE);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-950"><Loader2 className="animate-spin h-10 w-10 text-emerald-500"/></div>;
+  // Écran de chargement initial
+  if (!mounted || loading) return <div className="min-h-screen flex items-center justify-center bg-slate-950"><Loader2 className="animate-spin h-10 w-10 text-emerald-500"/></div>;
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
       
       <LiveTicker />
 
@@ -177,13 +185,9 @@ function MarketplaceContent() {
                   onClick={() => handleQuickBuy(lock.id, lock.price)}
                   className="relative group cursor-pointer bg-slate-800 rounded-xl border border-slate-700 hover:border-amber-500/50 transition-all overflow-hidden hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)]"
                 >
-                  {/* Badge */}
-                  <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-transparent text-white text-[10px] font-bold px-3 py-1 z-10">
-                    VIP
-                  </div>
+                  <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-transparent text-white text-[10px] font-bold px-3 py-1 z-10">VIP</div>
                   
                   <div className="p-4 flex flex-col items-center relative">
-                    {/* Glow Effect derrière l'image */}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-80 z-0"></div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-amber-500/10 blur-3xl rounded-full group-hover:bg-amber-500/20 transition-all"></div>
 
@@ -215,15 +219,15 @@ function MarketplaceContent() {
             <Search className="text-slate-400" size={18}/>
             <Input 
               placeholder="Search ID..." 
-              className="border-none bg-transparent h-8 focus-visible:ring-0 p-0 text-base"
+              className="border-none bg-transparent h-8 focus-visible:ring-0 p-0 text-base w-full"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex gap-2 w-full md:w-auto overflow-x-auto">
-             <Button onClick={() => setSortBy('trending')} variant={sortBy === 'trending' ? 'default' : 'ghost'} size="sm" className="h-8 text-xs bg-slate-900 text-white">Trending</Button>
-             <Button onClick={() => setSortBy('price_low')} variant={sortBy === 'price_low' ? 'default' : 'ghost'} size="sm" className="h-8 text-xs">Lowest Price</Button>
-             <Button onClick={() => router.push('/sell')} size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white ml-auto">
+          <div className="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
+             <Button onClick={() => setSortBy('trending')} variant={sortBy === 'trending' ? 'default' : 'ghost'} size="sm" className={`h-8 text-xs ${sortBy === 'trending' ? 'bg-slate-900 text-white' : ''}`}>Trending</Button>
+             <Button onClick={() => setSortBy('price_low')} variant={sortBy === 'price_low' ? 'default' : 'ghost'} size="sm" className={`h-8 text-xs ${sortBy === 'price_low' ? 'bg-slate-900 text-white' : ''}`}>Lowest Price</Button>
+             <Button onClick={() => router.push('/sell')} size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white ml-auto whitespace-nowrap">
                 <DollarSign size={12} className="mr-1"/> Sell
              </Button>
           </div>
@@ -232,16 +236,13 @@ function MarketplaceContent() {
         {/* LA GRILLE DENSE */}
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2 md:gap-3">
           {currentItems.map((lock) => {
-            // Définition du style selon le boost
             const isVip = lock.boost_level === 'vip' || lock.boost_level === 'golden';
             const isPremium = lock.boost_level === 'premium';
             
-            // Bordure
             let borderClass = 'border-slate-200';
             if (isVip) borderClass = 'border-purple-400 ring-2 ring-purple-100';
             if (isPremium) borderClass = 'border-amber-400 ring-2 ring-amber-100';
 
-            // Fond
             let bgClass = 'bg-white';
             if (isVip) bgClass = 'bg-gradient-to-b from-purple-50 to-white';
 
@@ -255,7 +256,7 @@ function MarketplaceContent() {
                   ${borderClass} ${bgClass}
                 `}
               >
-                {/* Pastille "X Viewers" survol */}
+                {/* Pastille Viewers */}
                 <div className="absolute top-1 left-1 z-20 bg-black/60 backdrop-blur text-white text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                    <Eye size={8} className="text-green-400"/> {lock.viewers_count}
                 </div>
@@ -268,7 +269,6 @@ function MarketplaceContent() {
                 )}
 
                 <div className="p-2 flex flex-col h-full">
-                  {/* Visuel Cadenas */}
                   <div className="relative w-full aspect-square mb-2 flex items-center justify-center">
                      <Image 
                        src={getSkinImage(lock.skin)} 
@@ -278,20 +278,15 @@ function MarketplaceContent() {
                      />
                   </div>
 
-                  {/* Infos */}
-                  <div className="mt-auto">
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <div className="text-[10px] text-slate-400 uppercase font-bold leading-none mb-0.5">
-                          {lock.zone === 'Standard' ? 'Bridge' : lock.zone === 'Premium_Eiffel' ? 'Eiffel' : 'Sky'}
-                        </div>
-                        <div className="text-sm font-black text-slate-800 leading-none">
-                          #{lock.id}
-                        </div>
-                      </div>
-                      <div className={`text-sm font-bold ${isVip ? 'text-purple-600' : 'text-emerald-600'}`}>
-                        ${lock.price}
-                      </div>
+                  <div className="mt-auto text-center">
+                    <div className="text-[10px] text-slate-400 uppercase font-bold leading-none mb-0.5 truncate">
+                      {lock.zone}
+                    </div>
+                    <div className="text-sm font-black text-slate-800 leading-none mb-1">
+                      #{lock.id}
+                    </div>
+                    <div className={`text-sm font-bold leading-tight ${isVip ? 'text-purple-600' : 'text-emerald-600'}`}>
+                      ${lock.price.toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -303,16 +298,16 @@ function MarketplaceContent() {
         {/* PAGINATION */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-4 py-10">
-            <Button variant="outline" size="icon" onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo(0,0); }} disabled={currentPage === 1}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-bold text-slate-600">
-              Page {currentPage} / {totalPages}
-            </span>
-            <Button variant="outline" size="icon" onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo(0,0); }} disabled={currentPage === totalPages}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+             <Button variant="outline" size="sm" onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo(0,0); }} disabled={currentPage === 1}>Précédent</Button>
+             <span className="text-xs font-bold text-slate-500">Page {currentPage} / {totalPages}</span>
+             <Button variant="outline" size="sm" onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo(0,0); }} disabled={currentPage === totalPages}>Suivant</Button>
           </div>
+        )}
+
+        {locks.length === 0 && (
+            <div className="text-center py-20">
+               <p className="text-slate-400">Marketplace is initializing...</p>
+            </div>
         )}
 
       </div>
@@ -322,7 +317,7 @@ function MarketplaceContent() {
 
 export default function MarketplacePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-emerald-500" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-white" /></div>}>
       <MarketplaceContent />
     </Suspense>
   );
