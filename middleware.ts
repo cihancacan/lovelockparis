@@ -32,31 +32,41 @@ export default async function middleware(req: NextRequest) {
     }
   );
 
-  // Utilisation de getSession pour éviter les boucles de redirection
-  const { data: { session } } = await supabase.auth.getSession();
+  // IMPORTANT : On utilise getUser() qui valide vraiment le token côté serveur
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
   const path = req.nextUrl.pathname;
+
+  // --- DEBUGGING (Visible dans les logs Vercel) ---
+  if (path.includes('/admin')) {
+    console.log(`[Middleware] Tentative accès Admin`);
+    console.log(`- User connecté : ${user ? 'OUI' : 'NON'}`);
+    if (user) console.log(`- Email : ${user.email}`);
+  }
 
   // --- SÉCURITÉ ---
 
   // A. Protection ADMIN
   if (path.includes('/admin')) {
-    // 1. Si pas connecté -> Login
-    if (!session) {
+    // 1. Si pas connecté
+    if (!user) {
+      console.log('[Middleware] Admin refusé : Pas connecté');
       return NextResponse.redirect(new URL('/purchase', req.url));
     }
 
-    // 2. Vérification email (Nettoyé)
-    const userEmail = session.user.email?.trim().toLowerCase();
+    // 2. Vérification email
+    const userEmail = user.email?.trim().toLowerCase();
     const adminEmail = ADMIN_EMAIL.trim().toLowerCase();
 
     if (userEmail !== adminEmail) {
+      console.log(`[Middleware] Admin refusé : ${userEmail} n'est pas l'admin`);
       return NextResponse.redirect(new URL('/', req.url));
     }
   }
 
   // B. Protection DASHBOARD
   if (path.includes('/dashboard')) {
-    if (!session) {
+    if (!user) {
       return NextResponse.redirect(new URL('/purchase', req.url));
     }
   }
