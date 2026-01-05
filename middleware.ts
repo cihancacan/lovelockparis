@@ -13,7 +13,7 @@ const intlMiddleware = createMiddleware({
 });
 
 export default async function middleware(req: NextRequest) {
-  // 2. D'abord, on génère la réponse qui gère la langue (ex: redirection vers /en)
+  // 2. D'abord, on génère la réponse qui gère la langue
   const res = intlMiddleware(req);
 
   // 3. Ensuite, on branche Supabase sur CETTE réponse
@@ -27,7 +27,6 @@ export default async function middleware(req: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // On écrit les cookies sur la demande ET la réponse pour que ça soit immédiat
             req.cookies.set(name, value);
             res.cookies.set(name, value, options);
           });
@@ -36,9 +35,8 @@ export default async function middleware(req: NextRequest) {
     }
   );
 
-  // 4. On récupère l'utilisateur (getUser est plus sûr que getSession pour le middleware)
+  // 4. On récupère l'utilisateur
   const { data: { user } } = await supabase.auth.getUser();
-
   const path = req.nextUrl.pathname;
 
   // --- SÉCURITÉ ---
@@ -47,7 +45,6 @@ export default async function middleware(req: NextRequest) {
   if (path.includes('/admin')) {
     // Si pas connecté OU email incorrect
     if (!user || user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-      // On redirige vers l'accueil (en gardant la langue actuelle si possible)
       return NextResponse.redirect(new URL('/', req.url));
     }
   }
@@ -60,22 +57,10 @@ export default async function middleware(req: NextRequest) {
     }
   }
 
-  // C. Gestion de la page LOGIN (Si on est déjà connecté, on ne retourne pas sur le login)
-  // (Optionnel, mais améliore l'expérience)
-  if (path.includes('/purchase') && !path.includes('/success') && user) {
-    // Si l'utilisateur va sur /purchase alors qu'il est déjà connecté, on le met au Dashboard
-    // return NextResponse.redirect(new URL('/dashboard', req.url));
-  }
-
-  // 5. On renvoie la réponse finale (qui contient la langue + les cookies mis à jour)
   return res;
 }
 
+// C'est ici qu'il y avait le doublon : on ne garde que celui-ci
 export const config = {
-  // On exclut les fichiers statiques, les images, l'API et les fichiers systèmes
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)']
-};
-
-export const config = {
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
 };
