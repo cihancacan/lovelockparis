@@ -11,6 +11,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Header } from '@/components/home/header';
+import { Badge } from '@/components/ui/badge';
 import { PurchaseNotifications } from '@/components/home/purchase-notifications';
 
 export default async function Home({ params }: { params: { locale: string } }) {
