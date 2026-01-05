@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Lock, DollarSign, ShoppingCart, Target, Heart, Globe, ShieldCheck, CheckCircle, Clock, InfinityIcon, MapPin, Award, TrendingUp, Zap, Coins, Users, Euro, Building, Trophy, Sparkles } from 'lucide-react';
+import { Lock, DollarSign, ShoppingCart, Target, Heart, Globe, ShieldCheck, CheckCircle, Clock, InfinityIcon, MapPin, Award, TrendingUp, Zap, Coins, Crown, TrendingUp, Users, Euro, Building, Trophy, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
