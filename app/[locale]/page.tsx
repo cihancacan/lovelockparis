@@ -1,7 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Lock, DollarSign, ShoppingCart, Target, Heart, Globe, ShieldCheck, CheckCircle, Clock, InfinityIcon, MapPin, Award, TrendingUp, Zap, Coins, Crown, TrendingUp, Users, Euro, Building, Trophy, Sparkles } from 'lucide-react';
+// CORRECTION ICI : J'ai ajouté 'Crown' dans la liste des imports
+import { Lock, Heart, DollarSign, Globe, ShoppingCart, Target, Medal, ShieldCheck, ArrowRight, Smartphone, Coins, Users, MapPin, Star, TrendingUp, CheckCircle, Calendar, Eye, Award, Clock, Zap, ChevronRight, Trophy, Sparkles, InfinityIcon, Building, Euro, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -984,7 +985,6 @@ export default async function Home({ params }: { params: { locale: string } }) {
             </div>
           </div>
         </section>
-
       </main>
 
       <PurchaseNotifications />
