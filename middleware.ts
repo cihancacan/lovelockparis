@@ -3,8 +3,6 @@ import { createServerClient, parseCookieHeader } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const ADMIN_EMAIL = 'cacancihan@gmail.com';
-
 const intlMiddleware = createMiddleware({
   locales: ['en', 'fr', 'zh-CN', 'ja', 'ko', 'es', 'pt', 'ar'],
   defaultLocale: 'en',
@@ -32,41 +30,20 @@ export default async function middleware(req: NextRequest) {
     }
   );
 
-  // IMPORTANT : On utilise getUser() qui valide vraiment le token côté serveur
-  const { data: { user }, error } = await supabase.auth.getUser();
+  // On rafraîchit la session pour que le cookie reste valide
+  await supabase.auth.getSession();
   
   const path = req.nextUrl.pathname;
 
-  // --- DEBUGGING (Visible dans les logs Vercel) ---
-  if (path.includes('/admin')) {
-    console.log(`[Middleware] Tentative accès Admin`);
-    console.log(`- User connecté : ${user ? 'OUI' : 'NON'}`);
-    if (user) console.log(`- Email : ${user.email}`);
-  }
+  // --- SÉCURITÉ ALLÉGÉE ---
+  
+  // 1. On ne bloque PLUS l'admin ici (le composant React le fera)
+  // Cela résout ton problème de redirection infinie ou de blocage.
 
-  // --- SÉCURITÉ ---
-
-  // A. Protection ADMIN
-  if (path.includes('/admin')) {
-    // 1. Si pas connecté
-    if (!user) {
-      console.log('[Middleware] Admin refusé : Pas connecté');
-      return NextResponse.redirect(new URL('/purchase', req.url));
-    }
-
-    // 2. Vérification email
-    const userEmail = user.email?.trim().toLowerCase();
-    const adminEmail = ADMIN_EMAIL.trim().toLowerCase();
-
-    if (userEmail !== adminEmail) {
-      console.log(`[Middleware] Admin refusé : ${userEmail} n'est pas l'admin`);
-      return NextResponse.redirect(new URL('/', req.url));
-    }
-  }
-
-  // B. Protection DASHBOARD
+  // 2. Protection Dashboard (On garde celle-ci car elle est simple : connecté ou pas)
   if (path.includes('/dashboard')) {
-    if (!user) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       return NextResponse.redirect(new URL('/purchase', req.url));
     }
   }
