@@ -27,31 +27,26 @@ export function Header({ translations }: HeaderProps) {
   const { user, loading } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const pathname = usePathname();
-
+  
   // Détection Admin
   const showAdminLink = !loading && user && isAdmin(user.email);
 
-  // Détection Page d'accueil
-  const isHome = pathname === '/' || /^\/[a-z]{2}(-([A-Z]{2}))?$/.test(pathname);
-
-  // Gestion du scroll
+  // Gestion du scroll (uniquement pour l'ombre portée maintenant)
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Styles dynamiques
+  // --- STYLE DU HEADER ---
+  // On force le fond blanc (avec transparence) dès le début pour éviter le problème "Blanc sur Blanc"
   const headerClass = cn(
-    "sticky top-0 z-50 transition-all duration-300 border-b",
-    !isHome || isScrolled 
+    "sticky top-0 z-50 transition-all duration-300 border-b w-full",
+    isScrolled 
       ? "bg-white/95 backdrop-blur-md border-slate-200 py-2 shadow-sm" 
-      : "bg-transparent border-transparent py-4"
+      : "bg-white/80 backdrop-blur-sm border-transparent py-4" 
   );
 
-  const textClass = (!isHome || isScrolled) ? "text-slate-700" : "text-slate-800";
-  
   // Valeurs par défaut
   const t = translations || {
     navBridge: "The Bridge",
@@ -63,35 +58,39 @@ export function Header({ translations }: HeaderProps) {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
           
-          {/* --- LOGO MODIFIÉ (Plus d'étoile, TM plus petit) --- */}
+          {/* --- LOGO (TOUJOURS VISIBLE MAINTENANT) --- */}
           <Link href="/" className="flex items-center space-x-2 group z-50">
             <div className="relative">
               <Heart className="h-7 w-7 text-[#e11d48] fill-[#e11d48] group-hover:scale-110 transition-transform" />
-              {/* Sparkles supprimé ici */}
             </div>
-            <span className={cn("text-xl md:text-2xl font-serif font-bold tracking-tight transition-colors", 
-              (!isHome || isScrolled) ? "text-slate-900" : "text-white"
-            )}>
+            <span className="text-xl md:text-2xl font-serif font-bold tracking-tight text-slate-900">
               LoveLock<span className="text-[#e11d48]">Paris</span>
-              <span className="text-[0.4em] align-top ml-0.5 opacity-60 font-sans">TM</span>
+              <span className="text-[0.4em] align-top ml-0.5 opacity-60 font-sans text-slate-500">TM</span>
             </span>
           </Link>
 
           {/* --- NAVIGATION ORDI (DESKTOP) --- */}
           <nav className="hidden lg:flex items-center gap-6 font-sans">
             
-            {/* AJOUT MARKETPLACE */}
-            <Link href="/marketplace" className={`text-sm font-bold flex items-center gap-1 transition-colors ${(!isHome || isScrolled) ? "text-emerald-700 hover:text-emerald-500" : "text-emerald-300 hover:text-emerald-100"}`}>
-              <TrendingUp size={16} /> Marketplace
+            {/* BOUTON MARKETPLACE ATTRACTIF */}
+            <Link href="/marketplace">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-all cursor-pointer font-bold text-sm shadow-sm group">
+                <TrendingUp size={16} className="group-hover:scale-110 transition-transform"/> 
+                <span>Marketplace</span>
+                <span className="flex h-2 w-2 relative ml-1">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              </div>
             </Link>
 
-            <Link href="/concept" className={`text-sm font-bold hover:text-[#e11d48] transition-colors ${textClass}`}>
+            <Link href="/concept" className="text-sm font-bold text-slate-700 hover:text-[#e11d48] transition-colors">
               Concept
             </Link>
-            <Link href="/about" className={`text-sm font-bold hover:text-[#e11d48] transition-colors ${textClass}`}>
+            <Link href="/about" className="text-sm font-bold text-slate-700 hover:text-[#e11d48] transition-colors">
               History
             </Link>
-            <Link href="/bridge" className={`text-sm font-bold hover:text-[#e11d48] transition-colors ${textClass}`}>
+            <Link href="/bridge" className="text-sm font-bold text-slate-700 hover:text-[#e11d48] transition-colors">
               3D Bridge
             </Link>
             
@@ -101,17 +100,20 @@ export function Header({ translations }: HeaderProps) {
               </Link>
             )}
             
-            <div className={`h-4 w-px mx-2 ${(!isHome || isScrolled) ? "bg-slate-300" : "bg-white/30"}`}></div>
+            <div className="h-4 w-px mx-2 bg-slate-300"></div>
 
-            <LanguageSelector />
+            {/* SÉLECTEUR LANGUE (Toujours en noir/gris maintenant) */}
+            <div className="text-slate-700">
+               <LanguageSelector />
+            </div>
 
             {!loading && (
               user ? (
-                 <Link href="/dashboard" className={`text-sm font-bold hover:text-[#e11d48] ${textClass}`}>
+                 <Link href="/dashboard" className="text-sm font-bold text-slate-900 hover:text-[#e11d48]">
                    Dashboard
                  </Link>
               ) : (
-                 <Link href="/purchase" className={`text-sm font-bold hover:text-[#e11d48] ${textClass}`}>
+                 <Link href="/purchase" className="text-sm font-bold text-slate-700 hover:text-[#e11d48]">
                    Login
                  </Link>
               )
@@ -131,17 +133,14 @@ export function Header({ translations }: HeaderProps) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className={cn(
-                  "hover:bg-rose-50 hover:text-[#e11d48] transition-colors",
-                  (!isHome || isScrolled) ? "text-slate-900" : "text-white"
-                )}
+                className="hover:bg-rose-50 hover:text-[#e11d48] transition-colors text-slate-900"
                 aria-label="Open AR Camera"
               >
                 <Camera className="h-6 w-6" />
               </Button>
             </Link>
 
-            <div className={(!isHome || isScrolled) ? "text-slate-900" : "text-white"}>
+            <div className="text-slate-900">
               <LanguageSelector />
             </div>
             
@@ -150,10 +149,7 @@ export function Header({ translations }: HeaderProps) {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className={cn(
-                    "p-1",
-                    (!isHome || isScrolled) ? "text-slate-900" : "text-white"
-                  )}
+                  className="p-1 text-slate-900"
                 >
                   <Menu className="h-8 w-8" />
                 </Button>
@@ -180,7 +176,7 @@ export function Header({ translations }: HeaderProps) {
                     <span className="font-bold text-slate-800 text-lg">AR Camera</span>
                   </Link>
 
-                  {/* AJOUT MARKETPLACE MOBILE */}
+                  {/* MARKETPLACE MOBILE */}
                   <Link 
                     href="/marketplace" 
                     onClick={() => setIsOpen(false)} 
