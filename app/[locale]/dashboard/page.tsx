@@ -1,6 +1,5 @@
 'use client';
 
-// Force le rendu dynamique pour éviter les erreurs Vercel
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -9,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { 
   ShieldCheck, Lock, TrendingUp, Eye, 
-  PartyPopper, CreditCard, Wallet, History, Tag, XCircle, Calendar, Loader2, LogOut, DollarSign, Zap
+  PartyPopper, CreditCard, Wallet, History, Tag, XCircle, Calendar, Loader2, LogOut, DollarSign, Zap, Plus, ArrowUpRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -19,13 +18,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import Image from 'next/image';
 
-// Fonction date sécurisée (Anti-Crash)
 const safeDate = (date: string | null | undefined) => {
   if (!date) return '-';
   try {
     return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   } catch (e) { return '-'; }
 };
+
+const getSkinImage = (skin: string | null) => `/images/skin-${skin ? skin.toLowerCase() : 'gold'}.png`;
 
 function DashboardContent() {
   const router = useRouter();
@@ -36,22 +36,22 @@ function DashboardContent() {
   const [profile, setProfile] = useState<any>(null);
   const [locks, setLocks] = useState<any[]>([]);
   
+  // États formulaires
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [bankZone, setBankZone] = useState('EU');
   const [field1, setField1] = useState('');
   const [field2, setField2] = useState('');
-  const [priceInputs, setPriceInputs] = useState<Record<number, string>>({});
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    // Délai pour laisser l'auth se charger
+    // Force le rechargement des données à chaque focus (retour de page)
+    const onFocus = () => fetchData();
+    window.addEventListener('focus', onFocus);
+
     const timer = setTimeout(() => {
-        if (!user) {
-           router.push('/purchase'); 
-        } else {
-           fetchData();
-        }
+        if (!user) router.push('/purchase'); 
+        else fetchData();
     }, 500);
 
     if (searchParams.get('payment_success') === 'true') {
@@ -59,19 +59,18 @@ function DashboardContent() {
       toast.success("Payment Successful!");
       window.history.replaceState(null, '', '/dashboard');
     }
-    return () => clearTimeout(timer);
+    
+    return () => {
+        clearTimeout(timer);
+        window.removeEventListener('focus', onFocus);
+    };
   }, [user, searchParams, router]);
 
   const fetchData = async () => {
     if (!user) return;
-
     try {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
+      // Profil
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       if (profileData) {
         setProfile(profileData);
         setFullName(profileData.full_name || '');
@@ -81,20 +80,14 @@ function DashboardContent() {
         setField2(profileData.bank_routing_number || profileData.bic || '');
       }
 
+      // Cadenas (On recharge tout pour avoir les prix à jour)
       const { data: locksData } = await supabase
         .from('locks')
         .select('*')
         .eq('owner_id', user.id)
         .order('created_at', { ascending: false });
         
-      if (locksData) {
-        setLocks(locksData);
-        const inputs: Record<number, string> = {};
-        locksData.forEach((l: any) => {
-          if (l.resale_price) inputs[l.id] = l.resale_price.toString();
-        });
-        setPriceInputs(inputs);
-      }
+      if (locksData) setLocks(locksData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -104,234 +97,167 @@ function DashboardContent() {
 
   const handleSaveProfile = async () => {
     if(!user) return;
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: fullName, phone: phone })
-      .eq('id', user.id);
-    
-    if (error) toast.error("Error saving profile");
-    else toast.success("Profile updated");
+    const { error } = await supabase.from('profiles').update({ full_name: fullName, phone: phone }).eq('id', user.id);
+    if (error) toast.error("Error saving profile"); else toast.success("Profile updated");
   };
 
   const handleSaveBank = async () => {
     if(!user) return;
-    const { error } = await supabase
-      .from('profiles')
-      .update({ 
-        bank_country: bankZone,
-        iban: field1, 
-        bank_routing_number: field2, 
-        bic: field2
-      })
-      .eq('id', user.id);
-    
-    if (error) toast.error("Error saving bank details");
-    else toast.success("Bank details secured");
+    const { error } = await supabase.from('profiles').update({ bank_country: bankZone, iban: field1, bank_routing_number: field2, bic: field2 }).eq('id', user.id);
+    if (error) toast.error("Error saving bank details"); else toast.success("Bank details secured");
   };
 
-  const handleSellToggle = async (lockId: number, currentStatus: string) => {
-    const priceValue = priceInputs[lockId];
-
-    if (currentStatus === 'For_Sale') {
-      const { error } = await supabase
-        .from('locks')
-        .update({ status: 'Active', resale_price: null })
-        .eq('id', lockId);
-      if (!error) { toast.success("Removed from marketplace"); fetchData(); }
-    } else {
-      if (!priceValue || parseFloat(priceValue) <= 0) { toast.error("Invalid price"); return; }
-      const { error } = await supabase
-        .from('locks')
-        .update({ status: 'For_Sale', resale_price: parseFloat(priceValue) })
-        .eq('id', lockId);
-      if (!error) { toast.success(`Listed for $${priceValue}!`); fetchData(); }
-    }
+  // Annuler une vente directement depuis le dashboard
+  const cancelSale = async (lockId: number) => {
+    const { error } = await supabase.from('locks').update({ status: 'Active', resale_price: null }).eq('id', lockId);
+    if (!error) { toast.success("Removed from marketplace"); fetchData(); }
   };
 
-  const handlePriceChange = (id: number, value: string) => {
-    setPriceInputs(prev => ({ ...prev, [id]: value }));
-  };
-
-  const calculateNetEarnings = (price: string) => {
-    const p = parseFloat(price);
-    if (isNaN(p) || p <= 0) return '0.00';
-    return (p * 0.80).toFixed(2);
-  };
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin h-8 w-8 text-slate-400" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-900"><Loader2 className="animate-spin h-8 w-8 text-white" /></div>;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       
       {showSuccess && (
-        <div className="bg-green-600 text-white p-4 text-center font-bold flex items-center justify-center gap-2 animate-in slide-in-from-top sticky top-0 z-50">
-          <PartyPopper size={24} />
-          Congratulations! Your Asset is secured.
-          <Button variant="secondary" size="sm" onClick={() => setShowSuccess(false)} className="ml-4 h-8 text-xs">Close</Button>
+        <div className="bg-emerald-500 text-white p-4 text-center font-bold flex items-center justify-center gap-2 sticky top-0 z-50 animate-in slide-in-from-top">
+          <PartyPopper size={24} /> Asset Secured Successfully!
+          <Button variant="ghost" size="sm" onClick={() => setShowSuccess(false)} className="ml-4 h-8 text-xs text-white border border-white/20">Close</Button>
         </div>
       )}
 
-      {/* HEADER */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20 px-6 py-4 flex justify-between items-center shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="bg-[#e11d48] text-white p-2 rounded-lg">
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 leading-tight">Investor Dashboard</h1>
-            <p className="text-xs text-slate-500">Welcome, {profile?.full_name || user?.email}</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-6">
-          <div className="text-right hidden md:block">
-            <p className="text-xs text-slate-400 font-bold uppercase">Balance</p>
-            <p className="text-xl font-bold text-[#e11d48]">${profile?.earnings_balance || '0.00'}</p>
-          </div>
-          <div className="h-8 w-px bg-slate-200 hidden md:block"></div>
-          <Button variant="ghost" size="sm" onClick={signOut} className="text-slate-500 hover:text-[#e11d48] hover:bg-rose-50">
-            <LogOut className="h-4 w-4 mr-2" /> Logout
-          </Button>
+      {/* HEADER PREMIUM (NOIR) */}
+      <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 px-6 py-4 shadow-lg">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-[#e11d48] to-purple-600 p-2 rounded-lg shadow-lg shadow-rose-500/20">
+                <ShieldCheck size={20} className="text-white" />
+            </div>
+            <div>
+                <h1 className="text-lg font-bold leading-tight">My Assets Portfolio</h1>
+                <p className="text-xs text-slate-400">Welcome back, {profile?.full_name || user?.email}</p>
+            </div>
+            </div>
+            
+            <div className="flex items-center gap-6">
+            <div className="text-right hidden md:block">
+                <p className="text-xs text-slate-400 font-bold uppercase">Available Balance</p>
+                <p className="text-xl font-bold text-emerald-400">${profile?.earnings_balance || '0.00'}</p>
+            </div>
+            <div className="h-8 w-px bg-slate-700 hidden md:block"></div>
+            <Button variant="ghost" size="sm" onClick={signOut} className="text-slate-400 hover:text-white hover:bg-white/10">
+                <LogOut className="h-4 w-4 mr-2" /> Logout
+            </Button>
+            </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         
-        {/* NOUVEAU : ACTIONS RAPIDES (SELL / BOOST) */}
-        <div className="grid md:grid-cols-2 gap-4 mb-8">
-            <div 
-              onClick={() => router.push('/sell')}
-              className="bg-emerald-600 text-white p-6 rounded-xl shadow-lg cursor-pointer hover:bg-emerald-500 transition-all flex items-center justify-between group"
-            >
-                <div>
-                   <h3 className="font-bold text-lg flex items-center gap-2"><DollarSign/> Sell an Asset</h3>
-                   <p className="text-emerald-100 text-sm">List a lock on the marketplace</p>
+        {/* SECTION ACTIONS RAPIDES (LES 3 BOUTONS) */}
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+            {/* 1. VENDRE */}
+            <div onClick={() => router.push('/sell')} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-emerald-300 transition-all group">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="bg-emerald-100 p-3 rounded-xl text-emerald-600 group-hover:scale-110 transition-transform"><DollarSign size={24}/></div>
+                    <ArrowUpRight className="text-slate-300 group-hover:text-emerald-500"/>
                 </div>
-                <div className="bg-white/20 p-2 rounded-full group-hover:scale-110 transition-transform">
-                   <TrendingUp size={24} />
-                </div>
+                <h3 className="font-bold text-lg text-slate-900">Sell Asset</h3>
+                <p className="text-sm text-slate-500">List on marketplace</p>
             </div>
             
-            <div 
-              onClick={() => router.push('/boost')}
-              className="bg-amber-500 text-white p-6 rounded-xl shadow-lg cursor-pointer hover:bg-amber-400 transition-all flex items-center justify-between group"
-            >
-                <div>
-                   <h3 className="font-bold text-lg flex items-center gap-2"><Zap/> Boost Visibility</h3>
-                   <p className="text-amber-100 text-sm">Get 5x more views & sell faster</p>
+            {/* 2. BOOSTER */}
+            <div onClick={() => router.push('/boost')} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all group">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="bg-amber-100 p-3 rounded-xl text-amber-600 group-hover:scale-110 transition-transform"><Zap size={24}/></div>
+                    <ArrowUpRight className="text-slate-300 group-hover:text-amber-500"/>
                 </div>
-                <div className="bg-white/20 p-2 rounded-full group-hover:scale-110 transition-transform">
-                   <Eye size={24} />
+                <h3 className="font-bold text-lg text-slate-900">Boost Visibility</h3>
+                <p className="text-sm text-slate-500">Sell 5x faster</p>
+            </div>
+
+            {/* 3. ACHETER (NOUVEAU) */}
+            <div onClick={() => router.push('/purchase')} className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-2xl shadow-lg cursor-pointer hover:scale-[1.02] transition-all group text-white">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="bg-white/20 p-3 rounded-xl text-white group-hover:rotate-90 transition-transform"><Plus size={24}/></div>
+                    <div className="bg-emerald-500 text-[10px] font-bold px-2 py-1 rounded">NEW</div>
                 </div>
+                <h3 className="font-bold text-lg">Buy New Asset</h3>
+                <p className="text-slate-400 text-sm">Add to your collection</p>
             </div>
         </div>
 
         {/* STATS */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <Card className="border-none shadow-sm bg-white p-4 flex items-center gap-4">
-            <div className="bg-blue-50 p-3 rounded-full text-blue-600"><Lock size={20} /></div>
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase">Assets</p>
-              <p className="text-2xl font-bold text-slate-900">{locks.length}</p>
-            </div>
-          </Card>
-          <Card className="border-none shadow-sm bg-white p-4 flex items-center gap-4">
-            <div className="bg-green-50 p-3 rounded-full text-green-600"><TrendingUp size={20} /></div>
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase">Total Value</p>
-              <p className="text-2xl font-bold text-slate-900">${locks.reduce((acc, l) => acc + (l.price || 29.99), 0).toFixed(2)}</p>
-            </div>
-          </Card>
-          <Card className="border-none shadow-sm bg-white p-4 flex items-center gap-4">
-            <div className="bg-purple-50 p-3 rounded-full text-purple-600"><Eye size={20} /></div>
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase">Views</p>
-              <p className="text-2xl font-bold text-slate-900">{locks.reduce((acc, l) => acc + (l.views_count || 0), 0)}</p>
-            </div>
-          </Card>
-          <Card className="border-none shadow-sm bg-white p-4 flex items-center gap-4">
-            <div className="bg-amber-50 p-3 rounded-full text-amber-600"><Wallet size={20} /></div>
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase">Earnings</p>
-              <p className="text-2xl font-bold text-[#e11d48]">${profile?.earnings_balance || '0.00'}</p>
-            </div>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-white/50 border-slate-200 shadow-sm"><CardContent className="p-4 flex flex-col items-center"><span className="text-xs text-slate-500 font-bold uppercase">Total Assets</span><span className="text-2xl font-bold text-slate-900">{locks.length}</span></CardContent></Card>
+          <Card className="bg-white/50 border-slate-200 shadow-sm"><CardContent className="p-4 flex flex-col items-center"><span className="text-xs text-slate-500 font-bold uppercase">Portfolio Value</span><span className="text-2xl font-bold text-slate-900">${locks.reduce((acc, l) => acc + (l.price || 29.99), 0).toFixed(0)}</span></CardContent></Card>
+          <Card className="bg-white/50 border-slate-200 shadow-sm"><CardContent className="p-4 flex flex-col items-center"><span className="text-xs text-slate-500 font-bold uppercase">Total Views</span><span className="text-2xl font-bold text-slate-900">{locks.reduce((acc, l) => acc + (l.views_count || 0), 0)}</span></CardContent></Card>
+          <Card className="bg-white/50 border-slate-200 shadow-sm"><CardContent className="p-4 flex flex-col items-center"><span className="text-xs text-slate-500 font-bold uppercase">Pending Sales</span><span className="text-2xl font-bold text-emerald-600">{locks.filter(l => l.status === 'For_Sale').length}</span></CardContent></Card>
         </div>
 
-        {/* TABS */}
+        {/* CONTENU PRINCIPAL */}
         <Tabs defaultValue="assets" className="space-y-6">
           <TabsList className="bg-white p-1 border border-slate-200 rounded-xl w-full md:w-auto inline-flex">
-            <TabsTrigger value="assets" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">My Locks</TabsTrigger>
-            <TabsTrigger value="profile" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Profile</TabsTrigger>
-            <TabsTrigger value="bank" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Bank & Payouts</TabsTrigger>
+            <TabsTrigger value="assets" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">My Portfolio</TabsTrigger>
+            <TabsTrigger value="profile" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Settings</TabsTrigger>
+            <TabsTrigger value="bank" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Payouts</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="assets" className="space-y-6">
+          {/* ONGLETS ASSETS */}
+          <TabsContent value="assets" className="space-y-4">
              {locks.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
+              <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-200">
                 <Lock className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-slate-900">No assets yet</h3>
-                <Button onClick={() => router.push('/purchase')} className="mt-4 bg-[#e11d48] text-white">Buy First Lock</Button>
+                <h3 className="text-lg font-bold text-slate-900">Portfolio Empty</h3>
+                <p className="text-slate-500 mb-6">Start your collection today.</p>
+                <Button onClick={() => router.push('/purchase')} className="bg-slate-900 text-white">Buy First Lock</Button>
               </div>
             ) : (
-              locks.map((lock) => (
-                <div key={lock.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm flex flex-col md:flex-row transition-all hover:shadow-md">
-                  <div className="md:w-1/4 bg-slate-50 p-8 flex items-center justify-center border-r border-slate-100 relative">
-                     <Image src={`/images/skin-${lock.skin ? lock.skin.toLowerCase() : 'gold'}.png`} alt="Lock" width={100} height={100} className="object-contain" />
-                     {lock.status === 'For_Sale' && (
-                       <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">ON SALE</div>
-                     )}
-                  </div>
-                  <div className="flex-1 p-6 space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="bg-slate-900 text-white text-xs font-mono px-2 py-1 rounded">#{lock.id}</span>
-                          <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200">Purchased: ${lock.price}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                          <Calendar size={12} />
-                          <span>Purchased on {safeDate(lock.created_at)}</span>
-                        </div>
-                        <h3 className="font-bold text-lg text-slate-800 mt-1 line-clamp-1">{lock.content_text}</h3>
-                        <p className="text-sm text-slate-500">{lock.zone} • {lock.skin} Edition</p>
-                      </div>
-                      <Button size="sm" variant="outline" onClick={() => window.open(`/bridge`)}><Eye className="w-3 h-3 mr-1"/> 3D</Button>
-                    </div>
-                    <div className={`flex flex-col gap-3 pt-4 border-t border-slate-100 mt-2 ${lock.status === 'For_Sale' ? 'bg-green-50/50 -mx-6 px-6 py-4' : ''}`}>
-                       {lock.status === 'For_Sale' ? (
-                         <div className="flex items-center justify-between">
-                           <div className="flex-1 text-sm text-green-700 flex flex-col gap-1">
-                             <div className="flex items-center gap-2 font-bold"><Tag className="h-4 w-4"/>Listed for ${lock.resale_price}</div>
-                             <span className="text-xs opacity-70">Waiting for a buyer...</span>
-                           </div>
-                           <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white border-0" onClick={() => handleSellToggle(lock.id, lock.status)}><XCircle className="w-3 h-3 mr-2"/> Cancel Sale</Button>
-                         </div>
-                       ) : (
-                         <div className="space-y-3">
-                           <div className="flex justify-between items-end">
-                             <div className="text-sm text-slate-600">
-                               <p className="font-bold mb-1">Sell on Marketplace</p>
-                               <p className="text-xs text-slate-400 max-w-[250px] leading-tight">20% transfer fees applied upon sale.<br/>You will receive: <strong className="text-green-600">${calculateNetEarnings(priceInputs[lock.id])}</strong></p>
-                             </div>
-                             <div className="flex items-center gap-2">
-                               <div className="relative">
-                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                                 <Input type="number" placeholder="Price" className="h-9 w-24 pl-6 bg-white" value={priceInputs[lock.id] || ''} onChange={(e) => handlePriceChange(lock.id, e.target.value)}/>
-                               </div>
-                               <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white" onClick={() => handleSellToggle(lock.id, lock.status)}><Tag className="w-3 h-3 mr-2"/> Sell</Button>
-                             </div>
-                           </div>
-                         </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                {locks.map((lock) => (
+                  <div key={lock.id} className="bg-white border border-slate-200 rounded-xl p-4 flex gap-4 transition-all hover:shadow-md">
+                    {/* Image */}
+                    <div className="w-24 h-24 bg-slate-50 rounded-lg flex items-center justify-center shrink-0 relative">
+                       <Image src={getSkinImage(lock.skin)} alt="Lock" width={60} height={60} className="object-contain drop-shadow-sm" />
+                       {lock.status === 'For_Sale' && (
+                         <div className="absolute top-1 right-1 bg-green-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">ON SALE</div>
                        )}
                     </div>
+                    
+                    {/* Infos */}
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <span className="font-black text-slate-900 text-lg">#{lock.id}</span>
+                          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Paid: ${lock.price}</span>
+                        </div>
+                        <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                           <span>{lock.zone}</span> • <span>{safeDate(lock.created_at)}</span>
+                        </div>
+                      </div>
+
+                      {/* Barre d'action */}
+                      <div className="flex gap-2 mt-3">
+                         {lock.status === 'For_Sale' ? (
+                           <div className="flex-1 flex items-center justify-between bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
+                              <span className="text-xs font-bold text-green-700">Listed: ${lock.resale_price}</span>
+                              <button onClick={() => cancelSale(lock.id)} className="text-red-500 hover:text-red-700 text-xs font-bold">Cancel</button>
+                           </div>
+                         ) : (
+                           <>
+                             <Button onClick={() => router.push(`/sell`)} size="sm" variant="outline" className="flex-1 h-8 text-xs border-slate-300">Sell</Button>
+                             <Button onClick={() => router.push(`/boost`)} size="sm" className="flex-1 h-8 text-xs bg-amber-500 hover:bg-amber-600 text-white border-0">Boost</Button>
+                           </>
+                         )}
+                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => window.open('/bridge')}><Eye size={16}/></Button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </TabsContent>
 
-          {/* PROFILE */}
+          {/* ONGLET PROFILE */}
           <TabsContent value="profile">
             <Card>
               <CardHeader><CardTitle>Identity</CardTitle></CardHeader>
@@ -339,31 +265,29 @@ function DashboardContent() {
                 <div className="space-y-2"><Label>Full Name</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
                 <div className="space-y-2"><Label>Phone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
                 <div className="space-y-2"><Label>Email</Label><Input value={user?.email} disabled className="bg-slate-100" /></div>
-                <Button onClick={handleSaveProfile} className="bg-[#e11d48] text-white">Save Changes</Button>
+                <Button onClick={handleSaveProfile} className="bg-slate-900 text-white">Save Changes</Button>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* BANK */}
+          {/* ONGLET BANK */}
           <TabsContent value="bank">
             <div className="grid md:grid-cols-2 gap-8">
               <Card>
-                <CardHeader><CardTitle>Payout Method</CardTitle><CardDescription>Global payouts supported.</CardDescription></CardHeader>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5"/> Payout Method</CardTitle>
+                </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Region</Label>
+                    <Label>Bank Region</Label>
                     <select className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" value={bankZone} onChange={(e) => setBankZone(e.target.value)}>
                       <option value="EU">🇪🇺 Europe</option><option value="US">🇺🇸 USA</option><option value="UK">🇬🇧 UK</option><option value="OTHER">🌍 Other</option>
                     </select>
                   </div>
-                  <div className="space-y-2"><Label>Account Number / IBAN</Label><Input value={field1} onChange={(e) => setField1(e.target.value)} placeholder="FR76 ...." /></div>
-                  <div className="space-y-2"><Label>Routing / BIC / Sort Code</Label><Input value={field2} onChange={(e) => setField2(e.target.value)} placeholder="ABCD..." /></div>
-                  <Button onClick={handleSaveBank} className="w-full bg-slate-900 text-white mt-2"><Lock className="mr-2 h-4 w-4"/> Secure Save</Button>
+                  <div className="space-y-2"><Label>IBAN / Account</Label><Input value={field1} onChange={(e) => setField1(e.target.value)} /></div>
+                  <div className="space-y-2"><Label>BIC / Routing</Label><Input value={field2} onChange={(e) => setField2(e.target.value)} /></div>
+                  <Button onClick={handleSaveBank} className="w-full bg-slate-900 text-white mt-2"><Lock className="mr-2 h-4 w-4"/> Secure Data</Button>
                 </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle>Payout History</CardTitle></CardHeader>
-                <CardContent className="text-center py-10 text-slate-400 text-sm">No payout history yet.</CardContent>
               </Card>
             </div>
           </TabsContent>
@@ -375,7 +299,7 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin h-10 w-10 text-[#e11d48]" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin h-8 w-8 text-slate-400" /></div>}>
       <DashboardContent />
     </Suspense>
   );
