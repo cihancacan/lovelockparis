@@ -1,6 +1,5 @@
 'use client';
 
-// Force le rendu dynamique
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -9,10 +8,10 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { 
   ShieldCheck, Lock, TrendingUp, Eye, 
-  PartyPopper, CreditCard, Wallet, History, Tag, XCircle, Calendar, Loader2, LogOut, DollarSign, Zap, Plus, ArrowUpRight
+  PartyPopper, CreditCard, Wallet, History, Tag, XCircle, Calendar, Loader2, LogOut, DollarSign, Zap, Plus, ArrowUpRight, Home, Store
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -46,10 +45,13 @@ function DashboardContent() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    // Si pas de user, on attend un peu puis on redirige
+    // Si pas connecté, redirection
     const timer = setTimeout(() => {
-        if (!user) router.push('/purchase'); 
-        else fetchData();
+        if (!user) {
+           router.push('/purchase'); 
+        } else {
+           fetchData();
+        }
     }, 500);
 
     if (searchParams.get('payment_success') === 'true') {
@@ -63,6 +65,7 @@ function DashboardContent() {
   const fetchData = async () => {
     if (!user) return;
     try {
+      // Profil
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       if (profileData) {
         setProfile(profileData);
@@ -73,6 +76,7 @@ function DashboardContent() {
         setField2(profileData.bank_routing_number || profileData.bic || '');
       }
 
+      // Cadenas
       const { data: locksData } = await supabase
         .from('locks')
         .select('*')
@@ -106,15 +110,32 @@ function DashboardContent() {
     if (error) toast.error("Error saving bank details"); else toast.success("Bank details secured");
   };
 
+  // --- LOGIQUE DE VENTE CORRIGÉE ---
   const handleSellToggle = async (lockId: number, currentStatus: string) => {
     const priceValue = priceInputs[lockId];
+
     if (currentStatus === 'For_Sale') {
+      // Annuler la vente
       const { error } = await supabase.from('locks').update({ status: 'Active', resale_price: null }).eq('id', lockId);
-      if (!error) { toast.success("Removed from marketplace"); fetchData(); }
+      if (!error) { 
+          toast.success("Removed from marketplace"); 
+          fetchData(); // Rafraîchissement immédiat
+      }
     } else {
-      if (!priceValue || parseFloat(priceValue) <= 0) { toast.error("Invalid price"); return; }
-      const { error } = await supabase.from('locks').update({ status: 'For_Sale', resale_price: parseFloat(priceValue) }).eq('id', lockId);
-      if (!error) { toast.success(`Listed for $${priceValue}!`); fetchData(); }
+      // Mettre en vente
+      if (!priceValue || parseFloat(priceValue) <= 0) { 
+          toast.error("Please enter a valid price"); 
+          return; 
+      }
+      const { error } = await supabase
+        .from('locks')
+        .update({ status: 'For_Sale', resale_price: parseFloat(priceValue) })
+        .eq('id', lockId);
+      
+      if (!error) { 
+          toast.success(`Listed for $${priceValue}!`); 
+          fetchData(); // Rafraîchissement immédiat
+      }
     }
   };
 
@@ -126,6 +147,12 @@ function DashboardContent() {
     const p = parseFloat(price);
     if (isNaN(p) || p <= 0) return '0.00';
     return (p * 0.80).toFixed(2);
+  };
+
+  // Gestion du Logout pour rediriger vers Home
+  const handleLogout = async () => {
+    await signOut();
+    window.location.href = '/';
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin h-8 w-8 text-slate-400" /></div>;
@@ -140,42 +167,54 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* HEADER ELITE */}
-      <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 px-6 py-4 shadow-lg">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-r from-[#e11d48] to-purple-600 p-2 rounded-lg shadow-lg shadow-rose-500/20">
-                <ShieldCheck size={20} className="text-white" />
-            </div>
-            <div>
-                <h1 className="text-lg font-bold leading-tight">My Assets Portfolio</h1>
-                <p className="text-xs text-slate-400">Welcome, {profile?.full_name || user?.email}</p>
-            </div>
+      {/* HEADER AMÉLIORÉ (NAVIGATION) */}
+      <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 px-4 py-4 shadow-lg">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            {/* Logo & Identité */}
+            <div className="flex items-center gap-4 w-full md:w-auto justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="bg-gradient-to-r from-[#e11d48] to-purple-600 p-2 rounded-lg shadow-lg shadow-rose-500/20">
+                        <ShieldCheck size={20} className="text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-bold leading-tight">My Assets</h1>
+                        <p className="text-xs text-slate-400">{profile?.full_name || 'Member'}</p>
+                    </div>
+                </div>
+                
+                {/* Menu Mobile (Visible seulement sur petit écran) */}
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="md:hidden text-slate-400">
+                    <LogOut className="h-5 w-5" />
+                </Button>
             </div>
             
-            <div className="flex items-center gap-6">
-            <div className="text-right hidden md:block">
-                <p className="text-xs text-slate-400 font-bold uppercase">Available Balance</p>
-                <p className="text-xl font-bold text-emerald-400">${profile?.earnings_balance || '0.00'}</p>
-            </div>
-            <div className="h-8 w-px bg-slate-700 hidden md:block"></div>
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-slate-400 hover:text-white hover:bg-white/10">
-                <LogOut className="h-4 w-4 mr-2" /> Logout
-            </Button>
+            {/* Navigation Desktop */}
+            <div className="flex items-center gap-4 w-full md:w-auto bg-slate-800/50 p-1.5 rounded-xl overflow-x-auto">
+                <Button variant="ghost" size="sm" onClick={() => router.push('/')} className="text-slate-300 hover:text-white hover:bg-white/10 gap-2">
+                    <Home size={16}/> <span className="hidden sm:inline">Home</span>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => router.push('/marketplace')} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 gap-2">
+                    <Store size={16}/> <span className="hidden sm:inline">Marketplace</span>
+                </Button>
+                <div className="h-4 w-px bg-slate-700 mx-1 hidden sm:block"></div>
+                <div className="px-3 hidden sm:block">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">Balance</p>
+                    <p className="text-sm font-bold text-emerald-400">${profile?.earnings_balance || '0.00'}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-400 hover:text-red-400 hover:bg-red-500/10 hidden sm:flex">
+                    <LogOut size={16}/>
+                </Button>
             </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         
-        {/* --- 3 BOUTONS D'ACTION (LE COEUR DU SYSTÈME) --- */}
+        {/* --- 3 BOUTONS D'ACTION --- */}
         <div className="grid md:grid-cols-3 gap-4 mb-8">
-            
-            {/* 1. VENDRE */}
-            <div 
-              onClick={() => router.push('/sell')}
-              className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-emerald-300 transition-all group"
-            >
+            {/* VENDRE */}
+            <div onClick={() => router.push('/sell')} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-emerald-300 transition-all group">
                 <div className="flex justify-between items-start mb-4">
                     <div className="bg-emerald-100 p-3 rounded-xl text-emerald-600 group-hover:scale-110 transition-transform"><DollarSign size={24}/></div>
                     <ArrowUpRight className="text-slate-300 group-hover:text-emerald-500"/>
@@ -184,11 +223,8 @@ function DashboardContent() {
                 <p className="text-slate-500 text-sm">List on marketplace</p>
             </div>
             
-            {/* 2. BOOSTER */}
-            <div 
-              onClick={() => router.push('/boost')}
-              className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all group"
-            >
+            {/* BOOSTER */}
+            <div onClick={() => router.push('/boost')} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all group">
                 <div className="flex justify-between items-start mb-4">
                     <div className="bg-amber-100 p-3 rounded-xl text-amber-600 group-hover:scale-110 transition-transform"><Zap size={24}/></div>
                     <ArrowUpRight className="text-slate-300 group-hover:text-amber-500"/>
@@ -197,11 +233,8 @@ function DashboardContent() {
                 <p className="text-sm text-slate-500">Sell 5x faster</p>
             </div>
 
-            {/* 3. ACHETER (Redirection vers Purchase, même connecté c'est OK) */}
-            <div 
-              onClick={() => router.push('/purchase')}
-              className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-2xl shadow-lg cursor-pointer hover:scale-[1.02] transition-all group text-white"
-            >
+            {/* ACHETER (NOUVEAU) */}
+            <div onClick={() => router.push('/purchase')} className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-2xl shadow-lg cursor-pointer hover:scale-[1.02] transition-all group text-white">
                 <div className="flex justify-between items-start mb-4">
                     <div className="bg-white/20 p-3 rounded-xl text-white group-hover:rotate-90 transition-transform"><Plus size={24}/></div>
                     <div className="bg-emerald-500 text-[10px] font-bold px-2 py-1 rounded">NEW</div>
@@ -211,19 +244,11 @@ function DashboardContent() {
             </div>
         </div>
 
-        {/* STATS */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-white/50 border-slate-200 shadow-sm"><CardContent className="p-4 flex flex-col items-center"><span className="text-xs text-slate-500 font-bold uppercase">Total Assets</span><span className="text-2xl font-bold text-slate-900">{locks.length}</span></CardContent></Card>
-          <Card className="bg-white/50 border-slate-200 shadow-sm"><CardContent className="p-4 flex flex-col items-center"><span className="text-xs text-slate-500 font-bold uppercase">Portfolio Value</span><span className="text-2xl font-bold text-slate-900">${locks.reduce((acc, l) => acc + (l.price || 29.99), 0).toFixed(0)}</span></CardContent></Card>
-          <Card className="bg-white/50 border-slate-200 shadow-sm"><CardContent className="p-4 flex flex-col items-center"><span className="text-xs text-slate-500 font-bold uppercase">Total Views</span><span className="text-2xl font-bold text-slate-900">{locks.reduce((acc, l) => acc + (l.views_count || 0), 0)}</span></CardContent></Card>
-          <Card className="bg-white/50 border-slate-200 shadow-sm"><CardContent className="p-4 flex flex-col items-center"><span className="text-xs text-slate-500 font-bold uppercase">Pending Sales</span><span className="text-2xl font-bold text-emerald-600">{locks.filter(l => l.status === 'For_Sale').length}</span></CardContent></Card>
-        </div>
-
-        {/* LISTE DES CADENAS */}
+        {/* CONTENU PRINCIPAL */}
         <Tabs defaultValue="assets" className="space-y-6">
           <TabsList className="bg-white p-1 border border-slate-200 rounded-xl w-full md:w-auto inline-flex">
             <TabsTrigger value="assets" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">My Portfolio</TabsTrigger>
-            <TabsTrigger value="profile" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Settings</TabsTrigger>
+            <TabsTrigger value="profile" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Profile</TabsTrigger>
             <TabsTrigger value="bank" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Payouts</TabsTrigger>
           </TabsList>
 
@@ -239,6 +264,7 @@ function DashboardContent() {
               <div className="grid md:grid-cols-2 gap-4">
                 {locks.map((lock) => (
                   <div key={lock.id} className="bg-white border border-slate-200 rounded-xl p-4 flex gap-4 transition-all hover:shadow-md">
+                    
                     {/* Image */}
                     <div className="w-24 h-24 bg-slate-50 rounded-lg flex items-center justify-center shrink-0 relative">
                        <Image src={getSkinImage(lock.skin)} alt="Lock" width={60} height={60} className="object-contain drop-shadow-sm" />
@@ -259,17 +285,27 @@ function DashboardContent() {
                         </div>
                       </div>
 
-                      {/* Barre d'action intégrée */}
+                      {/* Barre d'action */}
                       <div className="flex gap-2 mt-3">
                          {lock.status === 'For_Sale' ? (
                            <div className="flex-1 flex items-center justify-between bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
                               <span className="text-xs font-bold text-green-700">Listed: ${lock.resale_price}</span>
-                              <button onClick={() => handleSellToggle(lock.id, lock.status)} className="text-red-500 hover:text-red-700 text-xs font-bold">Cancel</button>
+                              <button onClick={() => handleSellToggle(lock.id, lock.status)} className="text-red-500 hover:text-red-700 text-xs font-bold bg-white px-2 py-0.5 rounded border border-red-100">Cancel</button>
                            </div>
                          ) : (
                            <>
-                             <Button onClick={() => router.push(`/sell`)} size="sm" variant="outline" className="flex-1 h-8 text-xs border-slate-300">Sell</Button>
-                             <Button onClick={() => router.push(`/boost`)} size="sm" className="flex-1 h-8 text-xs bg-amber-500 hover:bg-amber-600 text-white border-0">Boost</Button>
+                             {/* INPUT PRIX DIRECT */}
+                             <div className="relative w-24">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
+                                <Input 
+                                  className="h-8 pl-5 text-xs pr-1" 
+                                  placeholder="Price"
+                                  value={priceInputs[lock.id] || ''}
+                                  onChange={(e) => handlePriceChange(lock.id, e.target.value)}
+                                />
+                             </div>
+                             <Button onClick={() => handleSellToggle(lock.id, lock.status)} size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white">Sell</Button>
+                             <Button onClick={() => router.push(`/boost?lock_id=${lock.id}`)} size="sm" variant="outline" className="h-8 text-xs border-amber-300 text-amber-600 hover:bg-amber-50"><Zap size={12}/></Button>
                            </>
                          )}
                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => window.open('/bridge')}><Eye size={16}/></Button>
@@ -281,7 +317,6 @@ function DashboardContent() {
             )}
           </TabsContent>
 
-          {/* Autres onglets (identiques à avant) */}
           <TabsContent value="profile">
             <Card>
               <CardHeader><CardTitle>Identity</CardTitle></CardHeader>
