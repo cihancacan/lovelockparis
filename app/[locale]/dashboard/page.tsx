@@ -1,12 +1,15 @@
 'use client';
 
+// Force le rendu dynamique pour éviter les erreurs Vercel
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/auth-context'; // Import du Auth Context
+import { useAuth } from '@/lib/auth-context';
 import { 
   ShieldCheck, Lock, TrendingUp, Eye, 
-  PartyPopper, CreditCard, Wallet, History, Tag, XCircle, Calendar, Loader2, LogOut
+  PartyPopper, CreditCard, Wallet, History, Tag, XCircle, Calendar, Loader2, LogOut, DollarSign, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,10 +19,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import Image from 'next/image';
 
+// Fonction date sécurisée (Anti-Crash)
+const safeDate = (date: string | null | undefined) => {
+  if (!date) return '-';
+  try {
+    return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch (e) { return '-'; }
+};
+
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // On récupère la fonction signOut ici
   const { user, signOut } = useAuth();
   
   const [loading, setLoading] = useState(true);
@@ -35,51 +45,61 @@ function DashboardContent() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    // Délai pour laisser l'auth se charger
+    const timer = setTimeout(() => {
+        if (!user) {
+           router.push('/purchase'); 
+        } else {
+           fetchData();
+        }
+    }, 500);
+
     if (searchParams.get('payment_success') === 'true') {
       setShowSuccess(true);
       toast.success("Payment Successful!");
       window.history.replaceState(null, '', '/dashboard');
     }
-  }, []);
+    return () => clearTimeout(timer);
+  }, [user, searchParams, router]);
 
   const fetchData = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      router.push('/purchase'); // Redirection si pas connecté
-      return;
-    }
+    if (!user) return;
 
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
-    
-    if (profileData) {
-      setProfile(profileData);
-      setFullName(profileData.full_name || '');
-      setPhone(profileData.phone || '');
-      setBankZone(profileData.bank_country || 'EU');
-      setField1(profileData.iban || ''); 
-      setField2(profileData.bank_routing_number || profileData.bic || '');
-    }
-
-    const { data: locksData } = await supabase
-      .from('locks')
-      .select('*')
-      .eq('owner_id', session.user.id)
-      .order('created_at', { ascending: false });
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
       
-    if (locksData) {
-      setLocks(locksData);
-      const inputs: Record<number, string> = {};
-      locksData.forEach((l: any) => {
-        if (l.resale_price) inputs[l.id] = l.resale_price.toString();
-      });
-      setPriceInputs(inputs);
+      if (profileData) {
+        setProfile(profileData);
+        setFullName(profileData.full_name || '');
+        setPhone(profileData.phone || '');
+        setBankZone(profileData.bank_country || 'EU');
+        setField1(profileData.iban || ''); 
+        setField2(profileData.bank_routing_number || profileData.bic || '');
+      }
+
+      const { data: locksData } = await supabase
+        .from('locks')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      if (locksData) {
+        setLocks(locksData);
+        const inputs: Record<number, string> = {};
+        locksData.forEach((l: any) => {
+          if (l.resale_price) inputs[l.id] = l.resale_price.toString();
+        });
+        setPriceInputs(inputs);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSaveProfile = async () => {
@@ -138,7 +158,7 @@ function DashboardContent() {
     return (p * 0.80).toFixed(2);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white text-slate-900"><Loader2 className="animate-spin h-8 w-8" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin h-8 w-8 text-slate-400" /></div>;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -163,7 +183,6 @@ function DashboardContent() {
           </div>
         </div>
         
-        {/* SECTION DROITE : BALANCE + LOGOUT */}
         <div className="flex items-center gap-6">
           <div className="text-right hidden md:block">
             <p className="text-xs text-slate-400 font-bold uppercase">Balance</p>
@@ -177,6 +196,36 @@ function DashboardContent() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">
+        
+        {/* NOUVEAU : ACTIONS RAPIDES (SELL / BOOST) */}
+        <div className="grid md:grid-cols-2 gap-4 mb-8">
+            <div 
+              onClick={() => router.push('/sell')}
+              className="bg-emerald-600 text-white p-6 rounded-xl shadow-lg cursor-pointer hover:bg-emerald-500 transition-all flex items-center justify-between group"
+            >
+                <div>
+                   <h3 className="font-bold text-lg flex items-center gap-2"><DollarSign/> Sell an Asset</h3>
+                   <p className="text-emerald-100 text-sm">List a lock on the marketplace</p>
+                </div>
+                <div className="bg-white/20 p-2 rounded-full group-hover:scale-110 transition-transform">
+                   <TrendingUp size={24} />
+                </div>
+            </div>
+            
+            <div 
+              onClick={() => router.push('/boost')}
+              className="bg-amber-500 text-white p-6 rounded-xl shadow-lg cursor-pointer hover:bg-amber-400 transition-all flex items-center justify-between group"
+            >
+                <div>
+                   <h3 className="font-bold text-lg flex items-center gap-2"><Zap/> Boost Visibility</h3>
+                   <p className="text-amber-100 text-sm">Get 5x more views & sell faster</p>
+                </div>
+                <div className="bg-white/20 p-2 rounded-full group-hover:scale-110 transition-transform">
+                   <Eye size={24} />
+                </div>
+            </div>
+        </div>
+
         {/* STATS */}
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           <Card className="border-none shadow-sm bg-white p-4 flex items-center gap-4">
@@ -242,7 +291,7 @@ function DashboardContent() {
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-400">
                           <Calendar size={12} />
-                          <span>Purchased on {new Date(lock.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                          <span>Purchased on {safeDate(lock.created_at)}</span>
                         </div>
                         <h3 className="font-bold text-lg text-slate-800 mt-1 line-clamp-1">{lock.content_text}</h3>
                         <p className="text-sm text-slate-500">{lock.zone} • {lock.skin} Edition</p>
@@ -282,6 +331,7 @@ function DashboardContent() {
             )}
           </TabsContent>
 
+          {/* PROFILE */}
           <TabsContent value="profile">
             <Card>
               <CardHeader><CardTitle>Identity</CardTitle></CardHeader>
@@ -294,6 +344,7 @@ function DashboardContent() {
             </Card>
           </TabsContent>
 
+          {/* BANK */}
           <TabsContent value="bank">
             <div className="grid md:grid-cols-2 gap-8">
               <Card>
@@ -305,8 +356,8 @@ function DashboardContent() {
                       <option value="EU">🇪🇺 Europe</option><option value="US">🇺🇸 USA</option><option value="UK">🇬🇧 UK</option><option value="OTHER">🌍 Other</option>
                     </select>
                   </div>
-                  <div className="space-y-2"><Label>Account Number / IBAN</Label><Input value={field1} onChange={(e) => setField1(e.target.value)} /></div>
-                  <div className="space-y-2"><Label>Routing / BIC / Sort Code</Label><Input value={field2} onChange={(e) => setField2(e.target.value)} /></div>
+                  <div className="space-y-2"><Label>Account Number / IBAN</Label><Input value={field1} onChange={(e) => setField1(e.target.value)} placeholder="FR76 ...." /></div>
+                  <div className="space-y-2"><Label>Routing / BIC / Sort Code</Label><Input value={field2} onChange={(e) => setField2(e.target.value)} placeholder="ABCD..." /></div>
                   <Button onClick={handleSaveBank} className="w-full bg-slate-900 text-white mt-2"><Lock className="mr-2 h-4 w-4"/> Secure Save</Button>
                 </CardContent>
               </Card>
@@ -324,10 +375,8 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-[#e11d48]" /></div>}>
-        <DashboardContent />
-      </Suspense>
-    </div>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin h-10 w-10 text-[#e11d48]" /></div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }
