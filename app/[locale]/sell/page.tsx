@@ -1,6 +1,6 @@
 'use client';
 
-// Force le rendu dynamique
+// Force le rendu dynamique pour éviter les erreurs Vercel
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -11,7 +11,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { DollarSign, ShieldCheck, Loader2, TrendingUp, ArrowLeft, Check, Lock, LogIn } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { 
+  DollarSign, ShieldCheck, Loader2, TrendingUp, ArrowLeft, Check, 
+  Wallet, Info, Tag, AlertCircle, LogIn, Lock 
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
@@ -29,15 +33,18 @@ const getSkinImage = (skin: string | null) => `/images/skin-${skin ? skin.toLowe
 
 function SellPageContent() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth(); // On récupère authLoading pour éviter les sauts
+  const { user } = useAuth();
   const [userLocks, setUserLocks] = useState<UserLock[]>([]);
   const [selectedLockId, setSelectedLockId] = useState<number | null>(null);
+  
   const [salePrice, setSalePrice] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
-  const [platformCommission] = useState(0.20); 
+  
+  const PLATFORM_COMMISSION = 0.20; // 20%
 
   useEffect(() => {
+    // On charge les cadenas SEULEMENT si connecté, sinon on laisse la page visible
     if (user) {
         loadUserLocks();
     }
@@ -58,8 +65,8 @@ function SellPageContent() {
       
       if (safeData.length > 0) {
         setSelectedLockId(safeData[0].id);
-        const basePrice = safeData[0].price || 29.99;
-        setSalePrice((basePrice * 2).toFixed(2));
+        // Prix suggéré par défaut (x2)
+        setSalePrice(((safeData[0].price || 29.99) * 2).toFixed(2)); 
       }
     } catch (error) {
       console.error(error);
@@ -67,25 +74,18 @@ function SellPageContent() {
   };
 
   const handleListForSale = async () => {
-    // 1. Si pas connecté -> Redirection Login
+    // 1. Si pas connecté -> Redirection
     if (!user) {
         router.push('/purchase');
         return;
     }
 
-    if (!selectedLockId) {
-      toast.error('Please select a lock first');
-      return;
-    }
-
+    if (!selectedLockId) return toast.error('Please select a lock');
+    
     const price = parseFloat(salePrice);
-    if (isNaN(price) || price < 29.99) {
-      toast.error('Minimum sale price is $29.99');
-      return;
-    }
+    if (isNaN(price) || price < 29.99) return toast.error('Minimum sale price is $29.99');
 
     setLoading(true);
-
     try {
       const { error } = await supabase
         .from('locks')
@@ -109,120 +109,204 @@ function SellPageContent() {
     }
   };
 
+  const selectedLock = userLocks.find(l => l.id === selectedLockId);
   const priceNum = parseFloat(salePrice) || 0;
-  const earnings = priceNum * (1 - platformCommission);
+  const commission = priceNum * PLATFORM_COMMISSION;
+  const earnings = priceNum - commission;
   
-  // Si pas connecté, on simule une sélection pour que l'UI reste jolie
-  const showLockSelection = user;
+  // Prix d'origine pour calcul ROI (par défaut 29.99 si pas connecté/sélectionné)
+  const originalPrice = selectedLock?.price || 29.99;
+  const roi = ((earnings - originalPrice) / originalPrice) * 100;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       
-      {/* Header Retour */}
-      <div className="bg-white border-b px-4 py-4 sticky top-0 z-20">
-        <div className="container mx-auto max-w-5xl flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+      {/* HEADER RETOUR (Sombre) */}
+      <div className="bg-slate-900 border-b border-slate-800 px-4 py-4 sticky top-0 z-20">
+        <div className="container mx-auto max-w-6xl flex items-center gap-4 text-white">
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-white/10 text-slate-300 hover:text-white">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="font-bold text-lg">Sell Asset</h1>
+          <h1 className="font-bold text-lg flex items-center gap-2">
+            <DollarSign className="text-emerald-500 h-5 w-5"/> Sell Your Asset
+          </h1>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <div className="grid lg:grid-cols-2 gap-8">
+      {/* HERO SECTION */}
+      <div className="bg-slate-900 text-white pb-12 pt-8 px-4">
+        <div className="container mx-auto max-w-6xl text-center">
+          <Badge className="bg-emerald-600 mb-4 hover:bg-emerald-500 border-0 px-4 py-1 text-sm">MARKETPLACE SELLER</Badge>
+          <h2 className="text-3xl md:text-5xl font-black mb-4">Turn Your Lock Into <span className="text-emerald-400">Profit</span></h2>
+          <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+            List your digital asset on the marketplace. With 85k+ collectors, rare numbers sell for up to <strong>100x</strong> their value.
+          </p>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-10 max-w-6xl -mt-8">
+        <div className="grid lg:grid-cols-12 gap-8">
           
-          {/* COLONNE GAUCHE : SÉLECTION */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-               <span className="bg-slate-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span> Select Lock
-            </h2>
+          {/* COLONNE GAUCHE : SÉLECTION (7 cols) */}
+          <div className="lg:col-span-7 space-y-8">
             
-            {!user ? (
-                // --- ÉCRAN NON CONNECTÉ ---
-                <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center">
-                  <div className="bg-slate-100 p-4 rounded-full mb-4">
-                      <Lock className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <h3 className="font-bold text-slate-900 text-lg mb-2">Login to see your collection</h3>
-                  <p className="text-slate-500 mb-6 text-sm max-w-xs">You need to be logged in to select the lock you want to sell.</p>
-                  <Button onClick={() => router.push('/purchase')} className="bg-slate-900 text-white">
-                    <LogIn className="mr-2 h-4 w-4"/> Login / Register
-                  </Button>
+            {/* 1. SELECT LOCK */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 relative overflow-hidden">
+              <h3 className="font-bold text-xl mb-6 flex items-center gap-3">
+                <span className="bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
+                Select Asset to Sell
+              </h3>
+              
+              {!user ? (
+                // --- NON CONNECTÉ ---
+                <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center">
+                    <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                        <Lock className="h-8 w-8 text-slate-300" />
+                    </div>
+                    <p className="text-slate-500 font-medium mb-1">Login to view your collection</p>
+                    <p className="text-slate-400 text-sm mb-6">You need to own a lock to sell it.</p>
+                    <Button onClick={() => router.push('/purchase')} className="bg-slate-900 text-white hover:bg-slate-800">
+                        <LogIn className="mr-2 h-4 w-4"/> Login / Register
+                    </Button>
                 </div>
-            ) : userLocks.length === 0 ? (
-                // --- CONNECTÉ MAIS PAS DE CADENAS ---
-                <div className="text-center py-10 bg-white rounded-xl border border-dashed">
-                  <p className="text-slate-400 mb-4">No active locks found to sell.</p>
-                  <Button onClick={() => router.push('/purchase')}>Buy a Lock</Button>
+              ) : userLocks.length === 0 ? (
+                // --- CONNECTÉ MAIS RIEN ---
+                <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                  <p className="text-slate-400 mb-4">You don't have any active locks to sell.</p>
+                  <Button onClick={() => router.push('/purchase')}>Buy Your First Asset</Button>
                 </div>
-            ) : (
-                // --- CONNECTÉ ET CADENAS DISPOS ---
-                <div className="grid grid-cols-3 gap-3 max-h-[500px] overflow-y-auto p-1">
+              ) : (
+                // --- LISTE DES CADENAS ---
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   {userLocks.map(lock => (
                     <div 
                       key={lock.id}
-                      onClick={() => setSelectedLockId(lock.id)}
+                      onClick={() => { setSelectedLockId(lock.id); setSalePrice((lock.price * 2).toFixed(2)); }}
                       className={`
                         relative group cursor-pointer rounded-xl border-2 transition-all overflow-hidden p-3 text-center
-                        ${selectedLockId === lock.id ? 'border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-200' : 'border-slate-200 bg-white hover:border-emerald-300'}
+                        ${selectedLockId === lock.id 
+                          ? 'border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-100 shadow-lg scale-[1.02]' 
+                          : 'border-slate-100 bg-white hover:border-slate-300 hover:shadow-md'}
                       `}
                     >
                       {selectedLockId === lock.id && (
-                        <div className="absolute top-1 right-1 bg-emerald-500 text-white rounded-full p-0.5"><Check size={10}/></div>
+                        <div className="absolute top-2 right-2 bg-emerald-500 text-white rounded-full p-1 shadow-sm"><Check size={12}/></div>
                       )}
-                      <div className="relative w-full aspect-square mb-2">
-                          <Image src={getSkinImage(lock.skin)} alt="lock" fill className="object-contain" />
+                      
+                      <div className="relative w-full aspect-square mb-3 bg-slate-50 rounded-lg flex items-center justify-center">
+                          <Image src={getSkinImage(lock.skin)} alt="lock" width={80} height={80} className="object-contain drop-shadow-md group-hover:scale-110 transition-transform" />
                       </div>
-                      <div className="font-black text-slate-900 text-sm">#{lock.id}</div>
+                      <div className="font-black text-slate-900 text-lg">#{lock.id}</div>
+                      <div className="text-xs text-slate-500 font-medium uppercase mt-1">{lock.zone}</div>
+                      <Badge variant="secondary" className="mt-2 text-[10px] bg-slate-100 text-slate-500 border border-slate-200">
+                        Paid: ${lock.price}
+                      </Badge>
                     </div>
                   ))}
                 </div>
-            )}
+              )}
+            </div>
+
+            {/* 2. DESCRIPTION */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 opacity-90 hover:opacity-100 transition-opacity">
+              <h3 className="font-bold text-xl mb-4 flex items-center gap-3">
+                 <span className="bg-slate-200 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                 Description (Optional)
+              </h3>
+              <Textarea 
+                placeholder="Tell buyers why this lock is special (e.g. Rare number, Anniversary date...)" 
+                className="resize-none bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                rows={3}
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+              />
+            </div>
+
           </div>
 
-          {/* COLONNE DROITE : PRIX & VALIDATION */}
-          <div>
-            <Card className="sticky top-24 border-0 shadow-xl">
-              <CardContent className="p-6 space-y-6">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                   <span className="bg-slate-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span> Set Price
-                </h2>
+          {/* COLONNE DROITE : PRIX & PROFIT (5 cols) */}
+          <div className="lg:col-span-5">
+            <Card className="sticky top-24 border-0 shadow-2xl ring-1 ring-slate-200 overflow-hidden">
+              {/* Header Carte */}
+              <div className="bg-slate-900 text-white p-6 pb-8">
+                 <h2 className="text-xl font-bold flex items-center gap-2">
+                   <Wallet className="text-emerald-400"/> Set Your Price
+                 </h2>
+                 <p className="text-slate-400 text-sm mt-1">Define the value of your asset.</p>
+              </div>
+
+              <CardContent className="p-6 -mt-4 bg-white rounded-t-2xl relative z-10">
                 
-                <div className="relative">
+                {/* Input Prix */}
+                <div className="mb-6">
+                  <div className="relative">
                     <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-6 w-6"/>
                     <Input 
-                    type="number" 
-                    value={salePrice} 
-                    onChange={e => setSalePrice(e.target.value)} 
-                    className="pl-12 h-14 text-2xl font-bold bg-slate-50"
-                    placeholder="0.00"
+                      type="number" 
+                      value={salePrice} 
+                      onChange={e => setSalePrice(e.target.value)} 
+                      className="pl-12 h-16 text-3xl font-black bg-slate-50 border-slate-200 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-slate-900 placeholder:text-slate-300"
+                      placeholder="0.00"
                     />
+                  </div>
+                  
+                  {/* Boutons Rapides */}
+                  <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
+                    {[2, 3, 5, 10, 50, 100].map(m => (
+                       <button 
+                         key={m}
+                         onClick={() => setSalePrice((originalPrice * m).toFixed(2))}
+                         className="px-3 py-1 bg-slate-100 hover:bg-slate-900 hover:text-white rounded-md text-xs font-bold text-slate-600 transition-colors border border-slate-200"
+                       >
+                         x{m}
+                       </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-100 space-y-3">
-                    <div className="flex justify-between text-sm">
-                    <span>Price</span><span className="font-bold">${priceNum.toFixed(2)}</span>
+                {/* Calculateur Profit */}
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 rounded-2xl border border-emerald-100 space-y-4 shadow-inner">
+                  <div className="flex justify-between text-sm items-center">
+                    <span className="text-slate-500 font-medium">Sale Price</span>
+                    <span className="font-bold text-slate-800 text-lg">${priceNum.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm items-center">
+                    <span className="text-slate-500 flex items-center gap-1"><Info size={12}/> Platform Fee (20%)</span>
+                    <span className="text-red-500 font-medium">-${commission.toFixed(2)}</span>
+                  </div>
+                  
+                  <div className="h-px bg-emerald-200/50 my-2"></div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-emerald-900 uppercase text-sm tracking-wide">Net Profit</span>
+                    <span className="text-4xl font-black text-emerald-600 tracking-tight">
+                      ${!isNaN(earnings) ? earnings.toFixed(2) : '0.00'}
+                    </span>
+                  </div>
+
+                  {roi > 0 && (
+                    <div className="flex justify-end">
+                      <Badge className="bg-emerald-200 text-emerald-800 hover:bg-emerald-200 border-0">
+                        <TrendingUp size={12} className="mr-1"/> +{roi.toFixed(0)}% ROI
+                      </Badge>
                     </div>
-                    <div className="flex justify-between text-sm text-red-500">
-                    <span>Fee (20%)</span><span>-${(priceNum * platformCommission).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-bold text-xl pt-2 border-t border-emerald-200 text-emerald-700">
-                    <span>You Receive</span><span>${earnings.toFixed(2)}</span>
-                    </div>
+                  )}
                 </div>
 
+                {/* Bouton Action Dynamique */}
                 <Button 
-                    onClick={handleListForSale} 
-                    disabled={loading}
-                    className="w-full bg-slate-900 hover:bg-emerald-600 h-14 text-lg font-bold shadow-lg transition-all"
+                  onClick={handleListForSale} 
+                  disabled={loading}
+                  className="w-full bg-slate-900 hover:bg-emerald-600 h-14 text-lg font-bold shadow-xl transition-all mt-6 hover:scale-[1.02]"
                 >
-                    {loading ? <Loader2 className="animate-spin"/> : user ? <TrendingUp className="mr-2 h-5 w-5"/> : <LogIn className="mr-2 h-5 w-5"/>}
-                    {user ? 'List on Marketplace' : 'Login to Sell'}
+                  {loading ? <Loader2 className="animate-spin"/> : user ? <Tag className="mr-2 h-5 w-5"/> : <LogIn className="mr-2 h-5 w-5"/>}
+                  {user ? 'List Item on Market' : 'Login to Sell'}
                 </Button>
                 
-                <p className="text-xs text-center text-slate-400 flex items-center justify-center gap-1">
-                <ShieldCheck size={12}/> Secure transaction
+                <p className="text-[10px] text-center text-slate-400 mt-4 flex items-center justify-center gap-1">
+                  <ShieldCheck size={12}/> Secured by Smart Contract
                 </p>
+
               </CardContent>
             </Card>
           </div>
@@ -235,7 +319,7 @@ function SellPageContent() {
 
 export default function SellPage() {
   return (
-    <Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin"/></div>}>
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-slate-900"><Loader2 className="animate-spin text-emerald-500"/></div>}>
       <SellPageContent />
     </Suspense>
   );
