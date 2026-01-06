@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  Heart, Sparkles, Shield, Menu, 
-  Camera, Smartphone, Lightbulb, BookOpen, Globe, Lock 
+  Heart, Shield, Menu, 
+  Camera, Smartphone, Lightbulb, BookOpen, Globe, Lock, TrendingUp 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LanguageSelector } from '@/components/ui/language-selector';
@@ -24,7 +24,7 @@ type HeaderProps = {
 };
 
 export function Header({ translations }: HeaderProps) {
-  const { user, loading } = useAuth(); // On récupère loading pour éviter le clignotement
+  const { user, loading } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -32,11 +32,10 @@ export function Header({ translations }: HeaderProps) {
   // Détection Admin
   const showAdminLink = !loading && user && isAdmin(user.email);
 
-  // Détection Page d'accueil (plus robuste)
-  // On considère qu'on est sur la home si le chemin est '/' ou '/en', '/fr' etc.
+  // Détection Page d'accueil
   const isHome = pathname === '/' || /^\/[a-z]{2}(-([A-Z]{2}))?$/.test(pathname);
 
-  // Gestion du scroll pour l'effet de transparence
+  // Gestion du scroll
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
@@ -52,9 +51,8 @@ export function Header({ translations }: HeaderProps) {
   );
 
   const textClass = (!isHome || isScrolled) ? "text-slate-700" : "text-slate-800";
-  const logoClass = (!isHome || isScrolled) ? "text-slate-900" : "text-white drop-shadow-md"; // Logo blanc sur Hero, noir ailleurs
-
-  // Valeurs par défaut si les traductions ne chargent pas
+  
+  // Valeurs par défaut
   const t = translations || {
     navBridge: "The Bridge",
     ctaStart: "Secure My Spot"
@@ -65,22 +63,28 @@ export function Header({ translations }: HeaderProps) {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
           
-          {/* --- LOGO --- */}
+          {/* --- LOGO MODIFIÉ (Plus d'étoile, TM plus petit) --- */}
           <Link href="/" className="flex items-center space-x-2 group z-50">
             <div className="relative">
               <Heart className="h-7 w-7 text-[#e11d48] fill-[#e11d48] group-hover:scale-110 transition-transform" />
-              <Sparkles className="h-3 w-3 text-yellow-500 absolute -top-1 -right-1 animate-pulse" />
+              {/* Sparkles supprimé ici */}
             </div>
             <span className={cn("text-xl md:text-2xl font-serif font-bold tracking-tight transition-colors", 
               (!isHome || isScrolled) ? "text-slate-900" : "text-white"
             )}>
               LoveLock<span className="text-[#e11d48]">Paris</span>
-              <span className="text-[0.6em] align-top ml-0.5 opacity-60 font-sans">TM</span>
+              <span className="text-[0.4em] align-top ml-0.5 opacity-60 font-sans">TM</span>
             </span>
           </Link>
 
           {/* --- NAVIGATION ORDI (DESKTOP) --- */}
           <nav className="hidden lg:flex items-center gap-6 font-sans">
+            
+            {/* AJOUT MARKETPLACE */}
+            <Link href="/marketplace" className={`text-sm font-bold flex items-center gap-1 transition-colors ${(!isHome || isScrolled) ? "text-emerald-700 hover:text-emerald-500" : "text-emerald-300 hover:text-emerald-100"}`}>
+              <TrendingUp size={16} /> Marketplace
+            </Link>
+
             <Link href="/concept" className={`text-sm font-bold hover:text-[#e11d48] transition-colors ${textClass}`}>
               Concept
             </Link>
@@ -123,7 +127,6 @@ export function Header({ translations }: HeaderProps) {
           {/* --- NAVIGATION MOBILE --- */}
           <div className="flex items-center gap-1 lg:hidden">
             
-            {/* 1. ICONE CAMÉRA (ACCÈS RAPIDE AR) */}
             <Link href="/ar-view">
               <Button 
                 variant="ghost" 
@@ -138,12 +141,10 @@ export function Header({ translations }: HeaderProps) {
               </Button>
             </Link>
 
-            {/* 2. SÉLECTEUR LANGUE */}
             <div className={(!isHome || isScrolled) ? "text-slate-900" : "text-white"}>
               <LanguageSelector />
             </div>
             
-            {/* 3. MENU HAMBURGER */}
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
                 <Button 
@@ -167,7 +168,7 @@ export function Header({ translations }: HeaderProps) {
                 </SheetHeader>
                 
                 <div className="flex flex-col gap-2 mt-6">
-                  {/* BOUTON AR MOBILE DANS LE MENU */}
+                  
                   <Link 
                     href="/ar-view" 
                     onClick={() => setIsOpen(false)} 
@@ -179,22 +180,37 @@ export function Header({ translations }: HeaderProps) {
                     <span className="font-bold text-slate-800 text-lg">AR Camera</span>
                   </Link>
 
-                  <div className="h-px bg-slate-100 my-2"></div>
+                  {/* AJOUT MARKETPLACE MOBILE */}
+                  <Link 
+                    href="/marketplace" 
+                    onClick={() => setIsOpen(false)} 
+                    className="group flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100 hover:border-emerald-300 hover:bg-emerald-100 transition-all mt-2"
+                  >
+                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-emerald-600 group-hover:scale-110 transition-transform">
+                      <TrendingUp size={20} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-emerald-900 text-lg leading-none">Marketplace</span>
+                      <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wide">Buy & Sell • Live</span>
+                    </div>
+                  </Link>
 
+                  <div className="h-px bg-slate-100 my-4"></div>
+
+                  <Link href="/bridge" onClick={() => setIsOpen(false)} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-lg text-slate-700 font-bold text-lg">
+                    <Globe size={20} className="text-slate-400" /> 3D Bridge
+                  </Link>
                   <Link href="/concept" onClick={() => setIsOpen(false)} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-lg text-slate-700 font-bold text-lg">
                     <Lightbulb size={20} className="text-slate-400" /> Concept
                   </Link>
                   <Link href="/about" onClick={() => setIsOpen(false)} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-lg text-slate-700 font-bold text-lg">
                     <BookOpen size={20} className="text-slate-400" /> History
                   </Link>
-                  <Link href="/bridge" onClick={() => setIsOpen(false)} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-lg text-slate-700 font-bold text-lg">
-                    <Globe size={20} className="text-slate-400" /> 3D Bridge
-                  </Link>
 
                   {!loading && (
                     user ? (
                       <Link href="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center gap-4 p-3 hover:bg-blue-50 rounded-lg text-blue-600 font-bold text-lg">
-                        <Lock size={20} /> Dashboard
+                        <Lock size={20} /> My Dashboard
                       </Link>
                     ) : (
                       <Link href="/purchase" onClick={() => setIsOpen(false)} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-lg text-slate-700 font-bold text-lg">
@@ -209,7 +225,7 @@ export function Header({ translations }: HeaderProps) {
                      </Link>
                   )}
                   
-                  <div className="mt-8">
+                  <div className="mt-6">
                     <Link href="/purchase" onClick={() => setIsOpen(false)}>
                       <Button className="w-full bg-[#e11d48] hover:bg-[#be123c] text-white font-bold h-14 text-xl rounded-xl shadow-lg">
                         {t.ctaStart}
