@@ -1,6 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+// Force le rendu dynamique par sécurité
+export const dynamic = 'force-dynamic';
+
+import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -12,7 +15,7 @@ import { NumberSelector } from '@/components/purchase/number-selector';
 import { CheckoutSummary } from '@/components/purchase/checkout-summary';
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, LogOut, Lock, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, LogOut, Lock, LayoutDashboard, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 function PurchasePageContent() {
@@ -43,7 +46,6 @@ function PurchasePageContent() {
 
   // --- FONCTION DE PAIEMENT COMPLETE ---
   const handlePurchase = async () => {
-    // 1. Validation
     if (!user) { setShowAuthDialog(true); return; }
     if (!selectedZone || !selectedSkin) { toast.error('Please select a Zone and Material'); return; }
     if (!contentText.trim()) { toast.error('Please enter a message'); return; }
@@ -53,7 +55,7 @@ function PurchasePageContent() {
     toast.loading("Processing payment...");
 
     try {
-      // 2. Gestion du Fichier (Conversion Base64 pour envoi API)
+      // Gestion Fichier Média
       let mediaFileData = null;
       let mediaFileName = null;
       let mediaFileType = null;
@@ -75,10 +77,8 @@ function PurchasePageContent() {
         }
       }
 
-      // 3. Récupération Session
       const { data: { session } } = await supabase.auth.getSession();
       
-      // 4. APPEL API VERS '/api/checkout'
       const response = await fetch('/api/checkout', { 
         method: 'POST',
         headers: {
@@ -90,32 +90,30 @@ function PurchasePageContent() {
           skin: selectedSkin,
           contentText,
           mediaType,
-          totalPrice: currentPrice, // Prix calculé
+          totalPrice: currentPrice,
           customNumber,
           selectedNumber,
           authorName,
           goldenAssetPrice,
           isPrivate: visibility === 'Private',
-          // Données fichier
           mediaFileData,
           mediaFileName,
-          mediaFileType
+          mediaFileType,
+          userId: user.id, // ID Forcé pour éviter bug session
+          userEmail: user.email
         }),
       });
 
       const data = await response.json();
 
       if (data.url) {
-        // SUCCÈS -> Redirection Stripe
         window.location.href = data.url; 
       } else {
-        console.error("Backend Error:", data);
         toast.error('Payment Error: ' + (data.error || 'Unknown error'));
         setIsProcessing(false);
       }
 
     } catch (error) {
-      console.error("Fetch Error:", error);
       toast.error('Connection Error');
       setIsProcessing(false);
     }
@@ -135,11 +133,16 @@ function PurchasePageContent() {
             </div>
             <div className="flex items-center gap-3">
               {user ? (
-                 <Button variant="outline" size="sm" onClick={signOut} className="text-slate-600 border-slate-300">
-                   <LogOut className="h-4 w-4 mr-2"/>Logout
-                 </Button>
+                 <div className="flex items-center gap-2">
+                   <Button onClick={() => router.push('/dashboard')} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold hidden sm:flex shadow-sm">
+                     <LayoutDashboard className="h-4 w-4 mr-2"/> Dashboard
+                   </Button>
+                   <Button variant="outline" size="sm" onClick={signOut} className="text-slate-600 border-slate-300 hover:bg-slate-50">
+                     <LogOut className="h-4 w-4 mr-2"/> Logout
+                   </Button>
+                 </div>
               ) : (
-                 <Button size="sm" onClick={() => setShowAuthDialog(true)} className="bg-[#e11d48] text-white hover:bg-[#be123c]">
+                 <Button size="sm" onClick={() => setShowAuthDialog(true)} className="bg-[#e11d48] text-white hover:bg-[#be123c] shadow-md">
                    Login
                  </Button>
               )}
@@ -148,23 +151,46 @@ function PurchasePageContent() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        
+        {/* --- BANDEAU CONNECTÉ (UX) --- */}
+        {user && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top max-w-6xl mx-auto">
+             <div className="flex items-center gap-3">
+               <div className="bg-emerald-100 p-2 rounded-full text-emerald-600">
+                 <CheckCircle className="h-6 w-6" />
+               </div>
+               <div>
+                 <p className="font-bold text-emerald-900">Logged in as {user.email}</p>
+                 <p className="text-xs text-emerald-700">You are creating a new asset for your collection.</p>
+               </div>
+             </div>
+             <Button 
+               onClick={() => router.push('/dashboard')} 
+               variant="outline"
+               className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold shadow-sm"
+             >
+               Go to My Dashboard
+             </Button>
+          </div>
+        )}
+
         {!user ? (
-          // ECRAN LOGIN
-          <div className="text-center py-20">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-rose-50 mb-6 text-[#e11d48] shadow-sm border border-rose-100">
-              <Lock size={40} />
+          // ECRAN LOGIN (Si pas connecté)
+          <div className="text-center py-24">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-rose-50 mb-6 text-[#e11d48] shadow-sm border border-rose-100 animate-pulse">
+              <Lock size={48} />
             </div>
-            <h2 className="text-3xl font-serif font-bold mb-4 text-slate-900">Login to Continue</h2>
-            <p className="text-slate-500 mb-8 max-w-md mx-auto">
+            <h2 className="text-4xl font-serif font-bold mb-4 text-slate-900">Login to Continue</h2>
+            <p className="text-slate-500 mb-8 max-w-md mx-auto text-lg">
               You must be logged in to secure your spot on the Official Registry of Paris.
             </p>
-            <Button size="lg" onClick={() => setShowAuthDialog(true)} className="bg-[#e11d48] text-white font-bold px-10 py-6 text-lg rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+            <Button size="lg" onClick={() => setShowAuthDialog(true)} className="bg-[#e11d48] text-white font-bold px-12 py-8 text-xl rounded-full shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1">
               Login / Register
             </Button>
           </div>
         ) : (
-          // GRILLE DE COMMANDE
-          <div className="grid lg:grid-cols-3 gap-8 items-start">
+          // GRILLE DE COMMANDE (Si connecté)
+          <div className="grid lg:grid-cols-3 gap-8 items-start max-w-7xl mx-auto">
             <div className="lg:col-span-2 space-y-8">
               
               <ZoneSelector selectedZone={selectedZone} onSelectZone={setSelectedZone} />
@@ -185,7 +211,6 @@ function PurchasePageContent() {
                   <NumberSelector 
                     customNumber={customNumber} onCustomNumberChange={setCustomNumber}
                     selectedNumber={selectedNumber} onSelectedNumberChange={setSelectedNumber}
-                    // Le check se fait dans le composant NumberSelector
                     onCheckAvailability={async (n) => true} 
                     onGoldenAssetPriceChange={setGoldenAssetPrice}
                   />
@@ -200,13 +225,13 @@ function PurchasePageContent() {
                   zone={selectedZone} skin={selectedSkin} mediaType={mediaType}
                   contentText={contentText} customNumber={customNumber}
                   selectedNumber={selectedNumber} goldenAssetPrice={goldenAssetPrice}
-                  onPurchase={handlePurchase} // LE CLICK MAGIQUE
+                  onPurchase={handlePurchase}
                   isProcessing={isProcessing}
                 />
               ) : (
                 <div className="p-8 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400">
                   <ShieldCheck className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                  <p className="text-sm font-medium">Complete steps to see summary.</p>
+                  <p className="text-sm font-medium">Select a Zone & Skin to see summary.</p>
                 </div>
               )}
             </div>
@@ -218,11 +243,12 @@ function PurchasePageContent() {
   );
 }
 
-// EXPORT PRINCIPAL AVEC AUTH PROVIDER
 export default function PurchasePage() {
   return (
     <AuthProvider>
-      <PurchasePageContent />
+      <Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-rose-600"/></div>}>
+        <PurchasePageContent />
+      </Suspense>
     </AuthProvider>
   );
 }
