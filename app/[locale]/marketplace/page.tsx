@@ -12,13 +12,13 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Search, Crown, Sparkles, Trophy, ShoppingCart, 
-  Loader2, DollarSign, Activity, Zap, ArrowLeft, ChevronLeft, ChevronRight, ArrowRight, Eye, TrendingUp, BarChart3, Globe, Rocket, Flame
+  Loader2, DollarSign, Activity, Zap, ArrowLeft, ChevronLeft, ChevronRight, ArrowRight, Eye, TrendingUp, BarChart3, Globe, Rocket, Flame, Lock, Wallet, Coins
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 
-// --- TYPES ---
+// --- TYPES & DONNÉES ---
 type MarketLock = {
   id: number;
   zone: string;
@@ -31,7 +31,7 @@ type MarketLock = {
   is_golden: boolean;
 };
 
-// --- FAUSSES DONNÉES TICKER ---
+// Fausses transactions pour le ticker
 const FAKE_TRANSACTIONS = Array.from({ length: 40 }).map((_, i) => {
   const id = Math.floor(Math.random() * 900000) + 100000;
   const price = Math.floor(Math.random() * (5000 - 450) + 450);
@@ -42,42 +42,33 @@ const FAKE_TRANSACTIONS = Array.from({ length: 40 }).map((_, i) => {
   return { id, price, action, icon };
 });
 
-const getSkinImage = (skin: string | null) => {
-  const s = skin ? skin.toLowerCase() : 'gold';
-  return `/images/skin-${s}.png`;
-};
+const getSkinImage = (skin: string | null) => `/images/skin-${skin ? skin.toLowerCase() : 'gold'}.png`;
 
-// --- TICKER ---
-const LiveTicker = () => {
-  return (
-    <div className="bg-black text-white py-2 border-b border-white/10 text-xs font-mono font-bold overflow-hidden relative z-50">
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        .animate-marquee { display: flex; width: fit-content; animation: marquee 60s linear infinite; }
-      `}} />
-      <div className="animate-marquee flex items-center gap-8 whitespace-nowrap px-4">
-        {[...FAKE_TRANSACTIONS, ...FAKE_TRANSACTIONS].map((t, i) => (
-          <div key={i} className="flex items-center gap-2 text-slate-300">
-            <span className="text-lg">{t.icon}</span>
-            <span>Lock <span className="text-white">#{t.id}</span> {t.action} <span className="text-emerald-400">${t.price.toLocaleString()}</span></span>
-            <span className="text-slate-700 ml-6">|</span>
-          </div>
-        ))}
-      </div>
+// --- COMPOSANTS UI ---
+const LiveTicker = () => (
+  <div className="bg-black text-white py-2 border-b border-white/10 text-xs font-mono font-bold overflow-hidden relative z-50">
+    <style dangerouslySetInnerHTML={{__html: `
+      @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+      .animate-marquee { display: flex; width: fit-content; animation: marquee 60s linear infinite; }
+    `}} />
+    <div className="animate-marquee flex items-center gap-8 whitespace-nowrap px-4">
+      {[...FAKE_TRANSACTIONS, ...FAKE_TRANSACTIONS].map((t, i) => (
+        <div key={i} className="flex items-center gap-2 text-slate-300">
+          <span className="text-lg">{t.icon}</span>
+          <span>Lock <span className="text-white">#{t.id}</span> {t.action} <span className="text-emerald-400">${t.price.toLocaleString()}</span></span>
+          <span className="text-slate-700 ml-6">|</span>
+        </div>
+      ))}
     </div>
-  );
-};
+  </div>
+);
 
-// --- MARKET PULSE ---
 const MarketPulse = () => {
   const [buyers, setBuyers] = useState(84);
   useEffect(() => {
-    const interval = setInterval(() => {
-      setBuyers(prev => prev + Math.floor(Math.random() * 3) + 1);
-    }, 3000);
+    const interval = setInterval(() => { setBuyers(prev => prev + Math.floor(Math.random() * 3) + 1); }, 3000);
     return () => clearInterval(interval);
   }, []);
-
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 mt-6">
       <div className="bg-slate-800/80 backdrop-blur rounded-xl p-4 border border-slate-700/50 flex items-center justify-between shadow-lg">
@@ -98,9 +89,11 @@ const MarketPulse = () => {
 
 const UsersIcon = ({className, size}: any) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>);
 
+// --- MAIN COMPONENT ---
 function MarketplaceContent() {
   const router = useRouter();
   const { user } = useAuth();
+  
   const [locks, setLocks] = useState<MarketLock[]>([]);
   const [vipLocks, setVipLocks] = useState<MarketLock[]>([]);
   const [filteredLocks, setFilteredLocks] = useState<MarketLock[]>([]);
@@ -178,35 +171,30 @@ function MarketplaceContent() {
       
       <LiveTicker />
 
-      {/* --- SECTION HERO (NOIR) --- */}
+      {/* --- HERO --- */}
       <section className="bg-slate-900 py-8 px-4 border-b border-slate-800 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.1),transparent_70%)] z-0 pointer-events-none"></div>
-
         <div className="container mx-auto relative z-10">
-          
           <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-8">
             <div className="flex items-start gap-4">
-               {/* --- BOUTON RETOUR AJOUTÉ ICI --- */}
                <Button variant="ghost" size="icon" onClick={() => router.push('/')} className="text-slate-400 hover:text-white hover:bg-white/10 mt-1">
                  <ArrowLeft className="h-6 w-6" />
                </Button>
-
                <div>
-                 <h1 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter">
+                 <h1 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter">
                    Market<span className="text-emerald-500">Place</span>
                  </h1>
                  <p className="text-slate-400 mt-1 text-lg">The world's first digital love lock exchange.</p>
                </div>
             </div>
-            
-            <div className="flex gap-3 w-full md:w-auto">
-              <Button onClick={() => router.push('/sell')} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 px-6 shadow-[0_0_20px_rgba(16,185,129,0.3)] border border-emerald-400/20"><DollarSign className="mr-2 h-5 w-5"/> SELL LOCK</Button>
-              <Button onClick={() => router.push('/boost')} className="flex-1 md:flex-none bg-amber-600 hover:bg-amber-500 text-white font-bold h-12 px-6 shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-400/20"><Zap className="mr-2 h-5 w-5"/> BOOST</Button>
+            {/* BOUTONS HERO (Masqués sur mobile, affichés en bas) */}
+            <div className="hidden md:flex gap-3">
+              <Button onClick={() => router.push('/sell')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 px-6"><DollarSign className="mr-2 h-5 w-5"/> SELL LOCK</Button>
+              <Button onClick={() => router.push('/boost')} className="bg-amber-600 hover:bg-amber-500 text-white font-bold h-12 px-6"><Zap className="mr-2 h-5 w-5"/> BOOST</Button>
             </div>
           </div>
-
           <MarketPulse />
-
+          {/* SEARCH */}
           <div className="flex flex-col md:flex-row gap-3 bg-slate-800/50 p-2 rounded-xl border border-slate-700 mt-8">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
@@ -218,13 +206,12 @@ function MarketplaceContent() {
                <Button onClick={() => setSortBy('price_high')} size="sm" className={`h-11 ${sortBy === 'price_high' ? 'bg-slate-700 text-white ring-1 ring-emerald-500' : 'bg-slate-900 text-slate-400 hover:text-white'}`}>High $</Button>
             </div>
           </div>
-
         </div>
       </section>
 
       <div className="container mx-auto px-4 py-12 space-y-12">
         
-        {/* VIP SECTION (10 ITEMS) */}
+        {/* --- VIP --- */}
         {vipLocks.length > 0 && (
           <section className="bg-slate-900 pb-12 px-4 border-b border-slate-800 -mt-1 pt-6 rounded-b-3xl">
             <div className="container mx-auto">
@@ -258,16 +245,19 @@ function MarketplaceContent() {
           </section>
         )}
 
-        {/* GRILLE DENSE (5 COLONNES) */}
+        {/* --- GRID LISTINGS --- */}
         <section>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-slate-900">Latest Listings</h2>
           </div>
-          
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {currentItems.map((lock) => {
               const isVip = lock.boost_level === 'vip' || lock.boost_level === 'golden';
-              let borderClass = isVip ? 'border-purple-300 ring-1 ring-purple-100' : 'border-slate-200';
+              const isPremium = lock.boost_level === 'premium';
+              let borderClass = 'border-slate-200';
+              if (isVip) borderClass = 'border-purple-300 ring-1 ring-purple-100';
+              else if (isPremium) borderClass = 'border-amber-300 ring-1 ring-amber-100';
+
               return (
                 <div key={lock.id} onClick={() => handleQuickBuy(lock.id, lock.price)} className={`relative group cursor-pointer rounded-xl border transition-all duration-200 hover:-translate-y-1 hover:shadow-lg overflow-hidden bg-white ${borderClass}`}>
                   {isVip && <div className="absolute top-0 right-0 z-20 px-2 py-0.5 text-[8px] font-black text-white rounded-bl-lg bg-purple-600">VIP</div>}
@@ -295,6 +285,84 @@ function MarketplaceContent() {
           {locks.length === 0 && (
             <div className="text-center py-20 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200"><p className="text-slate-500 font-medium">Marketplace is quiet today.</p><Button variant="link" onClick={() => router.push('/sell')} className="text-emerald-600">Be the first to list a lock!</Button></div>
           )}
+        </section>
+
+        {/* --- SECTION BAS DE PAGE : INVESTISSEMENT (NOUVEAU) --- */}
+        <section className="pt-10 border-t border-slate-200">
+           <div className="grid md:grid-cols-2 gap-12">
+              
+              {/* Hall of Fame (Profits) */}
+              <div>
+                 <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <Trophy className="text-amber-500" size={24}/> Success Stories
+                 </h3>
+                 <div className="space-y-4">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
+                       <div className="flex items-center gap-4">
+                          <div className="bg-emerald-100 text-emerald-700 w-10 h-10 rounded-full flex items-center justify-center font-bold">#1</div>
+                          <div>
+                             <div className="font-bold text-slate-800">Lock #777</div>
+                             <div className="text-xs text-slate-500">Bought $149 ➔ Sold $12,500</div>
+                          </div>
+                       </div>
+                       <Badge className="bg-emerald-500">+8,200%</Badge>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
+                       <div className="flex items-center gap-4">
+                          <div className="bg-blue-100 text-blue-700 w-10 h-10 rounded-full flex items-center justify-center font-bold">#2</div>
+                          <div>
+                             <div className="font-bold text-slate-800">Lock #2024</div>
+                             <div className="text-xs text-slate-500">Bought $29.99 ➔ Sold $1,500</div>
+                          </div>
+                       </div>
+                       <Badge className="bg-blue-500">+4,900%</Badge>
+                    </div>
+                 </div>
+              </div>
+
+              {/* Rareté & Roadmap */}
+              <div className="space-y-6">
+                 <div className="bg-slate-900 text-white p-6 rounded-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10"><Lock size={80}/></div>
+                    <h3 className="font-bold text-lg mb-2">Digital Scarcity</h3>
+                    <p className="text-slate-300 text-sm mb-4">
+                       Unlike crypto with infinite supply, there are only <strong>1,000,000 spots</strong> on the bridge. Once full, the only way to get in is to buy from another user.
+                    </p>
+                    <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                       <div className="bg-emerald-500 h-full w-[35%]"></div>
+                    </div>
+                    <div className="flex justify-between text-[10px] mt-1 text-slate-400">
+                       <span>347k Minted</span>
+                       <span>1M Max Supply</span>
+                    </div>
+                 </div>
+
+                 <div className="bg-gradient-to-r from-purple-900 to-indigo-900 text-white p-6 rounded-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10"><Globe size={80}/></div>
+                    <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Rocket size={18} className="text-purple-400"/> Roadmap 2026</h3>
+                    <ul className="text-sm text-purple-100 space-y-2">
+                       <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div> Marketplace Launch (Live)</li>
+                       <li className="flex items-center gap-2 opacity-70"><div className="w-1.5 h-1.5 bg-white rounded-full"></div> Crypto/NFT Bridge Integration</li>
+                       <li className="flex items-center gap-2 opacity-70"><div className="w-1.5 h-1.5 bg-white rounded-full"></div> Metaverse Partnership</li>
+                    </ul>
+                 </div>
+              </div>
+
+           </div>
+           
+           {/* MEGA CTA */}
+           <div className="mt-16 text-center">
+              <h2 className="text-2xl font-black text-slate-900 mb-6 uppercase tracking-tight">Ready to Trade?</h2>
+              <div className="flex flex-col sm:flex-row justify-center gap-6">
+                 <Button onClick={() => router.push('/sell')} className="h-16 px-10 text-xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 hover:scale-105 transition-transform shadow-2xl rounded-2xl border-2 border-emerald-400/50">
+                    <DollarSign className="mr-3 h-8 w-8"/> SELL NOW
+                 </Button>
+                 <Button onClick={() => router.push('/boost')} className="h-16 px-10 text-xl font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:scale-105 transition-transform shadow-2xl rounded-2xl border-2 border-amber-400/50">
+                    <Zap className="mr-3 h-8 w-8"/> BOOST VISIBILITY
+                 </Button>
+              </div>
+              <p className="text-slate-400 text-xs mt-4">Join 85,000+ traders • Instant Payouts • Secure Escrow</p>
+           </div>
         </section>
 
       </div>
