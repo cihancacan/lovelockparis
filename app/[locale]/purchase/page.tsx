@@ -15,7 +15,8 @@ import { NumberSelector } from '@/components/purchase/number-selector';
 import { CheckoutSummary } from '@/components/purchase/checkout-summary';
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, LogOut, Lock, LayoutDashboard, CheckCircle, Loader2 } from 'lucide-react';
+// CORRECTION ICI : Ajout de ShieldCheck
+import { ArrowLeft, LogOut, Lock, LayoutDashboard, CheckCircle, Loader2, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 function PurchasePageContent() {
@@ -99,7 +100,7 @@ function PurchasePageContent() {
           mediaFileData,
           mediaFileName,
           mediaFileType,
-          userId: user.id, // ID Forcé pour éviter bug session
+          userId: user.id, 
           userEmail: user.email
         }),
       });
@@ -161,7 +162,7 @@ function PurchasePageContent() {
                </div>
                <div>
                  <p className="font-bold text-emerald-900">Logged in as {user.email}</p>
-                 <p className="text-xs text-emerald-700">You are creating a new asset for your collection.</p>
+                 <p className="text-xs text-emerald-700">Ready to secure a new asset.</p>
                </div>
              </div>
              <Button 
