@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-// On n'a plus besoin de useRouter ici pour la connexion, on utilise window
 import {
   Dialog,
   DialogContent,
@@ -28,7 +27,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // --- 1. CONNEXION (LOGIN) -> DASHBOARD ---
+  // --- 1. CONNEXION -> DASHBOARD (FORCE) ---
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -40,13 +39,13 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       setError(error.message);
       setIsLoading(false);
     } else {
-      // ✅ CORRECTION RADICALE : Redirection forcée
-      // Cela rafraîchit la page et assure que le Dashboard charge les données
+      // ⚡️ CORRECTION : On force le rechargement vers le Dashboard
+      // Cela garantit que les données utilisateur sont bien chargées
       window.location.href = '/dashboard';
     }
   };
 
-  // --- 2. INSCRIPTION (SIGNUP) -> ACHAT ---
+  // --- 2. INSCRIPTION -> ACHAT (LOGIQUE) ---
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -58,7 +57,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       setError(error.message);
       setIsLoading(false);
     } else {
-      // Pour l'inscription, on reste en navigation douce vers l'achat
+      // Nouveau client = On l'envoie acheter
       window.location.href = '/purchase';
     }
   };
@@ -84,7 +83,6 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
             <TabsTrigger value="signup" className="data-[state=active]:bg-white data-[state=active]:text-[#e11d48] data-[state=active]:shadow-sm rounded-lg font-bold">Sign Up</TabsTrigger>
           </TabsList>
 
-          {/* FORMULAIRE LOGIN */}
           <TabsContent value="signin">
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
@@ -102,7 +100,6 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
             </form>
           </TabsContent>
 
-          {/* FORMULAIRE SIGNUP */}
           <TabsContent value="signup">
             <form onSubmit={handleSignUp} className="space-y-4">
               <div className="space-y-2">
@@ -115,15 +112,11 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
               </div>
               {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded text-center font-medium">{error}</p>}
               <Button type="submit" className="w-full bg-slate-900 text-white h-12 text-lg font-bold shadow-md" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin" /> : <><UserPlus className="mr-2 h-5 w-5"/> Create & Buy Lock</>}
+                {isLoading ? <Loader2 className="animate-spin" /> : <><UserPlus className="mr-2 h-5 w-5"/> Create Account</>}
               </Button>
             </form>
           </TabsContent>
         </Tabs>
-        
-        <div className="flex justify-center mt-4 text-xs text-slate-400 items-center gap-1">
-          <Lock size={12} /> Secure SSL Connection
-        </div>
       </DialogContent>
     </Dialog>
   );
