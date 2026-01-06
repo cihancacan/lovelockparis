@@ -27,7 +27,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // --- 1. CONNEXION -> DASHBOARD (FORCE) ---
+  // --- 1. CONNEXION (LOGIN) -> DASHBOARD ---
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -39,13 +39,13 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       setError(error.message);
       setIsLoading(false);
     } else {
-      // ⚡️ CORRECTION : On force le rechargement vers le Dashboard
-      // Cela garantit que les données utilisateur sont bien chargées
+      // ⚡️ REDIRECTION FORCÉE : On va sur le Dashboard
+      // L'utilisation de window.location.href assure que la session est bien prise en compte
       window.location.href = '/dashboard';
     }
   };
 
-  // --- 2. INSCRIPTION -> ACHAT (LOGIQUE) ---
+  // --- 2. INSCRIPTION (SIGNUP) -> ACHAT ---
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -57,7 +57,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       setError(error.message);
       setIsLoading(false);
     } else {
-      // Nouveau client = On l'envoie acheter
+      // Nouveau client = On l'envoie vers l'achat
       window.location.href = '/purchase';
     }
   };
@@ -79,19 +79,44 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
 
         <Tabs defaultValue="signin" className="w-full mt-2">
           <TabsList className="grid w-full grid-cols-2 bg-slate-50 p-1 rounded-xl mb-6">
-            <TabsTrigger value="signin" className="data-[state=active]:bg-white data-[state=active]:text-[#e11d48] data-[state=active]:shadow-sm rounded-lg font-bold">Login</TabsTrigger>
-            <TabsTrigger value="signup" className="data-[state=active]:bg-white data-[state=active]:text-[#e11d48] data-[state=active]:shadow-sm rounded-lg font-bold">Sign Up</TabsTrigger>
+            <TabsTrigger 
+              value="signin" 
+              className="data-[state=active]:bg-white data-[state=active]:text-[#e11d48] data-[state=active]:shadow-sm rounded-lg font-bold"
+            >
+              Login
+            </TabsTrigger>
+            <TabsTrigger 
+              value="signup" 
+              className="data-[state=active]:bg-white data-[state=active]:text-[#e11d48] data-[state=active]:shadow-sm rounded-lg font-bold"
+            >
+              Sign Up
+            </TabsTrigger>
           </TabsList>
 
+          {/* FORMULAIRE LOGIN */}
           <TabsContent value="signin">
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Label htmlFor="email-login">Email</Label>
+                <Input 
+                  id="email-login"
+                  type="email" 
+                  placeholder="you@example.com" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                />
               </div>
               <div className="space-y-2">
-                <Label>Password</Label>
-                <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <Label htmlFor="password-login">Password</Label>
+                <Input 
+                  id="password-login"
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                />
               </div>
               {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded text-center font-medium">{error}</p>}
               <Button type="submit" className="w-full bg-[#e11d48] hover:bg-[#be123c] h-12 text-lg font-bold shadow-md" disabled={isLoading}>
@@ -100,15 +125,31 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
             </form>
           </TabsContent>
 
+          {/* FORMULAIRE SIGNUP */}
           <TabsContent value="signup">
             <form onSubmit={handleSignUp} className="space-y-4">
               <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Label htmlFor="email-signup">Email</Label>
+                <Input 
+                  id="email-signup"
+                  type="email" 
+                  placeholder="you@example.com" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                />
               </div>
               <div className="space-y-2">
-                <Label>Password</Label>
-                <Input type="password" placeholder="Min 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                <Label htmlFor="password-signup">Password</Label>
+                <Input 
+                  id="password-signup"
+                  type="password" 
+                  placeholder="Min 6 characters" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                  minLength={6} 
+                />
               </div>
               {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded text-center font-medium">{error}</p>}
               <Button type="submit" className="w-full bg-slate-900 text-white h-12 text-lg font-bold shadow-md" disabled={isLoading}>
@@ -117,6 +158,10 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
             </form>
           </TabsContent>
         </Tabs>
+        
+        <div className="flex justify-center mt-4 text-xs text-slate-400 items-center gap-1">
+          <Lock size={12} /> Secure SSL Connection
+        </div>
       </DialogContent>
     </Dialog>
   );
