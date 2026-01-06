@@ -10,8 +10,10 @@ const intlMiddleware = createMiddleware({
 });
 
 export default async function middleware(req: NextRequest) {
+  // 1. Gestion des langues
   const res = intlMiddleware(req);
 
+  // 2. Gestion de la session Supabase (nécessaire pour que le client reste connecté)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -30,24 +32,12 @@ export default async function middleware(req: NextRequest) {
     }
   );
 
-  // On rafraîchit la session pour que le cookie reste valide
+  // On rafraîchit simplement la session pour garder le cookie actif
   await supabase.auth.getSession();
+
+  // ⚠️ SÉCURITÉ DÉSACTIVÉE ICI POUR ÉVITER LES BOUCLES
+  // La sécurité sera gérée par chaque page individuellement (dashboard/page.tsx, admin/page.tsx)
   
-  const path = req.nextUrl.pathname;
-
-  // --- SÉCURITÉ ALLÉGÉE ---
-  
-  // 1. On ne bloque PLUS l'admin ici (le composant React le fera)
-  // Cela résout ton problème de redirection infinie ou de blocage.
-
-  // 2. Protection Dashboard (On garde celle-ci car elle est simple : connecté ou pas)
-  if (path.includes('/dashboard')) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.redirect(new URL('/purchase', req.url));
-    }
-  }
-
   return res;
 }
 
