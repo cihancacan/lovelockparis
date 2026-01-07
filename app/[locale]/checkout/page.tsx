@@ -20,20 +20,21 @@ function CheckoutContent() {
   const { user } = useAuth();
 
   const [checkoutData, setCheckoutData] = useState<any>(null);
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false); // Par défaut FALSE
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => { if (!user) router.push('/purchase'); }, 1000);
+    const timer = setTimeout(() => {
+      if (!user) router.push('/purchase');
+    }, 1000);
 
     const lockIdParam = searchParams.get('lock_id');
     const priceParam = searchParams.get('price');
-    const typeParam = searchParams.get('type');
+    const typeParam = searchParams.get('type'); 
     const packageParam = searchParams.get('package');
 
     if (lockIdParam && priceParam) {
-      // --- MODE DIRECT (Boost / Marketplace) ---
       setCheckoutData({
         type: typeParam || 'marketplace',
         lockId: parseInt(lockIdParam),
@@ -43,46 +44,45 @@ function CheckoutContent() {
         skin: searchParams.get('skin') || 'Gold',
         contentText: typeParam === 'boost' ? `Boost Visibility` : `Purchase Lock #${lockIdParam}`
       });
-      setIsPrivate(false);
+      setIsPrivate(false); // On force FALSE ici
     } else {
-      // --- MODE STANDARD ---
       const data = sessionStorage.getItem('checkoutData');
       if (data) {
         try {
-            const parsed = JSON.parse(data);
-            setCheckoutData(parsed);
-            // On récupère l'état initial, mais on laisse l'utilisateur le changer ici
-            if (parsed.isPrivate) setIsPrivate(true);
-        } catch (e) { console.error("Erreur data"); }
+          const parsed = JSON.parse(data);
+          setCheckoutData(parsed);
+          // On force FALSE aussi, même si l'user avait coché avant, pour éviter les surprises
+          setIsPrivate(false); 
+        } catch (e) {
+          console.error("Erreur data");
+        }
       }
     }
     return () => clearTimeout(timer);
   }, [searchParams, user, router]);
 
-  // --- CALCUL DU PRIX CORRIGÉ ---
+  // --- CALCUL PRIX FINAL ---
   const getFinalPrice = () => {
     if (!checkoutData) return 0;
 
-    // 1. Boost ou Marketplace : Prix fixe, on ne touche à rien
+    // 1. Boost / Marketplace : Prix FIXE
     if (checkoutData.type === 'boost' || checkoutData.type === 'marketplace') {
       return checkoutData.price;
     }
 
-    // 2. Nouveau Cadenas : On recalcule
-    // calculateLockPrice inclut DEJA le prix de l'option privée (+5$) si isPrivate est true
-    // Donc on ne rajoute RIEN manuellement.
+    // 2. Nouveau Cadenas : Calcul dynamique
     return calculateLockPrice(
       checkoutData.zone,
       checkoutData.skin,
       checkoutData.mediaType,
       checkoutData.customNumber,
-      isPrivate
+      isPrivate // Ici on prend l'état de la case à cocher
     );
   };
 
   const handleCheckout = async () => {
-    if (!acceptTerms) return toast.error('Please accept terms');
-    if (!user) return toast.error('Please login');
+    if (!acceptTerms) { toast.error('Please accept terms'); return; }
+    if (!user) { toast.error('Please login'); return; }
     
     setIsProcessing(true);
     const finalTotal = getFinalPrice();
@@ -98,7 +98,7 @@ function CheckoutContent() {
         },
         body: JSON.stringify({
           ...checkoutData,
-          isPrivate, // On envoie l'état final de la case cochée
+          isPrivate,
           totalPrice: finalTotal,
           userId: user.id,
           userEmail: user.email
@@ -140,13 +140,18 @@ function CheckoutContent() {
               </span>
             </div>
             
+            {checkoutData.lockId && (
+                <div className="flex justify-between text-sm text-slate-600">
+                    <span>Lock ID</span>
+                    <span className="font-mono font-bold">#{checkoutData.lockId}</span>
+                </div>
+            )}
+            
             {/* Détail Prix Nouveau Cadenas */}
             {(!checkoutData.type || checkoutData.type === 'new_lock') && (
               <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded space-y-1">
                  <div className="flex justify-between"><span>Base ({checkoutData.zone})</span> <span>${ZONE_PRICES[checkoutData.zone as Zone]}</span></div>
                  {SKIN_PRICES[checkoutData.skin as Skin] > 0 && <div className="flex justify-between"><span>Skin ({checkoutData.skin})</span> <span>+${SKIN_PRICES[checkoutData.skin as Skin]}</span></div>}
-                 
-                 {/* Affichage conditionnel de l'option privée dans le résumé */}
                  {isPrivate && <div className="flex justify-between text-blue-600 font-bold"><span>Private Option</span> <span>+${PRIVATE_LOCK_PRICE}</span></div>}
               </div>
             )}
@@ -163,7 +168,7 @@ function CheckoutContent() {
           <CardHeader><CardTitle>Payment Details</CardTitle></CardHeader>
           <CardContent className="space-y-6">
             
-            {/* Option Privée (Uniquement pour les nouveaux achats) */}
+            {/* Option Privée (Seulement pour NOUVEAUX cadenas) */}
             {(!checkoutData.type || checkoutData.type === 'new_lock') && (
                 <div 
                   className={`border-2 p-4 rounded-xl cursor-pointer transition-all ${isPrivate ? 'border-slate-800 bg-slate-100' : 'border-slate-100 hover:border-slate-300'}`}
