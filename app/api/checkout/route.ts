@@ -16,55 +16,50 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'https://lovelockparis.com';
-    
-    // Identification
     const userId = body.userId;
     const userEmail = body.userEmail;
-
-    // Calcul du prix
-    let finalPrice = Number(body.totalPrice);
-    if (!finalPrice || finalPrice <= 0) finalPrice = 29.99;
-
-    const lockId = body.selectedNumber || Math.floor(Math.random() * 900000) + 100000;
-    const type = body.type || 'new_lock'; // 'new_lock', 'boost', 'marketplace'
-
-    // --- SÉCURITÉ ABSOLUE : ZÉRO MODIF SI BOOST/VENTE ---
     
+    const type = body.type || 'new_lock'; 
+    const lockId = body.selectedNumber || body.lockId;
+    
+    // CALCUL DU PRIX (GESTION MEDIA UPGRADE)
+    let finalPrice = 29.99;
+    
+    if (type === 'new_lock') finalPrice = Number(body.totalPrice) || 29.99;
+    else if (type === 'boost') finalPrice = Number(body.price);
+    else if (type === 'marketplace') finalPrice = Number(body.price);
+    else if (type === 'media_upgrade') {
+        // Prix défini par le type de média demandé
+        finalPrice = Number(body.price) || 9.99; 
+    }
+    else if (type === 'media_unlock') finalPrice = 4.99;
+
+    // CAS 1 : NOUVEAU CADENAS
     if (type === 'new_lock') {
       const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
-      
-      // On crée un cadenas PENDING (invisible)
-      const { error } = await supabase.from('locks').upsert({
+      await supabase.from('locks').upsert({
           id: lockId,
           owner_id: userId,
           zone: body.zone?.id || body.zone || 'Standard',
           skin: body.skin?.id || body.skin || 'Gold',
           content_text: body.contentText || 'Love Lock',
-          status: 'Pending', // <--- CRITIQUE
+          status: 'Pending',
           price: finalPrice,
           is_private: body.isPrivate || false,
           golden_asset_price: null,
+          media_type: body.mediaType !== 'none' ? body.mediaType : null, // Sauvegarde du type média dès l'achat
           pending_until: new Date(Date.now() + 1000 * 60 * 60).toISOString()
       });
-
-      if (error) {
-        console.error("Erreur Reservation:", error);
-        return NextResponse.json({ error: "Impossible de réserver l'emplacement." }, { status: 500 });
-      }
     }
-    
-    // Pour 'boost' et 'marketplace', on ne touche PAS à la DB.
-    // C'est le Webhook qui le fera APRES paiement.
 
-    // --- SESSION STRIPE ---
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
         price_data: {
           currency: 'usd',
           product_data: {
-            name: type === 'boost' ? `Boost Visibility (${body.packageName || 'Pack'})` : `Love Lock #${lockId}`,
-            description: type === 'marketplace' ? 'Asset Transfer' : (type === 'boost' ? 'Marketing Service' : 'Digital Asset'),
+            name: type === 'media_upgrade' ? `Add Media Feature` : (type === 'boost' ? `Boost Visibility` : `Love Lock #${lockId}`),
+            description: type === 'media_upgrade' ? `Activation for Lock #${lockId}` : 'Digital Service',
           },
           unit_amount: Math.round(finalPrice * 100),
         },
@@ -76,16 +71,16 @@ export async function POST(req: Request) {
       customer_email: userEmail,
       metadata: {
         type: type,
-        lock_id: lockId.toString(),
+        lock_id: lockId?.toString(),
         user_id: userId,
-        boost_package: body.package || body.packageName || '',
+        boost_package: body.package || '',
+        media_type: body.media_type || '', // Pour le webhook (savoir quel type activer)
       }
     });
 
     return NextResponse.json({ url: session.url });
 
   } catch (error: any) {
-    console.error("Erreur API:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
