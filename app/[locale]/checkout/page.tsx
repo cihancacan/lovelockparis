@@ -1,6 +1,5 @@
 'use client';
 
-// Force le rendu dynamique pour éviter les erreurs de build Vercel sur les searchParams
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -9,7 +8,7 @@ import Link from 'next/link';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { calculateLockPrice, ZONE_PRICES, SKIN_PRICES, MEDIA_PRICES, CUSTOM_NUMBER_PRICE, PRIVATE_LOCK_PRICE } from '@/lib/pricing';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
@@ -27,125 +26,103 @@ function CheckoutContent() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    // 1. Vérifier si l'utilisateur est connecté (sinon redirection)
     const timer = setTimeout(() => {
       if (!user) router.push('/purchase');
     }, 1000);
 
-    // 2. Détecter le mode d'achat (URL vs Session)
     const lockIdParam = searchParams.get('lock_id');
     const priceParam = searchParams.get('price');
-    const typeParam = searchParams.get('type'); // 'marketplace' | 'boost'
+    const typeParam = searchParams.get('type'); 
     const packageParam = searchParams.get('package');
 
     if (lockIdParam && priceParam) {
-      // --- CAS A : ACHAT DIRECT (Marketplace ou Boost) ---
+      // --- MODE DIRECT (Boost / Marketplace) ---
       setCheckoutData({
         type: typeParam || 'marketplace',
         lockId: parseInt(lockIdParam),
         price: parseFloat(priceParam),
         packageName: packageParam,
-        // Valeurs par défaut pour l'affichage (récupérées idéalement depuis la DB, mais on simplifie pour l'UI)
-        zone: 'Standard', 
-        skin: 'Gold',
-        contentText: typeParam === 'boost' ? `Boost Visibility (${packageParam})` : `Marketplace Purchase #${lockIdParam}`
+        zone: searchParams.get('zone') || 'Standard',
+        skin: searchParams.get('skin') || 'Gold',
+        contentText: typeParam === 'boost' ? `Boost Visibility` : `Purchase Lock #${lockIdParam}`
       });
+      // Pour les boosts et marketplace, pas d'option privée modifiable ici
+      setIsPrivate(false);
     } else {
-      // --- CAS B : ACHAT CLASSIQUE (Depuis /purchase) ---
+      // --- MODE STANDARD (Nouveau Cadenas) ---
       const data = sessionStorage.getItem('checkoutData');
       if (data) {
         try {
-          setCheckoutData(JSON.parse(data));
+          const parsed = JSON.parse(data);
+          setCheckoutData(parsed);
+          // Si l'utilisateur avait déjà coché "Privé" dans la page Purchase
+          setIsPrivate(parsed.isPrivate || false);
         } catch (e) {
-          console.error("Erreur parsing data");
+          console.error("Erreur data");
         }
       }
     }
-
     return () => clearTimeout(timer);
-  }, [user, router, searchParams]);
+  }, [searchParams, user, router]);
+
+  // --- CALCUL DU PRIX (CORRIGÉ) ---
+  const getFinalPrice = () => {
+    if (!checkoutData) return 0;
+
+    // 1. Si c'est un Boost ou Marketplace, le prix est Fixe (venant de l'URL)
+    if (checkoutData.type === 'boost' || checkoutData.type === 'marketplace') {
+      return checkoutData.price;
+    }
+
+    // 2. Si c'est un Nouveau Cadenas, on recalcule proprement
+    // calculateLockPrice inclut DÉJÀ le prix privé si isPrivate est true
+    return calculateLockPrice(
+      checkoutData.zone,
+      checkoutData.skin,
+      checkoutData.mediaType,
+      checkoutData.customNumber,
+      isPrivate // Ici on passe l'état actuel de la case à cocher
+    );
+  };
 
   const handleCheckout = async () => {
-    if (!acceptTerms) {
-      toast.error('You must accept the Terms of Service');
-      return;
-    }
-    if (!checkoutData) return;
-
+    if (!acceptTerms) { toast.error('Please accept terms'); return; }
+    if (!user) { toast.error('Please login'); return; }
+    
     setIsProcessing(true);
+    const finalTotal = getFinalPrice();
 
     try {
-      // Récupérer la session
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('Session expired. Please log in again.');
-        setIsProcessing(false);
-        return;
-      }
-
-      // Calcul du prix final
-      // Si c'est un boost/marketplace, le prix est fixe. Sinon on le recalcule.
-      let finalPrice = checkoutData.price;
       
-      if (!checkoutData.type || checkoutData.type === 'standard') {
-         finalPrice = calculateLockPrice(
-          checkoutData.zone,
-          checkoutData.skin,
-          checkoutData.mediaType,
-          checkoutData.customNumber,
-          isPrivate
-        );
-      }
-      
-      // Ajout du prix de l'option privée si coché
-      if (isPrivate && checkoutData.type !== 'boost') {
-         finalPrice += PRIVATE_LOCK_PRICE;
-      }
-
-      // APPEL API
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({
           ...checkoutData,
           isPrivate,
-          totalPrice: finalPrice, // Prix final envoyé à Stripe
-          userId: user?.id, // ID forcé pour sécurité
-          userEmail: user?.email
+          totalPrice: finalTotal, // On envoie le montant exact calculé
+          userId: user.id,
+          userEmail: user.email
         }),
       });
 
       const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Payment initialization failed');
-      }
-
-      if (result.url) {
-        window.location.href = result.url;
-      } else {
-        throw new Error("No payment URL received");
-      }
+      if (result.url) window.location.href = result.url;
+      else throw new Error(result.error || "Payment Error");
 
     } catch (error: any) {
-      console.error('Checkout error:', error);
-      toast.error(error.message || 'Payment Error');
+      toast.error(error.message);
       setIsProcessing(false);
     }
   };
 
   if (!checkoutData) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-[#e11d48]" /></div>;
 
-  // Calcul du total pour l'affichage
-  let displayPrice = checkoutData.price;
-  if (!checkoutData.type) {
-     displayPrice = calculateLockPrice(checkoutData.zone, checkoutData.skin, checkoutData.mediaType, checkoutData.customNumber, isPrivate);
-  } else if (isPrivate && checkoutData.type !== 'boost') {
-     displayPrice += PRIVATE_LOCK_PRICE;
-  }
+  const displayPrice = getFinalPrice();
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -158,47 +135,33 @@ function CheckoutContent() {
 
       <main className="container mx-auto p-4 py-8 max-w-4xl grid md:grid-cols-2 gap-8">
         
-        {/* RECAPITULATIF */}
         <Card>
           <CardHeader><CardTitle>Order Summary</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            
-            {/* Affichage conditionnel selon le type d'achat */}
-            {checkoutData.type === 'boost' ? (
-               <div className="flex items-center gap-3 bg-amber-50 p-3 rounded-lg border border-amber-100">
-                  <Zap className="text-amber-500 h-8 w-8"/>
-                  <div>
-                    <div className="font-bold text-amber-900">Boost Visibility</div>
-                    <div className="text-xs text-amber-700 uppercase">{checkoutData.packageName} Package</div>
-                  </div>
-               </div>
-            ) : checkoutData.type === 'marketplace' ? (
-               <div className="flex items-center gap-3 bg-emerald-50 p-3 rounded-lg border border-emerald-100">
-                  <ShoppingCart className="text-emerald-500 h-8 w-8"/>
-                  <div>
-                    <div className="font-bold text-emerald-900">Marketplace Asset</div>
-                    <div className="text-xs text-emerald-700">Buying from User</div>
-                  </div>
-               </div>
-            ) : (
-               <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <Lock className="text-slate-500 h-8 w-8"/>
-                  <div>
-                    <div className="font-bold text-slate-900">New Digital Lock</div>
-                    <div className="text-xs text-slate-500">{checkoutData.zone} • {checkoutData.skin}</div>
-                  </div>
-               </div>
-            )}
-
-            <Separator />
+            <div className="flex justify-between">
+              <span>Item</span>
+              <span className="font-bold uppercase text-emerald-600">
+                {checkoutData.type === 'boost' ? '🚀 Boost' : checkoutData.type === 'marketplace' ? '💎 Asset' : '🔒 New Lock'}
+              </span>
+            </div>
             
             {checkoutData.lockId && (
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm text-slate-600">
                     <span>Lock ID</span>
                     <span className="font-mono font-bold">#{checkoutData.lockId}</span>
                 </div>
             )}
+            
+            {/* Détails du calcul pour plus de clarté */}
+            {(!checkoutData.type || checkoutData.type === 'new_lock') && (
+              <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded space-y-1">
+                 <div className="flex justify-between"><span>Base ({checkoutData.zone})</span> <span>${ZONE_PRICES[checkoutData.zone as Zone]}</span></div>
+                 {SKIN_PRICES[checkoutData.skin as Skin] > 0 && <div className="flex justify-between"><span>Skin ({checkoutData.skin})</span> <span>+${SKIN_PRICES[checkoutData.skin as Skin]}</span></div>}
+                 {isPrivate && <div className="flex justify-between text-blue-600"><span>Private Option</span> <span>+${PRIVATE_LOCK_PRICE}</span></div>}
+              </div>
+            )}
 
+            <Separator />
             <div className="flex justify-between items-center text-xl font-bold mt-4 pt-4 border-t">
               <span>Total Due</span>
               <span className="text-[#e11d48]">${displayPrice.toFixed(2)}</span>
@@ -206,26 +169,25 @@ function CheckoutContent() {
           </CardContent>
         </Card>
 
-        {/* PAIEMENT */}
         <Card>
           <CardHeader><CardTitle>Payment Details</CardTitle></CardHeader>
           <CardContent className="space-y-6">
             
-            {/* Option Privée (Seulement pour les cadenas, pas les boosts) */}
-            {checkoutData.type !== 'boost' && (
+            {/* Option Privée (Uniquement pour les nouveaux achats) */}
+            {(!checkoutData.type || checkoutData.type === 'new_lock') && (
                 <div 
-                className={`border-2 p-4 rounded-xl cursor-pointer transition-all ${isPrivate ? 'border-slate-800 bg-slate-100' : 'border-slate-100 hover:border-slate-300'}`}
-                onClick={() => setIsPrivate(!isPrivate)}
+                  className={`border-2 p-4 rounded-xl cursor-pointer transition-all ${isPrivate ? 'border-slate-800 bg-slate-100' : 'border-slate-100 hover:border-slate-300'}`}
+                  onClick={() => setIsPrivate(!isPrivate)}
                 >
-                <div className="flex gap-2 font-bold text-sm items-center"><ShieldCheck size={18}/> Private Lock (+${PRIVATE_LOCK_PRICE})</div>
-                <p className="text-xs text-slate-500 ml-7">Hidden from public view.</p>
+                  <div className="flex gap-2 font-bold text-sm items-center"><ShieldCheck size={18}/> Private Lock (+${PRIVATE_LOCK_PRICE.toFixed(2)})</div>
+                  <p className="text-xs text-slate-500 ml-7">Hidden from public view.</p>
                 </div>
             )}
 
             <div className="flex gap-2 items-start">
               <Checkbox id="terms" checked={acceptTerms} onCheckedChange={(c) => setAcceptTerms(c as boolean)} className="mt-1"/>
               <label htmlFor="terms" className="text-xs cursor-pointer text-slate-500 leading-tight">
-                I agree to the Terms of Service. I understand this is a digital item (NFT/Database entry) and sales are final.
+                I agree to the Terms. Sales are final.
               </label>
             </div>
 
@@ -233,10 +195,6 @@ function CheckoutContent() {
               {isProcessing ? <Loader2 className="animate-spin mr-2"/> : <CreditCard className="mr-2"/>}
               Pay Securely
             </Button>
-            
-            <div className="text-center text-[10px] text-slate-400 uppercase tracking-widest flex justify-center items-center gap-2">
-                <Lock size={10}/> 256-Bit SSL Encrypted
-            </div>
           </CardContent>
         </Card>
       </main>
