@@ -4,7 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { PurchaseEmail } from '@/components/emails/PurchaseEmail';
 
-// Force le mode dynamique
 export const dynamic = 'force-dynamic';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2023-10-16' });
@@ -19,91 +18,100 @@ export async function POST(request: NextRequest) {
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
 
-    if (!signature || !webhookSecret) {
-      return NextResponse.json({ error: 'Missing signature/secret' }, { status: 400 });
-    }
+    if (!signature || !webhookSecret) return NextResponse.json({ error: 'No signature' }, { status: 400 });
 
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err: any) {
-      console.error(`Webhook Error: ${err.message}`);
       return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
     }
 
-    // Initialisation Supabase Admin
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // --- CAS 1 : PAIEMENT RÉUSSI ---
+    // --- PAIEMENT VALIDÉ ---
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
+      const metadata = session.metadata || {};
       
-      // Récupération des infos
-      const lockId = parseInt(session.metadata?.lock_id || '0');
-      const userId = session.metadata?.user_id;
-      const userEmail = session.customer_email || session.metadata?.user_email; // Email client
+      const type = metadata.type || 'new_lock';
+      const lockId = parseInt(metadata.lock_id || '0');
+      const userId = metadata.user_id;
+      const amount = session.amount_total ? session.amount_total / 100 : 0;
 
-      console.log(`💰 Paiement reçu pour Cadenas #${lockId} (User: ${userId})`);
+      console.log(`💰 Paiement validé [${type}] pour Lock #${lockId}`);
 
-      if (lockId && userId) {
-        // 1. Activer le cadenas en BDD
-        const { error: updateError } = await supabase
-          .from('locks')
-          .update({ 
+      if (lockId) {
+        
+        // 1. LIVRAISON SELON LE TYPE
+        if (type === 'new_lock') {
+          // Activation d'un nouveau cadenas
+          await supabase.from('locks').update({ 
             status: 'Active', 
             pending_until: null,
-            stripe_session_id: session.id,
             locked_at: new Date().toISOString()
-          })
-          .eq('id', lockId)
-          .eq('owner_id', userId);
+          }).eq('id', lockId);
+        } 
+        else if (type === 'boost') {
+          // Application du Boost
+          const pkg = metadata.boost_package || 'basic';
+          // Date d'expiration (7, 14 ou 30 jours)
+          const daysToAdd = pkg === 'vip' ? 30 : pkg === 'premium' ? 14 : 7;
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + daysToAdd);
 
-        if (updateError) console.error("Erreur Update DB:", updateError);
+          await supabase.from('locks').update({
+            boost_level: pkg,
+            boost_expires_at: expiresAt.toISOString()
+          }).eq('id', lockId);
+        }
+        else if (type === 'marketplace') {
+          // Transfert de propriété
+          await supabase.from('locks').update({
+            owner_id: userId, // Nouveau proprio
+            status: 'Active', // Retrait de la vente
+            resale_price: null,
+            sale_description: null,
+            boost_level: 'none' // Reset du boost
+          }).eq('id', lockId);
+        }
 
-        // 2. Créer la transaction financière
+        // 2. LOG TRANSACTION
         await supabase.from('transactions').insert({
           lock_id: lockId,
           buyer_id: userId,
-          transaction_type: 'purchase',
-          amount: session.amount_total ? session.amount_total / 100 : 0,
+          transaction_type: type,
+          amount: amount,
+          platform_commission: type === 'marketplace' ? amount * 0.20 : 0
         });
 
-        // 3. Envoyer l'email de confirmation
-        if (userEmail) {
-          try {
-            await resend.emails.send({
-              from: 'Love Lock Paris <noreply@lovelockparis.com>',
-              to: userEmail,
-              subject: `Love Lock #${lockId} Secured! 🔒`,
-              react: PurchaseEmail({
-                lockId: lockId,
-                price: session.amount_total ? session.amount_total / 100 : 0,
-                date: new Date().toLocaleDateString()
-              })
-            });
-            console.log(`📧 Email envoyé à ${userEmail}`);
-          } catch (emailError) {
-            console.error("❌ Erreur envoi email:", emailError);
-          }
+        // 3. EMAIL
+        const email = session.customer_email || session.metadata?.user_email;
+        if (email) {
+           try {
+              await resend.emails.send({
+                from: 'Love Lock Paris <noreply@lovelockparis.com>',
+                to: email,
+                subject: `Order Confirmed: ${type === 'boost' ? 'Boost Activated' : `Lock #${lockId}`}`,
+                react: PurchaseEmail({ lockId, price: amount, date: new Date().toLocaleDateString() })
+              });
+           } catch(e) { console.error("Mail error", e); }
         }
       }
     }
 
-    // --- CAS 2 : PAIEMENT EXPIRÉ (Nettoyage) ---
+    // --- NETTOYAGE SI ABANDON ---
     if (event.type === 'checkout.session.expired') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const lockId = parseInt(session.metadata?.lock_id || '0');
-      
+      const lockId = parseInt(event.data.object.metadata?.lock_id || '0');
+      // On supprime seulement les "Pending" (les nouveaux achats ratés)
+      // On ne touche pas aux cadenas existants (boost/vente ratés)
       if (lockId) {
         await supabase.from('locks').delete().eq('id', lockId).eq('status', 'Pending');
-        console.log(`🧹 Cadenas #${lockId} libéré (Session expirée)`);
       }
     }
 
     return NextResponse.json({ received: true });
-
   } catch (error: any) {
-    console.error("Erreur Serveur:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
