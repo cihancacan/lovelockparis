@@ -8,7 +8,8 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Crown, Trophy, Clock, CheckCircle, Loader2, ArrowLeft, Zap, Lock, LogIn } from 'lucide-react';
+// CORRECTION ICI : 'Rocket' est bien ajouté
+import { Sparkles, Crown, Trophy, Clock, CheckCircle, Loader2, ArrowLeft, Zap, Lock, LogIn, Rocket } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
@@ -69,15 +70,14 @@ function BoostPageContent() {
     
     if (user) {
         setLoading(true);
-        // CORRECTION ICI : On ajoute .eq('status', 'Active')
+        // CORRECTION ICI : Filtrage des cadenas actifs seulement
         supabase.from('locks')
             .select('*')
             .eq('owner_id', user.id)
-            .eq('status', 'Active') // <--- FILTRE CRITIQUE AJOUTÉ
+            .eq('status', 'Active') // <--- ICI
             .order('created_at', { ascending: false })
             .then(({ data }) => {
                 setUserLocks(data || []);
-                // Auto-select seulement si on a des cadenas ACTIFS
                 if (!selectedLockId && data && data.length > 0 && !paramLockId) {
                     setSelectedLockId(data[0].id);
                 }
@@ -86,7 +86,7 @@ function BoostPageContent() {
     } else {
         setLoading(false);
     }
-  }, [user]);
+  }, [user, searchParams]);
 
   const handleBoostPurchase = async () => {
     if (!user) return router.push('/purchase');
@@ -95,7 +95,8 @@ function BoostPageContent() {
     const pkg = boostPackages.find(p => p.id === selectedPackage);
     const lock = userLocks.find(l => l.id === selectedLockId);
 
-    if (!lock) return toast.error('Invalid lock selected');
+    // Sécurité supplémentaire
+    if (!lock) return toast.error('Lock not found or not active');
 
     router.push(`/checkout?type=boost&lock_id=${selectedLockId}&package=${selectedPackage}&price=${pkg?.price}&zone=${lock.zone || 'Standard'}&skin=${lock.skin || 'Gold'}`);
   };
@@ -134,7 +135,7 @@ function BoostPageContent() {
                          <div className="flex items-center gap-2 mb-1"><h4 className="font-bold text-lg">{pkg.title}</h4><Badge variant="outline" className="border-slate-600 text-slate-400 text-[10px]">{pkg.duration}</Badge></div>
                          <div className="text-sm text-slate-400">{pkg.features.join(' • ')}</div>
                        </div>
-                       <div className="text-right shrink-0"><div className="text-2xl font-black">${pkg.price}</div><div className={`text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r ${pkg.color}`}>{pkg.multiplier} Views</div></div>
+                       <div className="text-right shrink-0"><div className="text-2xl font-black">${pkg.price}</div><div className={`text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r ${pkg.color}`}>{pkg.views} Views</div></div>
                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-emerald-500 bg-emerald-500' : 'border-slate-600'}`}>{isSelected && <CheckCircle size={16} className="text-black"/>}</div>
                      </div>
                    );
@@ -167,7 +168,7 @@ function BoostPageContent() {
                 <Card className="bg-slate-900 border-slate-800 relative overflow-hidden mb-6">
                   <div className={`h-1.5 w-full bg-gradient-to-r ${activePackage?.color}`}></div>
                   <CardContent className="p-6">
-                    <h3 className="text-slate-400 text-xs font-bold uppercase mb-4 tracking-wider flex justify-between"><span>Preview</span><span className="text-emerald-400">+{activePackage?.multiplier} Traffic</span></h3>
+                    <h3 className="text-slate-400 text-xs font-bold uppercase mb-4 tracking-wider flex justify-between"><span>Preview</span><span className="text-emerald-400">+{activePackage?.views} Traffic</span></h3>
                     <div className={`bg-white rounded-xl p-4 border-2 shadow-2xl relative overflow-hidden ${activePackage?.id === 'vip' ? 'border-purple-500 ring-4 ring-purple-500/20' : activePackage?.id === 'premium' ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-cyan-500'}`}>
                        <div className="flex justify-between items-center mb-4"><span className="text-2xl font-black text-slate-900">#{activeLock?.id || '000'}</span>{activePackage?.id === 'vip' && <Trophy size={20} className="text-purple-600"/>}</div>
                        <div className="h-28 flex items-center justify-center mb-4"><Image src={getSkinImage(activeLock?.skin || 'gold')} alt="lock" width={80} height={80} className="drop-shadow-2xl object-contain"/></div>
@@ -176,9 +177,10 @@ function BoostPageContent() {
                   </CardContent>
                 </Card>
 
-                <Button onClick={handleBoostPurchase} className={`w-full h-16 text-xl font-black text-white bg-gradient-to-r ${activePackage?.color} hover:opacity-90 shadow-2xl rounded-xl`}>
-                    {user ? 'BOOST NOW' : 'LOGIN TO BOOST'}
-                </Button>
+                <div className="mt-6 space-y-4">
+                  <div className="flex justify-between items-end px-2"><span className="text-slate-400 text-sm">Total</span><span className="text-3xl font-black text-white">${activePackage?.price}</span></div>
+                  <Button onClick={handleBoostPurchase} className={`w-full h-16 text-xl font-black text-white bg-gradient-to-r ${activePackage?.color} hover:opacity-90 shadow-2xl rounded-xl`}>{user ? <><Rocket className="mr-2 h-6 w-6" /> BOOST NOW</> : 'LOGIN TO BOOST'}</Button>
+                </div>
              </div>
           </div>
       </div>
