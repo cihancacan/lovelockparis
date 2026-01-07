@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
 import { calculateLockPrice, ZONE_PRICES, SKIN_PRICES, MEDIA_PRICES, CUSTOM_NUMBER_PRICE, PRIVATE_LOCK_PRICE } from '@/lib/pricing';
@@ -26,13 +25,11 @@ function CheckoutContent() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!user) router.push('/purchase');
-    }, 1000);
+    const timer = setTimeout(() => { if (!user) router.push('/purchase'); }, 1000);
 
     const lockIdParam = searchParams.get('lock_id');
     const priceParam = searchParams.get('price');
-    const typeParam = searchParams.get('type'); 
+    const typeParam = searchParams.get('type');
     const packageParam = searchParams.get('package');
 
     if (lockIdParam && priceParam) {
@@ -46,48 +43,46 @@ function CheckoutContent() {
         skin: searchParams.get('skin') || 'Gold',
         contentText: typeParam === 'boost' ? `Boost Visibility` : `Purchase Lock #${lockIdParam}`
       });
-      // Pour les boosts et marketplace, pas d'option privée modifiable ici
       setIsPrivate(false);
     } else {
-      // --- MODE STANDARD (Nouveau Cadenas) ---
+      // --- MODE STANDARD ---
       const data = sessionStorage.getItem('checkoutData');
       if (data) {
         try {
-          const parsed = JSON.parse(data);
-          setCheckoutData(parsed);
-          // Si l'utilisateur avait déjà coché "Privé" dans la page Purchase
-          setIsPrivate(parsed.isPrivate || false);
-        } catch (e) {
-          console.error("Erreur data");
-        }
+            const parsed = JSON.parse(data);
+            setCheckoutData(parsed);
+            // On récupère l'état initial, mais on laisse l'utilisateur le changer ici
+            if (parsed.isPrivate) setIsPrivate(true);
+        } catch (e) { console.error("Erreur data"); }
       }
     }
     return () => clearTimeout(timer);
   }, [searchParams, user, router]);
 
-  // --- CALCUL DU PRIX (CORRIGÉ) ---
+  // --- CALCUL DU PRIX CORRIGÉ ---
   const getFinalPrice = () => {
     if (!checkoutData) return 0;
 
-    // 1. Si c'est un Boost ou Marketplace, le prix est Fixe (venant de l'URL)
+    // 1. Boost ou Marketplace : Prix fixe, on ne touche à rien
     if (checkoutData.type === 'boost' || checkoutData.type === 'marketplace') {
       return checkoutData.price;
     }
 
-    // 2. Si c'est un Nouveau Cadenas, on recalcule proprement
-    // calculateLockPrice inclut DÉJÀ le prix privé si isPrivate est true
+    // 2. Nouveau Cadenas : On recalcule
+    // calculateLockPrice inclut DEJA le prix de l'option privée (+5$) si isPrivate est true
+    // Donc on ne rajoute RIEN manuellement.
     return calculateLockPrice(
       checkoutData.zone,
       checkoutData.skin,
       checkoutData.mediaType,
       checkoutData.customNumber,
-      isPrivate // Ici on passe l'état actuel de la case à cocher
+      isPrivate
     );
   };
 
   const handleCheckout = async () => {
-    if (!acceptTerms) { toast.error('Please accept terms'); return; }
-    if (!user) { toast.error('Please login'); return; }
+    if (!acceptTerms) return toast.error('Please accept terms');
+    if (!user) return toast.error('Please login');
     
     setIsProcessing(true);
     const finalTotal = getFinalPrice();
@@ -103,8 +98,8 @@ function CheckoutContent() {
         },
         body: JSON.stringify({
           ...checkoutData,
-          isPrivate,
-          totalPrice: finalTotal, // On envoie le montant exact calculé
+          isPrivate, // On envoie l'état final de la case cochée
+          totalPrice: finalTotal,
           userId: user.id,
           userEmail: user.email
         }),
@@ -145,19 +140,14 @@ function CheckoutContent() {
               </span>
             </div>
             
-            {checkoutData.lockId && (
-                <div className="flex justify-between text-sm text-slate-600">
-                    <span>Lock ID</span>
-                    <span className="font-mono font-bold">#{checkoutData.lockId}</span>
-                </div>
-            )}
-            
-            {/* Détails du calcul pour plus de clarté */}
+            {/* Détail Prix Nouveau Cadenas */}
             {(!checkoutData.type || checkoutData.type === 'new_lock') && (
               <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded space-y-1">
                  <div className="flex justify-between"><span>Base ({checkoutData.zone})</span> <span>${ZONE_PRICES[checkoutData.zone as Zone]}</span></div>
                  {SKIN_PRICES[checkoutData.skin as Skin] > 0 && <div className="flex justify-between"><span>Skin ({checkoutData.skin})</span> <span>+${SKIN_PRICES[checkoutData.skin as Skin]}</span></div>}
-                 {isPrivate && <div className="flex justify-between text-blue-600"><span>Private Option</span> <span>+${PRIVATE_LOCK_PRICE}</span></div>}
+                 
+                 {/* Affichage conditionnel de l'option privée dans le résumé */}
+                 {isPrivate && <div className="flex justify-between text-blue-600 font-bold"><span>Private Option</span> <span>+${PRIVATE_LOCK_PRICE}</span></div>}
               </div>
             )}
 
@@ -187,7 +177,7 @@ function CheckoutContent() {
             <div className="flex gap-2 items-start">
               <Checkbox id="terms" checked={acceptTerms} onCheckedChange={(c) => setAcceptTerms(c as boolean)} className="mt-1"/>
               <label htmlFor="terms" className="text-xs cursor-pointer text-slate-500 leading-tight">
-                I agree to the Terms. Sales are final.
+                I agree to the Terms. Digital item, no refund.
               </label>
             </div>
 
@@ -195,6 +185,10 @@ function CheckoutContent() {
               {isProcessing ? <Loader2 className="animate-spin mr-2"/> : <CreditCard className="mr-2"/>}
               Pay Securely
             </Button>
+            
+            <div className="text-center text-[10px] text-slate-400 uppercase tracking-widest flex justify-center items-center gap-2">
+                <Lock size={10}/> 256-Bit SSL Encrypted
+            </div>
           </CardContent>
         </Card>
       </main>
