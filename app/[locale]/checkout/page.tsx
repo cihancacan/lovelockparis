@@ -20,7 +20,7 @@ function CheckoutContent() {
   const { user } = useAuth();
 
   const [checkoutData, setCheckoutData] = useState<any>(null);
-  const [isPrivate, setIsPrivate] = useState(false); // Par défaut FALSE
+  const [isPrivate, setIsPrivate] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -35,6 +35,7 @@ function CheckoutContent() {
     const packageParam = searchParams.get('package');
 
     if (lockIdParam && priceParam) {
+      // --- MODE DIRECT (Boost / Marketplace) ---
       setCheckoutData({
         type: typeParam || 'marketplace',
         lockId: parseInt(lockIdParam),
@@ -44,14 +45,15 @@ function CheckoutContent() {
         skin: searchParams.get('skin') || 'Gold',
         contentText: typeParam === 'boost' ? `Boost Visibility` : `Purchase Lock #${lockIdParam}`
       });
-      setIsPrivate(false); // On force FALSE ici
+      setIsPrivate(false);
     } else {
+      // --- MODE STANDARD ---
       const data = sessionStorage.getItem('checkoutData');
       if (data) {
         try {
           const parsed = JSON.parse(data);
           setCheckoutData(parsed);
-          // On force FALSE aussi, même si l'user avait coché avant, pour éviter les surprises
+          // CORRECTION : On force isPrivate à false au chargement pour éviter l'ajout surprise
           setIsPrivate(false); 
         } catch (e) {
           console.error("Erreur data");
@@ -61,22 +63,22 @@ function CheckoutContent() {
     return () => clearTimeout(timer);
   }, [searchParams, user, router]);
 
-  // --- CALCUL PRIX FINAL ---
+  // --- CALCUL DU PRIX CORRIGÉ ---
   const getFinalPrice = () => {
     if (!checkoutData) return 0;
 
-    // 1. Boost / Marketplace : Prix FIXE
+    // 1. Boost ou Marketplace : Prix FIXE
     if (checkoutData.type === 'boost' || checkoutData.type === 'marketplace') {
       return checkoutData.price;
     }
 
-    // 2. Nouveau Cadenas : Calcul dynamique
+    // 2. Nouveau Cadenas : On recalcule tout proprement
     return calculateLockPrice(
       checkoutData.zone,
       checkoutData.skin,
       checkoutData.mediaType,
       checkoutData.customNumber,
-      isPrivate // Ici on prend l'état de la case à cocher
+      isPrivate // L'ajout des 5$ se fait ICI uniquement
     );
   };
 
@@ -117,6 +119,7 @@ function CheckoutContent() {
 
   if (!checkoutData) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-[#e11d48]" /></div>;
 
+  // CORRECTION MAJEURE ICI : On utilise la même fonction de calcul pour l'affichage et le paiement
   const displayPrice = getFinalPrice();
 
   return (
@@ -168,7 +171,7 @@ function CheckoutContent() {
           <CardHeader><CardTitle>Payment Details</CardTitle></CardHeader>
           <CardContent className="space-y-6">
             
-            {/* Option Privée (Seulement pour NOUVEAUX cadenas) */}
+            {/* Option Privée (Uniquement pour les nouveaux achats) */}
             {(!checkoutData.type || checkoutData.type === 'new_lock') && (
                 <div 
                   className={`border-2 p-4 rounded-xl cursor-pointer transition-all ${isPrivate ? 'border-slate-800 bg-slate-100' : 'border-slate-100 hover:border-slate-300'}`}
