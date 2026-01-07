@@ -12,84 +12,85 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// Utilisation de 'Request' standard pour éviter le bug de Next.js
 export async function POST(req: Request) {
-  console.log("⚡ API CHECKOUT (Mode Robust)");
-
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json({ error: "Clé Stripe manquante" }, { status: 500 });
-    }
-
     const body = await req.json();
+    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'https://lovelockparis.com';
     
-    // URL en dur pour éviter les erreurs serveur
-    const origin = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Identification
+    const userId = body.userId;
+    const userEmail = body.userEmail;
 
-    // Récupération manuelle des infos utilisateur envoyées par le front
-    const userId = body.userId || 'guest_user';
-    const userEmail = body.userEmail || 'guest@lovelock.com';
-
-    // Calcul du prix
+    // Calcul du prix (Sécurité)
     let finalPrice = Number(body.totalPrice);
     if (!finalPrice || finalPrice <= 0) finalPrice = 29.99;
 
     const lockId = body.selectedNumber || Math.floor(Math.random() * 900000) + 100000;
-    const zoneValue = body.zone?.id || body.zone || 'Standard';
-    const skinValue = body.skin?.id || body.skin || 'Gold';
+    
+    // DÉTECTION DU TYPE D'ACHAT
+    // Si le type n'est pas précisé, c'est un nouveau cadenas par défaut
+    const type = body.type || 'new_lock'; // 'new_lock', 'boost', 'marketplace'
 
-    // Sauvegarde BDD "Silencieuse" (Ne bloque pas le paiement si erreur)
-    try {
-        const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-          auth: { persistSession: false } // CRUCIAL : Désactive la session
-        });
-        
-        await supabase.from('locks').upsert({
-            id: lockId,
-            owner_id: userId !== 'guest_user' ? userId : null,
-            zone: zoneValue,
-            skin: skinValue,
-            content_text: body.contentText || 'Love Lock',
-            status: 'Pending',
-            price: finalPrice,
-            is_private: body.isPrivate || false,
-            golden_asset_price: null,
-            pending_until: new Date(Date.now() + 1000 * 60 * 60).toISOString()
-        });
-    } catch (dbError) {
-        console.error("⚠️ BDD Ignorée:", dbError);
+    // --- SÉCURITÉ ABSOLUE ICI ---
+    // On écrit en base de données SEULEMENT si c'est un NOUVEAU cadenas (pour le réserver)
+    // Si c'est un Boost ou une Vente, on ne touche à rien tant que ce n'est pas payé !
+    
+    if (type === 'new_lock') {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+      
+      const { error } = await supabase.from('locks').upsert({
+          id: lockId,
+          owner_id: userId,
+          zone: body.zone?.id || body.zone || 'Standard',
+          skin: body.skin?.id || body.skin || 'Gold',
+          content_text: body.contentText || 'Love Lock',
+          // STATUS PENDING : Invisible et inactif tant que pas payé
+          status: 'Pending', 
+          price: finalPrice,
+          is_private: body.isPrivate || false,
+          golden_asset_price: null,
+          // Expiration dans 1h si pas payé
+          pending_until: new Date(Date.now() + 1000 * 60 * 60).toISOString()
+      });
+
+      if (error) {
+        console.error("Erreur Reservation:", error);
+        return NextResponse.json({ error: "Impossible de réserver l'emplacement." }, { status: 500 });
+      }
     }
 
-    // Création Session Stripe
+    // --- CRÉATION SESSION STRIPE ---
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `Love Lock Paris #${lockId}`,
-              description: `${zoneValue} • ${skinValue}`,
-            },
-            unit_amount: Math.round(finalPrice * 100),
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: type === 'boost' ? `Boost Visibility (${body.packageName || 'Pack'})` : `Love Lock #${lockId}`,
+            description: type === 'marketplace' ? 'Asset Transfer' : (type === 'boost' ? 'Marketing Service' : 'Digital Asset'),
           },
-          quantity: 1,
+          unit_amount: Math.round(finalPrice * 100),
         },
-      ],
+        quantity: 1,
+      }],
       mode: 'payment',
-      success_url: `${origin}/dashboard?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}/dashboard?payment_success=true`,
       cancel_url: `${origin}/purchase?canceled=true`,
-      customer_email: userEmail !== 'guest@lovelock.com' ? userEmail : undefined,
+      customer_email: userEmail,
+      
+      // PASSAGE DES INFOS AU WEBHOOK (C'est lui qui livrera)
       metadata: {
+        type: type, // IMPORTANT
         lock_id: lockId.toString(),
-        user_id: userId
+        user_id: userId,
+        boost_package: body.package || body.packageName || '',
       }
     });
 
     return NextResponse.json({ url: session.url });
 
   } catch (error: any) {
-    console.error("❌ ERREUR API:", error);
+    console.error("Erreur API:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
