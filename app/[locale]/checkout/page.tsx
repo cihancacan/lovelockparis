@@ -6,12 +6,12 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
-import { calculateLockPrice, ZONE_PRICES, SKIN_PRICES, MEDIA_PRICES, CUSTOM_NUMBER_PRICE, PRIVATE_LOCK_PRICE } from '@/lib/pricing';
+import { calculateLockPrice, ZONE_PRICES, SKIN_PRICES, MEDIA_PRICES, CUSTOM_NUMBER_PRICE } from '@/lib/pricing';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Loader2, Lock, ShieldCheck, CreditCard, Zap, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Loader2, Lock, ShieldCheck, CreditCard, Zap, ShoppingCart, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 function CheckoutContent() {
@@ -35,7 +35,6 @@ function CheckoutContent() {
     const packageParam = searchParams.get('package');
 
     if (lockIdParam && priceParam) {
-      // --- MODE DIRECT (Boost / Marketplace) ---
       setCheckoutData({
         type: typeParam || 'marketplace',
         lockId: parseInt(lockIdParam),
@@ -47,14 +46,12 @@ function CheckoutContent() {
       });
       setIsPrivate(false);
     } else {
-      // --- MODE STANDARD ---
       const data = sessionStorage.getItem('checkoutData');
       if (data) {
         try {
           const parsed = JSON.parse(data);
           setCheckoutData(parsed);
-          // CORRECTION : On force isPrivate à false au chargement pour éviter l'ajout surprise
-          setIsPrivate(false); 
+          setIsPrivate(parsed.isPrivate || false); 
         } catch (e) {
           console.error("Erreur data");
         }
@@ -63,7 +60,7 @@ function CheckoutContent() {
     return () => clearTimeout(timer);
   }, [searchParams, user, router]);
 
-  // --- CALCUL DU PRIX CORRIGÉ ---
+  // --- CALCUL DU PRIX CORRIGÉ (SANS OPTION PRIVÉE PAYANTE) ---
   const getFinalPrice = () => {
     if (!checkoutData) return 0;
 
@@ -72,13 +69,15 @@ function CheckoutContent() {
       return checkoutData.price;
     }
 
-    // 2. Nouveau Cadenas : On recalcule tout proprement
+    // 2. Nouveau Cadenas : On recalcule
+    // IMPORTANT : On passe toujours 'false' pour isPrivate dans le calculateur de prix
+    // car l'option est maintenant GRATUITE visuellement
     return calculateLockPrice(
       checkoutData.zone,
       checkoutData.skin,
       checkoutData.mediaType,
       checkoutData.customNumber,
-      isPrivate // L'ajout des 5$ se fait ICI uniquement
+      false // <--- Toujours false ici pour ne pas ajouter de frais
     );
   };
 
@@ -100,7 +99,7 @@ function CheckoutContent() {
         },
         body: JSON.stringify({
           ...checkoutData,
-          isPrivate,
+          isPrivate, // On envoie l'état au serveur (pour cacher le média), mais sans payer
           totalPrice: finalTotal,
           userId: user.id,
           userEmail: user.email
@@ -119,7 +118,6 @@ function CheckoutContent() {
 
   if (!checkoutData) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-[#e11d48]" /></div>;
 
-  // CORRECTION MAJEURE ICI : On utilise la même fonction de calcul pour l'affichage et le paiement
   const displayPrice = getFinalPrice();
 
   return (
@@ -150,12 +148,13 @@ function CheckoutContent() {
                 </div>
             )}
             
-            {/* Détail Prix Nouveau Cadenas */}
             {(!checkoutData.type || checkoutData.type === 'new_lock') && (
               <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded space-y-1">
                  <div className="flex justify-between"><span>Base ({checkoutData.zone})</span> <span>${ZONE_PRICES[checkoutData.zone as Zone]}</span></div>
                  {SKIN_PRICES[checkoutData.skin as Skin] > 0 && <div className="flex justify-between"><span>Skin ({checkoutData.skin})</span> <span>+${SKIN_PRICES[checkoutData.skin as Skin]}</span></div>}
-                 {isPrivate && <div className="flex justify-between text-blue-600 font-bold"><span>Private Option</span> <span>+${PRIVATE_LOCK_PRICE}</span></div>}
+                 
+                 {/* Affichage GRATUIT */}
+                 {isPrivate && <div className="flex justify-between text-slate-600 font-bold"><span>Private Media</span> <span>Included</span></div>}
               </div>
             )}
 
@@ -171,14 +170,19 @@ function CheckoutContent() {
           <CardHeader><CardTitle>Payment Details</CardTitle></CardHeader>
           <CardContent className="space-y-6">
             
-            {/* Option Privée (Uniquement pour les nouveaux achats) */}
+            {/* Option Privée (Gratuite maintenant) */}
             {(!checkoutData.type || checkoutData.type === 'new_lock') && (
                 <div 
                   className={`border-2 p-4 rounded-xl cursor-pointer transition-all ${isPrivate ? 'border-slate-800 bg-slate-100' : 'border-slate-100 hover:border-slate-300'}`}
                   onClick={() => setIsPrivate(!isPrivate)}
                 >
-                  <div className="flex gap-2 font-bold text-sm items-center"><ShieldCheck size={18}/> Private Lock (+${PRIVATE_LOCK_PRICE.toFixed(2)})</div>
-                  <p className="text-xs text-slate-500 ml-7">Hidden from public view.</p>
+                  <div className="flex gap-2 font-bold text-sm items-center">
+                    <EyeOff size={18}/> 
+                    Hide Media Content (Free)
+                  </div>
+                  <p className="text-xs text-slate-500 ml-7 mt-1">
+                    Your photo/video will be private. The lock stays visible on the bridge.
+                  </p>
                 </div>
             )}
 
