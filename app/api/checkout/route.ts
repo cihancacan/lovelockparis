@@ -21,35 +21,29 @@ export async function POST(req: Request) {
     const userId = body.userId;
     const userEmail = body.userEmail;
 
-    // Calcul du prix (Sécurité)
+    // Calcul du prix
     let finalPrice = Number(body.totalPrice);
     if (!finalPrice || finalPrice <= 0) finalPrice = 29.99;
 
     const lockId = body.selectedNumber || Math.floor(Math.random() * 900000) + 100000;
-    
-    // DÉTECTION DU TYPE D'ACHAT
-    // Si le type n'est pas précisé, c'est un nouveau cadenas par défaut
     const type = body.type || 'new_lock'; // 'new_lock', 'boost', 'marketplace'
 
-    // --- SÉCURITÉ ABSOLUE ICI ---
-    // On écrit en base de données SEULEMENT si c'est un NOUVEAU cadenas (pour le réserver)
-    // Si c'est un Boost ou une Vente, on ne touche à rien tant que ce n'est pas payé !
+    // --- SÉCURITÉ ABSOLUE : ZÉRO MODIF SI BOOST/VENTE ---
     
     if (type === 'new_lock') {
       const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
       
+      // On crée un cadenas PENDING (invisible)
       const { error } = await supabase.from('locks').upsert({
           id: lockId,
           owner_id: userId,
           zone: body.zone?.id || body.zone || 'Standard',
           skin: body.skin?.id || body.skin || 'Gold',
           content_text: body.contentText || 'Love Lock',
-          // STATUS PENDING : Invisible et inactif tant que pas payé
-          status: 'Pending', 
+          status: 'Pending', // <--- CRITIQUE
           price: finalPrice,
           is_private: body.isPrivate || false,
           golden_asset_price: null,
-          // Expiration dans 1h si pas payé
           pending_until: new Date(Date.now() + 1000 * 60 * 60).toISOString()
       });
 
@@ -58,8 +52,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Impossible de réserver l'emplacement." }, { status: 500 });
       }
     }
+    
+    // Pour 'boost' et 'marketplace', on ne touche PAS à la DB.
+    // C'est le Webhook qui le fera APRES paiement.
 
-    // --- CRÉATION SESSION STRIPE ---
+    // --- SESSION STRIPE ---
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
@@ -77,10 +74,8 @@ export async function POST(req: Request) {
       success_url: `${origin}/dashboard?payment_success=true`,
       cancel_url: `${origin}/purchase?canceled=true`,
       customer_email: userEmail,
-      
-      // PASSAGE DES INFOS AU WEBHOOK (C'est lui qui livrera)
       metadata: {
-        type: type, // IMPORTANT
+        type: type,
         lock_id: lockId.toString(),
         user_id: userId,
         boost_package: body.package || body.packageName || '',
