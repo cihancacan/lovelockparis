@@ -1,5 +1,6 @@
 'use client';
 
+// Force le rendu dynamique
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -16,10 +17,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge'; // <--- LIGNE AJOUTÉE (CORRECTION)
 import { toast } from 'sonner';
 import Image from 'next/image';
-// IMPORT DES PRIX
-import { MEDIA_PRICES, MediaType } from '@/lib/pricing';
+
+// Définition des types média
+type MediaType = 'none' | 'photo' | 'video' | 'audio';
 
 const safeDate = (date: string | null | undefined) => {
   if (!date) return '-';
@@ -39,6 +42,7 @@ function DashboardContent() {
   const [locks, setLocks] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   
+  // États formulaires
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [bankZone, setBankZone] = useState('EU');
@@ -126,14 +130,16 @@ function DashboardContent() {
     window.location.href = '/';
   };
 
-  // --- NOUVEAU : ACHAT D'OPTION MEDIA ---
-  const handleBuyMediaOption = (lockId: number, type: MediaType) => {
-    const price = MEDIA_PRICES[type];
+  // --- GESTION MEDIA ---
+  const handleBuyMediaOption = (lockId: number, type: string) => {
+    let price = 9.99;
+    if (type === 'audio') price = 14.99;
+    if (type === 'video') price = 29.99;
+    
     // Redirection vers Checkout avec le type spécifique
     router.push(`/checkout?type=media_upgrade&lock_id=${lockId}&media_type=${type}&price=${price}`);
   };
 
-  // --- NOUVEAU : UPLOAD MEDIA ---
   const handleUploadMedia = async (lockId: number, file: File, type: string) => {
     if (!file) return;
     
@@ -193,6 +199,7 @@ function DashboardContent() {
                 </div>
                 <Button variant="ghost" size="sm" onClick={handleLogout} className="md:hidden text-slate-400"><LogOut className="h-5 w-5" /></Button>
             </div>
+            
             <div className="flex items-center gap-4 w-full md:w-auto bg-slate-800/50 p-1.5 rounded-xl overflow-x-auto">
                 <Button variant="ghost" size="sm" onClick={() => router.push('/')} className="text-slate-300 hover:text-white hover:bg-white/10 gap-2"><Home size={16}/> Home</Button>
                 <Button variant="ghost" size="sm" onClick={() => router.push('/marketplace')} className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 gap-2"><Store size={16}/> Marketplace</Button>
@@ -242,7 +249,7 @@ function DashboardContent() {
                         </div>
                     </div>
 
-                    {/* Colonne 2: Studio Multimédia */}
+                    {/* Colonne 2: Media Studio */}
                     <div className="flex-1 bg-slate-50 rounded-lg p-4 border border-slate-100">
                         <div className="flex justify-between items-center mb-3">
                             <h4 className="font-bold text-sm text-slate-700 flex items-center gap-2"><Video size={16}/> Media Studio</h4>
@@ -254,7 +261,6 @@ function DashboardContent() {
                             )}
                         </div>
 
-                        {/* CAS 1: Pas d'option média achetée */}
                         {(!lock.media_type || lock.media_type === 'none') && (
                             <div className="grid grid-cols-3 gap-2">
                                 <div onClick={() => handleBuyMediaOption(lock.id, 'photo')} className="cursor-pointer border border-dashed border-slate-300 rounded p-2 text-center hover:bg-white hover:border-slate-400 transition-all">
@@ -275,7 +281,6 @@ function DashboardContent() {
                             </div>
                         )}
 
-                        {/* CAS 2: Option achetée - Gestion du fichier */}
                         {lock.media_type && lock.media_type !== 'none' && (
                             <div className="flex items-center gap-3">
                                 {lock.content_media_url ? (
