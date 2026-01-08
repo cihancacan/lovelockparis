@@ -98,7 +98,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
         <section className="relative min-h-[85vh] flex flex-col justify-center items-center text-center px-4 overflow-hidden pt-0 pb-0">
           
           <div className="absolute inset-0 z-0">
-            {/* 1. CORRECTION IMAGE : Utilisation de concept-value.jpg */}
+            {/* 1. CHANGEMENT IMAGE HERO */}
             <Image 
               src="/images/concept-value.jpg" 
               alt="Couple placing digital love lock on Pont des Arts bridge Paris using augmented reality" 
@@ -147,7 +147,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
               )}
             </h1>
 
-            {/* Sous-titre avec CORRECTION STRONG (JSX) */}
+            {/* 2. CORRECTION STRONG : Utilisation de JSX propre */}
             <div className="max-w-4xl mx-auto">
               <p className="text-base sm:text-lg md:text-xl text-slate-100 leading-relaxed drop-shadow-lg font-medium px-4">
                 {locale === 'fr' ? (
@@ -281,7 +281,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
                     )}
                   </p>
 
-                  {/* PARAGRAPHE SEO "STORYTELLING" (Gardé comme demandé) */}
+                  {/* PARAGRAPHE SEO "STORYTELLING" */}
                   <div className="bg-slate-50 border-l-4 border-emerald-500 p-6 rounded-r-xl shadow-sm">
                     <p className="text-base text-slate-600 italic leading-relaxed">
                       {locale === 'fr' ? (
@@ -313,6 +313,8 @@ export default async function Home({ params }: { params: { locale: string } }) {
                       <ul className="text-slate-600 space-y-1 text-sm">
                         <li>• {locale === 'fr' ? 'Illegaux (500€ d\'amende)' : locale === 'zh-CN' ? '违法（罚款500欧元）' : 'Illegal with €500 fines'}</li>
                         <li>• {locale === 'fr' ? 'Retirés tous les 6 mois' : locale === 'zh-CN' ? '每6个月清除一次' : 'Removed every 6 months'}</li>
+                        <li>• {locale === 'fr' ? 'Dégâts environnementaux' : locale === 'zh-CN' ? '环境破坏' : 'Environmental damage'}</li>
+                        <li>• {locale === 'fr' ? 'Risque structurel' : locale === 'zh-CN' ? '桥梁结构风险' : 'Bridge structural risk'}</li>
                       </ul>
                     </div>
                   </div>
@@ -328,6 +330,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
                       <ul className="text-slate-600 space-y-1 text-sm">
                         <li>• {locale === 'fr' ? '100% légal et autorisé' : locale === 'zh-CN' ? '100%合法授权' : '100% legal & authorized'}</li>
                         <li>• {locale === 'fr' ? 'Permanent sur blockchain' : locale === 'zh-CN' ? '区块链永久存储' : 'Permanent on blockchain'}</li>
+                        <li>• {locale === 'fr' ? 'Zéro impact environnemental' : locale === 'zh-CN' ? '零环境影响' : 'Zero environmental impact'}</li>
                         <li>• {locale === 'fr' ? 'Visible de partout' : locale === 'zh-CN' ? '随时随地可查看' : 'View from anywhere'}</li>
                       </ul>
                     </div>
@@ -417,6 +420,11 @@ export default async function Home({ params }: { params: { locale: string } }) {
                          locale === 'zh-CN' ? '本月已放置锁具' :
                          'Locks Placed This Month'}
                       </div>
+                      <div className="text-sm text-slate-400 mt-2">
+                        {locale === 'fr' ? 'Rejoignez des couples de 142 pays' :
+                         locale === 'zh-CN' ? '加入来自142个国家的伴侣' :
+                         'Join couples from 142 countries'}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -427,7 +435,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
         </section>
 
         {/* =====================================================================================
-            HOW IT WORKS - AVEC IMAGE AR INTEGRÉE (DEMANDÉ)
+            HOW IT WORKS (AVEC IMAGE AR INTEGRÉE)
         ===================================================================================== */}
         <section className="py-24 bg-white">
           <div className="container mx-auto px-4">
@@ -448,53 +456,54 @@ export default async function Home({ params }: { params: { locale: string } }) {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto items-center">
-              
-              {/* IMAGE AR PREVIEW INTEGRÉE */}
-              <div className="relative h-[500px] w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-50 order-2 md:order-1">
-                <Image 
-                  src="/images/ar-preview.png" 
-                  alt="Augmented Reality Preview of Love Lock Bridge" 
-                  fill 
-                  className="object-cover"
-                />
-                <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-lg">
-                  <p className="font-bold text-slate-900 text-sm text-center">
-                      {locale === 'fr' ? "Vue Réelle via l'App" : "Actual View via App"}
-                  </p>
-                </div>
-              </div>
+            <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+               
+               {/* 3. CORRECTION : IMAGE AR INTEGRÉE */}
+               <div className="relative h-[500px] w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-50 order-2 md:order-1">
+                 <Image 
+                   src="/images/ar-preview.png" 
+                   alt="Augmented Reality Preview of Love Lock Bridge" 
+                   fill 
+                   className="object-cover"
+                 />
+                 <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-lg">
+                    <p className="font-bold text-slate-900 text-sm text-center">
+                       {locale === 'fr' ? "Vue Réelle via l'App" : "Actual View via App"}
+                    </p>
+                 </div>
+               </div>
 
-              <div className="space-y-8 order-1 md:order-2">
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-[#e11d48] font-bold text-xl shrink-0">1</div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">{locale === 'fr' ? 'Choisissez Votre Emplacement' : 'Choose Your Spot'}</h3>
-                    <p className="text-slate-600">{locale === 'fr' ? 'Sélectionnez l\'emplacement parfait sur notre carte 3D interactive.' : 'Select the perfect location on our interactive 3D map.'}</p>
+               <div className="space-y-8 order-1 md:order-2">
+                  <div className="flex gap-4">
+                     <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-[#e11d48] font-bold text-xl shrink-0">1</div>
+                     <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">{locale === 'fr' ? 'Choisissez Votre Emplacement' : 'Choose Your Spot'}</h3>
+                        <p className="text-slate-600">{locale === 'fr' ? 'Sélectionnez l\'emplacement parfait sur notre carte 3D interactive.' : 'Select the perfect location on our interactive 3D map.'}</p>
+                     </div>
                   </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-[#e11d48] font-bold text-xl shrink-0">2</div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">{locale === 'fr' ? 'Personnalisez' : 'Personalize'}</h3>
-                    <p className="text-slate-600">{locale === 'fr' ? 'Gravez vos noms, date et un message personnel.' : 'Engrave your names, date, and a personal message.'}</p>
+                  <div className="flex gap-4">
+                     <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-[#e11d48] font-bold text-xl shrink-0">2</div>
+                     <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">{locale === 'fr' ? 'Personnalisez' : 'Personalize'}</h3>
+                        <p className="text-slate-600">{locale === 'fr' ? 'Gravez vos noms, date et un message personnel.' : 'Engrave your names, date, and a personal message.'}</p>
+                     </div>
                   </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-[#e11d48] font-bold text-xl shrink-0">3</div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">{locale === 'fr' ? 'Visualisez en AR' : 'View in AR'}</h3>
-                    <p className="text-slate-600">{locale === 'fr' ? 'Votre cadenas apparaît sur le vrai pont via votre téléphone.' : 'Your lock appears on the actual bridge through your phone.'}</p>
+                  <div className="flex gap-4">
+                     <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-[#e11d48] font-bold text-xl shrink-0">3</div>
+                     <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">{locale === 'fr' ? 'Visualisez en AR' : 'View in AR'}</h3>
+                        <p className="text-slate-600">{locale === 'fr' ? 'Votre cadenas apparaît sur le vrai pont via votre téléphone.' : 'Your lock appears on the actual bridge through your phone.'}</p>
+                     </div>
                   </div>
-                </div>
-                <div className="pt-6">
-                   <Link href="/purchase">
-                     <Button className="bg-slate-900 text-white px-8 py-6 rounded-full font-bold text-lg hover:bg-slate-800 w-full sm:w-auto">
-                       {locale === 'fr' ? 'Commencer' : 'Start Now'} <ArrowRight className="ml-2"/>
-                     </Button>
-                   </Link>
-                </div>
-              </div>
+                  
+                  <div className="pt-6">
+                    <Link href="/purchase">
+                      <Button className="bg-slate-900 text-white px-8 py-6 rounded-full font-bold text-lg hover:bg-slate-800 w-full sm:w-auto">
+                        {locale === 'fr' ? 'Commencer' : 'Start Now'} <ArrowRight className="ml-2"/>
+                      </Button>
+                    </Link>
+                  </div>
+               </div>
             </div>
           </div>
         </section>
@@ -514,26 +523,83 @@ export default async function Home({ params }: { params: { locale: string } }) {
             </h2>
             
             <p className="text-slate-700 text-lg max-w-3xl mx-auto mb-12">
-              {locale === 'fr' ? 'Rejoignez notre marketplace exclusive : achetez des cadenas numériques et revendez-les à des collectionneurs.' :
-               'Join our exclusive marketplace: purchase digital locks and resell them to collectors for profit.'}
+              {locale === 'fr' ? 'Rejoignez notre marketplace exclusive : achetez des cadenas numériques sur le Pont des Arts et revendez-les à des collectionneurs pour des profits significatifs.' :
+               'Join our exclusive marketplace: purchase digital locks on Pont des Arts and resell them to collectors for significant profits.'}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
               <div className="bg-white p-8 rounded-3xl border-2 border-emerald-100 shadow-lg text-center">
                 <div className="text-5xl font-bold text-emerald-600 mb-4">+450%</div>
-                <h4 className="font-bold text-slate-900 text-xl mb-3">{locale === 'fr' ? 'Profit Max' : 'Max Profit'}</h4>
+                <h4 className="font-bold text-slate-900 text-xl mb-3">{locale === 'fr' ? 'Profit Maximal' : 'Maximum Profit'}</h4>
+                <p className="text-slate-600">{locale === 'fr' ? 'Certains numéros spéciaux ont augmenté de valeur jusqu\'à 450%' : 'Some special numbers have increased in value up to 450%'}</p>
               </div>
+              
               <div className="bg-white p-8 rounded-3xl border-2 border-amber-100 shadow-lg text-center">
                 <div className="text-5xl font-bold text-amber-600 mb-4">$12.5K</div>
                 <h4 className="font-bold text-slate-900 text-xl mb-3">{locale === 'fr' ? 'Record de Vente' : 'Sales Record'}</h4>
+                <p className="text-slate-600">{locale === 'fr' ? 'Cadenas #777 vendu pour 12,500 USD' : 'Lock #777 sold for 12,500 USD'}</p>
               </div>
+              
               <div className="bg-white p-8 rounded-3xl border-2 border-blue-100 shadow-lg text-center">
                 <div className="text-5xl font-bold text-blue-600 mb-4">72h</div>
                 <h4 className="font-bold text-slate-900 text-xl mb-3">{locale === 'fr' ? 'Vente Rapide' : 'Quick Sale'}</h4>
+                <p className="text-slate-600">{locale === 'fr' ? 'Temps moyen de vente pour les numéros premium' : 'Average sale time for premium numbers'}</p>
               </div>
             </div>
 
-            <div className="flex justify-center gap-6">
+            <div className="mb-16">
+              <h3 className="text-3xl font-bold text-slate-900 mb-10 text-center">
+                {locale === 'fr' ? 'Exemples Réels de Profits' : 'Real Profit Examples'}
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <Card className="border-2 border-slate-100 hover:border-emerald-200 transition-all hover:shadow-xl">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-emerald-700 mx-auto mb-4">#777</div>
+                    <div className="space-y-3">
+                      <div><div className="text-sm text-slate-500">Purchase Price</div><div className="text-xl font-bold text-slate-900">$149</div></div>
+                      <div><div className="text-sm text-slate-500">Sale Price</div><div className="text-2xl font-bold text-emerald-600">$12,500</div></div>
+                      <div className="pt-3"><div className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-bold">+8,288%</div></div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-2 border-slate-100 hover:border-amber-200 transition-all hover:shadow-xl">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-amber-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-amber-700 mx-auto mb-4">#1313</div>
+                    <div className="space-y-3">
+                      <div><div className="text-sm text-slate-500">Purchase Price</div><div className="text-xl font-bold text-slate-900">$79</div></div>
+                      <div><div className="text-sm text-slate-500">Sale Price</div><div className="text-2xl font-bold text-amber-600">$2,499</div></div>
+                      <div className="pt-3"><div className="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-bold">+3,063%</div></div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 border-slate-100 hover:border-blue-200 transition-all hover:shadow-xl">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-blue-700 mx-auto mb-4">#2024</div>
+                    <div className="space-y-3">
+                      <div><div className="text-sm text-slate-500">Purchase Price</div><div className="text-xl font-bold text-slate-900">$49</div></div>
+                      <div><div className="text-sm text-slate-500">Sale Price</div><div className="text-2xl font-bold text-blue-600">$1,850</div></div>
+                      <div className="pt-3"><div className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">+3,676%</div></div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 border-slate-100 hover:border-purple-200 transition-all hover:shadow-xl">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-purple-700 mx-auto mb-4">#888</div>
+                    <div className="space-y-3">
+                      <div><div className="text-sm text-slate-500">Purchase Price</div><div className="text-xl font-bold text-slate-900">$49</div></div>
+                      <div><div className="text-sm text-slate-500">Sale Price</div><div className="text-2xl font-bold text-purple-600">$999</div></div>
+                      <div className="pt-3"><div className="inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-bold">+3,345%</div></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <Link href="/marketplace">
                 <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold px-10 py-6 rounded-full text-lg shadow-lg">
                   <TrendingUp className="mr-2 h-5 w-5" />
@@ -544,10 +610,8 @@ export default async function Home({ params }: { params: { locale: string } }) {
           </div>
         </section>
 
-        <PurchaseNotifications />
-
         {/* =====================================================================================
-            LIMITED TIME OFFER (Remonté AVANT la FAQ comme demandé)
+            4. REORGANISATION : LIMITED OFFER REMONTÉE ICI
         ===================================================================================== */}
         <section className="py-24 bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden">
           <div className="absolute inset-0 opacity-10">
@@ -605,7 +669,9 @@ export default async function Home({ params }: { params: { locale: string } }) {
           </div>
         </section>
 
-        {/* FAQ (DESCENDUE EN BAS) */}
+        <PurchaseNotifications />
+
+        {/* 5. FAQ (DESCENDUE EN BAS) */}
         <section className="py-24 bg-slate-50 border-t border-slate-200">
           <div className="container mx-auto px-4 max-w-4xl">
             <h2 className="text-4xl font-serif font-bold text-center text-slate-900 mb-12">FAQ</h2>
@@ -624,7 +690,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
 
       </main>
 
-      {/* 5. FOOTER CORRIGÉ */}
+      {/* 6. FOOTER CORRIGÉ AVEC LES LIENS EXACTS */}
       <footer className="bg-slate-900 text-slate-300 py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-10">
