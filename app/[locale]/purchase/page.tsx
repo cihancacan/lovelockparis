@@ -3,7 +3,7 @@
 // Force le rendu dynamique par sécurité
 export const dynamic = 'force-dynamic';
 
-import { useState, Suspense, useEffect } from 'react';
+import { useState, Suspense, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -15,6 +15,7 @@ import { NumberSelector } from '@/components/purchase/number-selector';
 import { CheckoutSummary } from '@/components/purchase/checkout-summary';
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   LogOut, 
@@ -30,7 +31,8 @@ import {
   Palette,
   FileText,
   Hash,
-  CreditCard
+  CreditCard,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -47,6 +49,13 @@ function PurchasePageContent() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  
+  // --- Références pour le scroll ---
+  const zoneRef = useRef<HTMLDivElement>(null);
+  const skinRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const numberRef = useRef<HTMLDivElement>(null);
+  const checkoutRef = useRef<HTMLDivElement>(null);
   
   // --- ÉTAT DE NAVIGATION ---
   const [currentStep, setCurrentStep] = useState<PurchaseStep>(PurchaseStep.ZONE);
@@ -79,7 +88,7 @@ function PurchasePageContent() {
         return contentText.trim().length > 0 && termsAccepted;
       case PurchaseStep.NUMBER:
         if (customNumber) {
-          return selectedNumber !== null && selectedNumber >= 1 && selectedNumber <= 9999;
+          return selectedNumber !== null && selectedNumber >= 1 && selectedNumber <= 1000000;
         }
         return true; // Le numéro n'est pas obligatoire si customNumber est false
       case PurchaseStep.CHECKOUT:
@@ -102,10 +111,11 @@ function PurchasePageContent() {
         setCompletedSteps([...completedSteps, currentStep]);
       }
       setCurrentStep(nextStep);
-      // Scroll to top pour voir la nouvelle étape
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Scroll vers l'étape suivante
+      scrollToStep(nextStep);
     } else {
       toast.error('Please complete this step before continuing');
+      highlightInvalidFields(currentStep);
     }
   };
 
@@ -114,7 +124,7 @@ function PurchasePageContent() {
     const prevStep = Object.values(PurchaseStep)[currentStepIndex - 1];
     if (prevStep) {
       setCurrentStep(prevStep);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToStep(prevStep);
     }
   };
 
@@ -125,8 +135,84 @@ function PurchasePageContent() {
     
     if (completedSteps.includes(step) || stepIndex <= currentIndex) {
       setCurrentStep(step);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToStep(step);
     }
+  };
+
+  const scrollToStep = (step: PurchaseStep) => {
+    setTimeout(() => {
+      let ref = null;
+      switch (step) {
+        case PurchaseStep.ZONE: ref = zoneRef; break;
+        case PurchaseStep.SKIN: ref = skinRef; break;
+        case PurchaseStep.CONTENT: ref = contentRef; break;
+        case PurchaseStep.NUMBER: ref = numberRef; break;
+        case PurchaseStep.CHECKOUT: ref = checkoutRef; break;
+      }
+      if (ref?.current) {
+        ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  const highlightInvalidFields = (step: PurchaseStep) => {
+    switch (step) {
+      case PurchaseStep.ZONE:
+        toast.error('Please select a location');
+        break;
+      case PurchaseStep.SKIN:
+        toast.error('Please select a design');
+        break;
+      case PurchaseStep.CONTENT:
+        if (!contentText.trim()) {
+          toast.error('Please enter a message');
+        } else if (!termsAccepted) {
+          toast.error('Please accept the terms and conditions');
+        }
+        break;
+      case PurchaseStep.NUMBER:
+        if (customNumber && (!selectedNumber || selectedNumber < 1 || selectedNumber > 1000000)) {
+          toast.error('Please enter a valid number between 1 and 1,000,000');
+        }
+        break;
+    }
+  };
+
+  // --- Gestion des sélections avec auto-avancement ---
+  const handleSelectZone = (zone: Zone) => {
+    setSelectedZone(zone);
+    // Auto-avancer après un délai
+    setTimeout(() => {
+      if (validateStep(PurchaseStep.ZONE)) {
+        if (!completedSteps.includes(PurchaseStep.ZONE)) {
+          setCompletedSteps([...completedSteps, PurchaseStep.ZONE]);
+        }
+        setCurrentStep(PurchaseStep.SKIN);
+        scrollToStep(PurchaseStep.SKIN);
+      }
+    }, 500);
+  };
+
+  const handleSelectSkin = (skin: Skin) => {
+    setSelectedSkin(skin);
+    // Auto-avancer après un délai
+    setTimeout(() => {
+      if (validateStep(PurchaseStep.SKIN)) {
+        if (!completedSteps.includes(PurchaseStep.SKIN)) {
+          setCompletedSteps([...completedSteps, PurchaseStep.SKIN]);
+        }
+        setCurrentStep(PurchaseStep.CONTENT);
+        scrollToStep(PurchaseStep.CONTENT);
+      }
+    }, 500);
+  };
+
+  const handleContentChange = (text: string) => {
+    setContentText(text);
+  };
+
+  const handleTermsAccept = (accepted: boolean) => {
+    setTermsAccepted(accepted);
   };
 
   // --- CALCUL DU PRIX TOTAL (LIVE) ---
@@ -221,23 +307,19 @@ function PurchasePageContent() {
 
   // --- EFFETS ---
   useEffect(() => {
-    // Auto-avancement quand une étape est complétée
-    if (validateStep(currentStep) && currentStep !== PurchaseStep.CHECKOUT) {
-      const timer = setTimeout(() => {
-        // Auto-avancer seulement pour certaines étapes
-        if (currentStep === PurchaseStep.ZONE && selectedZone) {
-          goToNextStep();
-        } else if (currentStep === PurchaseStep.SKIN && selectedSkin) {
-          goToNextStep();
-        }
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [selectedZone, selectedSkin, contentText, currentStep]);
+    // Mettre à jour les étapes complétées
+    const newCompletedSteps: PurchaseStep[] = [];
+    if (validateStep(PurchaseStep.ZONE)) newCompletedSteps.push(PurchaseStep.ZONE);
+    if (validateStep(PurchaseStep.SKIN)) newCompletedSteps.push(PurchaseStep.SKIN);
+    if (validateStep(PurchaseStep.CONTENT)) newCompletedSteps.push(PurchaseStep.CONTENT);
+    if (validateStep(PurchaseStep.NUMBER)) newCompletedSteps.push(PurchaseStep.NUMBER);
+    
+    setCompletedSteps(newCompletedSteps);
+  }, [selectedZone, selectedSkin, contentText, termsAccepted, customNumber, selectedNumber]);
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
-      <header className="border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-20 shadow-sm">
+      <header className="border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-slate-600 hover:bg-slate-100">
@@ -353,153 +435,166 @@ function PurchasePageContent() {
             <div className="grid lg:grid-cols-3 gap-8 items-start">
               <div className="lg:col-span-2 space-y-8">
                 {/* ÉTAPE 1: ZONE */}
-                {(currentStep === PurchaseStep.ZONE || !selectedZone) && (
-                  <div className={`transition-all duration-300 ${currentStep === PurchaseStep.ZONE ? 'opacity-100' : 'opacity-50'}`}>
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <MapPin className="h-6 w-6 text-[#e11d48]" />
-                        Step 1: Choose Location
-                      </h2>
-                      {validateStep(PurchaseStep.ZONE) && (
-                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                          <Check className="h-3 w-3 mr-1" /> Complete
-                        </Badge>
-                      )}
-                    </div>
-                    <ZoneSelector 
-                      selectedZone={selectedZone} 
-                      onSelectZone={(zone) => {
-                        setSelectedZone(zone);
-                        if (zone) {
-                          setTimeout(() => goToNextStep(), 300);
-                        }
-                      }} 
-                    />
+                <div ref={zoneRef} className={`transition-all duration-300 ${currentStep === PurchaseStep.ZONE ? 'opacity-100' : 'opacity-70'}`}>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                      <MapPin className="h-6 w-6 text-[#e11d48]" />
+                      Step 1: Choose Location
+                    </h2>
+                    {validateStep(PurchaseStep.ZONE) && (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                        <Check className="h-3 w-3 mr-1" /> Complete
+                      </Badge>
+                    )}
                   </div>
-                )}
+                  <ZoneSelector 
+                    selectedZone={selectedZone} 
+                    onSelectZone={handleSelectZone}
+                  />
+                  {!validateStep(PurchaseStep.ZONE) && currentStep === PurchaseStep.ZONE && (
+                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-700">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm">Please select a location to continue</span>
+                    </div>
+                  )}
+                </div>
 
                 {/* ÉTAPE 2: SKIN */}
-                {(currentStep === PurchaseStep.SKIN || (selectedZone && !selectedSkin)) && (
-                  <div className={`transition-all duration-300 ${currentStep === PurchaseStep.SKIN ? 'opacity-100' : 'opacity-50'}`}>
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <Palette className="h-6 w-6 text-[#e11d48]" />
-                        Step 2: Choose Design
-                      </h2>
-                      {validateStep(PurchaseStep.SKIN) && (
-                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                          <Check className="h-3 w-3 mr-1" /> Complete
-                        </Badge>
-                      )}
-                    </div>
-                    <SkinSelector 
-                      selectedSkin={selectedSkin} 
-                      onSelectSkin={(skin) => {
-                        setSelectedSkin(skin);
-                        if (skin) {
-                          setTimeout(() => goToNextStep(), 300);
-                        }
-                      }} 
-                    />
+                <div ref={skinRef} className={`transition-all duration-300 ${currentStep === PurchaseStep.SKIN ? 'opacity-100' : 'opacity-70'}`}>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                      <Palette className="h-6 w-6 text-[#e11d48]" />
+                      Step 2: Choose Design
+                    </h2>
+                    {validateStep(PurchaseStep.SKIN) && (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                        <Check className="h-3 w-3 mr-1" /> Complete
+                      </Badge>
+                    )}
                   </div>
-                )}
+                  <SkinSelector 
+                    selectedSkin={selectedSkin} 
+                    onSelectSkin={handleSelectSkin}
+                  />
+                  {!validateStep(PurchaseStep.SKIN) && currentStep === PurchaseStep.SKIN && (
+                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-700">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm">Please select a design to continue</span>
+                    </div>
+                  )}
+                </div>
 
                 {/* ÉTAPE 3: CONTENT */}
-                {(currentStep === PurchaseStep.CONTENT || (selectedSkin && !contentText)) && (
-                  <div className={`transition-all duration-300 ${currentStep === PurchaseStep.CONTENT ? 'opacity-100' : 'opacity-50'}`}>
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <FileText className="h-6 w-6 text-[#e11d48]" />
-                        Step 3: Personalize Message
-                      </h2>
-                      {validateStep(PurchaseStep.CONTENT) && (
-                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                          <Check className="h-3 w-3 mr-1" /> Complete
-                        </Badge>
-                      )}
-                    </div>
-                    <ContentForm 
-                      contentText={contentText} onContentTextChange={setContentText}
-                      authorName={authorName} onAuthorNameChange={setAuthorName}
-                      visibility={visibility} onVisibilityChange={(v) => setVisibility(v)}
-                      termsAccepted={termsAccepted} onTermsAcceptedChange={setTermsAccepted}
-                      imageRightsGranted={imageRightsGranted} onImageRightsGrantedChange={setImageRightsGranted}
-                      mediaType={mediaType} onMediaTypeChange={setMediaType}
-                      mediaUrl={mediaUrl} onMediaUrlChange={setMediaUrl} 
-                      mediaFile={mediaFile} onMediaFileChange={setMediaFile}
-                    />
+                <div ref={contentRef} className={`transition-all duration-300 ${currentStep === PurchaseStep.CONTENT ? 'opacity-100' : 'opacity-70'}`}>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                      <FileText className="h-6 w-6 text-[#e11d48]" />
+                      Step 3: Personalize Message
+                    </h2>
+                    {validateStep(PurchaseStep.CONTENT) && (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                        <Check className="h-3 w-3 mr-1" /> Complete
+                      </Badge>
+                    )}
                   </div>
-                )}
+                  <ContentForm 
+                    contentText={contentText} 
+                    onContentTextChange={handleContentChange}
+                    authorName={authorName} 
+                    onAuthorNameChange={setAuthorName}
+                    visibility={visibility} 
+                    onVisibilityChange={(v) => setVisibility(v)}
+                    termsAccepted={termsAccepted} 
+                    onTermsAcceptedChange={handleTermsAccept}
+                    imageRightsGranted={imageRightsGranted} 
+                    onImageRightsGrantedChange={setImageRightsGranted}
+                    mediaType={mediaType} 
+                    onMediaTypeChange={setMediaType}
+                    mediaUrl={mediaUrl} 
+                    onMediaUrlChange={setMediaUrl} 
+                    mediaFile={mediaFile} 
+                    onMediaFileChange={setMediaFile}
+                  />
+                  {!validateStep(PurchaseStep.CONTENT) && currentStep === PurchaseStep.CONTENT && (
+                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-700">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm">
+                        {!contentText.trim() ? 'Please enter a message' : 'Please accept the terms and conditions'}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {/* ÉTAPE 4: NUMBER */}
-                {(currentStep === PurchaseStep.NUMBER || (contentText && !selectedNumber && customNumber)) && (
-                  <div className={`transition-all duration-300 ${currentStep === PurchaseStep.NUMBER ? 'opacity-100' : 'opacity-50'}`}>
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <Hash className="h-6 w-6 text-[#e11d48]" />
-                        Step 4: Choose Number (Optional)
-                      </h2>
-                      {validateStep(PurchaseStep.NUMBER) && (
-                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                          <Check className="h-3 w-3 mr-1" /> Complete
-                        </Badge>
-                      )}
-                    </div>
-                    <NumberSelector 
-                      customNumber={customNumber} onCustomNumberChange={setCustomNumber}
-                      selectedNumber={selectedNumber} onSelectedNumberChange={(num) => {
-                        setSelectedNumber(num);
-                        if (num && customNumber) {
-                          setTimeout(() => goToNextStep(), 300);
-                        }
-                      }}
-                      onCheckAvailability={async (n) => true} 
-                      onGoldenAssetPriceChange={setGoldenAssetPrice}
-                    />
+                <div ref={numberRef} className={`transition-all duration-300 ${currentStep === PurchaseStep.NUMBER ? 'opacity-100' : 'opacity-70'}`}>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                      <Hash className="h-6 w-6 text-[#e11d48]" />
+                      Step 4: Choose Number (Optional)
+                    </h2>
+                    {validateStep(PurchaseStep.NUMBER) && (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                        <Check className="h-3 w-3 mr-1" /> Complete
+                      </Badge>
+                    )}
                   </div>
-                )}
+                  <NumberSelector 
+                    customNumber={customNumber} 
+                    onCustomNumberChange={setCustomNumber}
+                    selectedNumber={selectedNumber} 
+                    onSelectedNumberChange={setSelectedNumber}
+                    onCheckAvailability={async (n) => true} 
+                    onGoldenAssetPriceChange={setGoldenAssetPrice}
+                  />
+                  {!validateStep(PurchaseStep.NUMBER) && currentStep === PurchaseStep.NUMBER && customNumber && (
+                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-700">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm">
+                        Please select a valid number or disable custom number
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {/* ÉTAPE 5: CHECKOUT */}
-                {currentStep === PurchaseStep.CHECKOUT && (
-                  <div className="opacity-100">
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                        <CreditCard className="h-6 w-6 text-[#e11d48]" />
-                        Step 5: Review & Checkout
-                      </h2>
-                      {validateStep(PurchaseStep.CHECKOUT) && (
-                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                          <Check className="h-3 w-3 mr-1" /> Ready
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
-                      <h3 className="text-lg font-bold mb-4">Final Review</h3>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-slate-600">Location</p>
-                            <p className="font-bold">{selectedZone?.name || 'Not selected'}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-slate-600">Design</p>
-                            <p className="font-bold">{selectedSkin?.name || 'Not selected'}</p>
-                          </div>
+                <div ref={checkoutRef} className={`transition-all duration-300 ${currentStep === PurchaseStep.CHECKOUT ? 'opacity-100' : 'opacity-70'}`}>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                      <CreditCard className="h-6 w-6 text-[#e11d48]" />
+                      Step 5: Review & Checkout
+                    </h2>
+                    {validateStep(PurchaseStep.CHECKOUT) && (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                        <Check className="h-3 w-3 mr-1" /> Ready
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
+                    <h3 className="text-lg font-bold mb-4">Final Review</h3>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-slate-600">Location</p>
+                          <p className="font-bold">{selectedZone || 'Not selected'}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-slate-600">Message</p>
-                          <p className="font-bold truncate">{contentText || 'Not entered'}</p>
+                          <p className="text-sm text-slate-600">Design</p>
+                          <p className="font-bold">{selectedSkin || 'Not selected'}</p>
                         </div>
-                        {customNumber && selectedNumber && (
-                          <div>
-                            <p className="text-sm text-slate-600">Selected Number</p>
-                            <p className="font-bold">#{selectedNumber}</p>
-                          </div>
-                        )}
                       </div>
+                      <div>
+                        <p className="text-sm text-slate-600">Message</p>
+                        <p className="font-bold truncate">{contentText || 'Not entered'}</p>
+                      </div>
+                      {customNumber && selectedNumber && (
+                        <div>
+                          <p className="text-sm text-slate-600">Selected Number</p>
+                          <p className="font-bold">#{selectedNumber}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* BOUTONS DE NAVIGATION */}
                 <div className="flex justify-between items-center pt-6 border-t border-slate-200">
@@ -517,7 +612,7 @@ function PurchasePageContent() {
                     <Button
                       onClick={goToNextStep}
                       disabled={!validateStep(currentStep)}
-                      className="bg-[#e11d48] hover:bg-[#be123c] text-white font-bold flex items-center gap-2"
+                      className="bg-[#e11d48] hover:bg-[#be123c] text-white font-bold flex items-center gap-2 px-6"
                     >
                       Continue to {steps[Object.values(PurchaseStep).indexOf(currentStep) + 1]?.label}
                       <ChevronRight className="h-4 w-4" />
@@ -553,22 +648,37 @@ function PurchasePageContent() {
                   goldenAssetPrice={goldenAssetPrice}
                   onPurchase={handlePurchase}
                   isProcessing={isProcessing}
-                  currentStep={currentStep}
                 />
                 
                 {/* INDICATEUR D'ÉTAPE ACTUELLE */}
                 <div className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
                   <p className="text-sm font-medium text-slate-700 mb-2">Current Step:</p>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#e11d48] animate-pulse"></div>
+                    <div className={`w-2 h-2 rounded-full ${validateStep(currentStep) ? 'bg-emerald-500' : 'bg-[#e11d48] animate-pulse'}`}></div>
                     <p className="font-bold">
                       {steps.find(s => s.id === currentStep)?.label}
                     </p>
                   </div>
-                  <p className="text-xs text-slate-500 mt-2">
+                  <p className={`text-xs mt-2 ${validateStep(currentStep) ? 'text-emerald-600' : 'text-amber-600'}`}>
                     {validateStep(currentStep) 
                       ? '✓ This step is complete' 
                       : 'Please complete all required fields'}
+                  </p>
+                </div>
+
+                {/* PROGRÈS GLOBAL */}
+                <div className="mt-4 bg-white border border-slate-200 rounded-xl p-4">
+                  <p className="text-sm font-medium text-slate-700 mb-3">Progress</p>
+                  <div className="w-full bg-slate-100 rounded-full h-2">
+                    <div 
+                      className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${(completedSteps.length / steps.length) * 100}%` 
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2 text-center">
+                    {completedSteps.length} of {steps.length - 1} steps completed
                   </p>
                 </div>
               </div>
@@ -580,13 +690,6 @@ function PurchasePageContent() {
     </div>
   );
 }
-
-// Composant Badge pour les indicateurs
-const Badge = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${className}`}>
-    {children}
-  </span>
-);
 
 export default function PurchasePage() {
   return (
