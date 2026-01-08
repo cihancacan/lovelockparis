@@ -3,7 +3,7 @@
 // Force le rendu dynamique par sécurité
 export const dynamic = 'force-dynamic';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -23,8 +23,7 @@ import {
   CheckCircle, 
   Loader2, 
   ShieldCheck,
-  ChevronLeft,
-  ChevronRight
+  Check
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,7 +32,7 @@ function PurchasePageContent() {
   const { user, signOut } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  // --- ÉTAT SIMPLE ---
+  // --- ÉTAT ---
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
   const [selectedSkin, setSelectedSkin] = useState<Skin | null>(null);
   const [contentText, setContentText] = useState('');
@@ -49,72 +48,50 @@ function PurchasePageContent() {
   const [goldenAssetPrice, setGoldenAssetPrice] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // --- Gestion des étapes ---
-  const [step, setStep] = useState(1); // 1=Zone, 2=Skin, 3=Content, 4=Number, 5=Checkout
+  // --- Références pour le scroll ---
+  const zoneRef = useRef<HTMLDivElement>(null);
+  const skinRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const numberRef = useRef<HTMLDivElement>(null);
+  const checkoutRef = useRef<HTMLDivElement>(null);
 
-  // --- Validation des étapes ---
-  const validateStep = (stepNum: number) => {
-    switch (stepNum) {
-      case 1: return selectedZone !== null;
-      case 2: return selectedSkin !== null;
-      case 3: return contentText.trim().length > 0 && termsAccepted;
-      case 4: 
-        if (customNumber) {
-          return selectedNumber !== null && selectedNumber >= 1 && selectedNumber <= 1000000;
-        }
-        return true; // Si customNumber est désactivé, on peut passer
-      default: return true;
-    }
-  };
+  // --- Validation ---
+  const validateZone = () => selectedZone !== null;
+  const validateSkin = () => selectedSkin !== null;
+  const validateContent = () => contentText.trim().length > 0 && termsAccepted;
+  const validateNumber = () => !customNumber || (selectedNumber !== null && selectedNumber >= 1 && selectedNumber <= 1000000);
 
-  // --- Navigation ---
-  const goToNextStep = () => {
-    if (validateStep(step)) {
-      setStep(step + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      // Message d'erreur spécifique
+  // --- Auto-scroll vers l'étape ---
+  const scrollToStep = (step: string) => {
+    setTimeout(() => {
+      let ref = null;
       switch (step) {
-        case 1: toast.error('Please select a location'); break;
-        case 2: toast.error('Please select a design'); break;
-        case 3: 
-          if (!contentText.trim()) toast.error('Please enter a message');
-          else if (!termsAccepted) toast.error('Please accept the terms');
-          break;
-        case 4: toast.error('Please enter a valid custom number'); break;
+        case 'zone': ref = zoneRef; break;
+        case 'skin': ref = skinRef; break;
+        case 'content': ref = contentRef; break;
+        case 'number': ref = numberRef; break;
+        case 'checkout': ref = checkoutRef; break;
       }
-    }
-  };
-
-  const goToPrevStep = () => {
-    if (step > 1) {
-      setStep(step - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  // --- Gestion de customNumber avec validation automatique ---
-  const handleCustomNumberChange = (isCustom: boolean) => {
-    setCustomNumber(isCustom);
-    if (!isCustom) {
-      setSelectedNumber(null);
-      // Si on désactive customNumber, on peut passer à l'étape suivante
-      if (step === 4) {
-        setTimeout(() => goToNextStep(), 100);
+      if (ref?.current) {
+        ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }
+    }, 50);
   };
 
-  const handleNumberSelected = (num: number | null) => {
-    setSelectedNumber(num);
-    // Si un numéro valide est sélectionné, auto-avancer après un délai
-    if (num !== null && step === 4) {
-      setTimeout(() => {
-        if (validateStep(4)) {
-          goToNextStep();
-        }
-      }, 500);
-    }
+  // --- Gestion des sélections avec auto-progression ---
+  const handleSelectZone = (zone: Zone) => {
+    setSelectedZone(zone);
+    setTimeout(() => scrollToStep('skin'), 100);
+  };
+
+  const handleSelectSkin = (skin: Skin) => {
+    setSelectedSkin(skin);
+    setTimeout(() => scrollToStep('content'), 100);
+  };
+
+  // --- Navigation entre étapes ---
+  const goToStep = (step: string) => {
+    scrollToStep(step);
   };
 
   // --- CALCUL DU PRIX ---
@@ -125,23 +102,15 @@ function PurchasePageContent() {
   // --- PAIEMENT ---
   const handlePurchase = async () => {
     if (!user) { setShowAuthDialog(true); return; }
-    
-    // Validation finale
-    if (!selectedZone || !selectedSkin || !contentText.trim() || !termsAccepted) {
-      toast.error('Please complete all required fields');
-      return;
-    }
-    
-    if (customNumber && !selectedNumber) {
-      toast.error('Please enter a custom number');
-      return;
+    if (!validateZone() || !validateSkin() || !validateContent() || !validateNumber()) { 
+      toast.error('Please complete all required fields'); 
+      return; 
     }
     
     setIsProcessing(true);
     toast.loading("Processing payment...");
 
     try {
-      // Gestion Fichier Média
       let mediaFileData = null;
       let mediaFileName = null;
       let mediaFileType = null;
@@ -154,13 +123,9 @@ function PurchasePageContent() {
           reader.onerror = error => reject(error);
         });
         
-        try {
-          mediaFileData = await toBase64(mediaFile);
-          mediaFileName = mediaFile.name;
-          mediaFileType = mediaFile.type;
-        } catch (e) {
-          console.error("Erreur fichier", e);
-        }
+        mediaFileData = await toBase64(mediaFile);
+        mediaFileName = mediaFile.name;
+        mediaFileType = mediaFile.type;
       }
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -205,217 +170,142 @@ function PurchasePageContent() {
     }
   };
 
-  // --- RENDU SIMPLE ---
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
-      <header className="border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-20 shadow-sm">
+      {/* HEADER SIMPLIFIÉ */}
+      <header className="border-b border-slate-200 bg-white sticky top-0 z-20">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-slate-600 hover:bg-slate-100">
-                  <ArrowLeft className="h-5 w-5" />
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-slate-600 hover:bg-slate-100">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-lg font-bold text-slate-900">Secure Your Lock</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            {user ? (
+              <>
+                <Button onClick={() => router.push('/dashboard')} size="sm" variant="ghost" className="hidden sm:flex">
+                  Dashboard
                 </Button>
-                <h1 className="text-lg font-bold font-serif text-slate-900">Configure Lock</h1>
-            </div>
-            <div className="flex items-center gap-3">
-              {user ? (
-                 <div className="flex items-center gap-2">
-                   <Button onClick={() => router.push('/dashboard')} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold hidden sm:flex shadow-sm">
-                     <LayoutDashboard className="h-4 w-4 mr-2"/> Dashboard
-                   </Button>
-                   <Button variant="outline" size="sm" onClick={signOut} className="text-slate-600 border-slate-300 hover:bg-slate-50">
-                     <LogOut className="h-4 w-4 mr-2"/> Logout
-                   </Button>
-                 </div>
-              ) : (
-                 <Button size="sm" onClick={() => setShowAuthDialog(true)} className="bg-[#e11d48] text-white hover:bg-[#be123c] shadow-md">
-                   Login
-                 </Button>
-              )}
-            </div>
+                <Button variant="outline" size="sm" onClick={signOut} className="text-slate-600">
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" onClick={() => setShowAuthDialog(true)} className="bg-[#e11d48] text-white">
+                Login
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
         
-        {/* --- BANDEAU CONNECTÉ --- */}
+        {/* BANDEAU CONNECTÉ */}
         {user && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-8 max-w-6xl mx-auto">
-             <div className="flex items-center gap-3">
-               <div className="bg-emerald-100 p-2 rounded-full text-emerald-600">
-                 <CheckCircle className="h-6 w-6" />
-               </div>
-               <div>
-                 <p className="font-bold text-emerald-900">Logged in as {user.email}</p>
-               </div>
-             </div>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-emerald-600" />
+              <p className="text-sm font-medium text-emerald-900">Logged in as {user.email}</p>
+            </div>
+            <Button onClick={() => router.push('/dashboard')} size="sm" variant="ghost" className="text-emerald-700">
+              Dashboard
+            </Button>
           </div>
         )}
 
         {!user ? (
           // ECRAN LOGIN
-          <div className="text-center py-24">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-rose-50 mb-6 text-[#e11d48] shadow-sm border border-rose-100">
-              <Lock size={48} />
-            </div>
-            <h2 className="text-4xl font-serif font-bold mb-4 text-slate-900">Login to Continue</h2>
-            <p className="text-slate-500 mb-8 max-w-md mx-auto text-lg">
-              You must be logged in to secure your spot on the Official Registry of Paris.
+          <div className="text-center py-16">
+            <Lock className="h-16 w-16 text-[#e11d48] mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-4">Login to Continue</h2>
+            <p className="text-slate-500 mb-6">
+              You must be logged in to secure your spot.
             </p>
-            <Button size="lg" onClick={() => setShowAuthDialog(true)} className="bg-[#e11d48] text-white font-bold px-12 py-8 text-xl rounded-full shadow-xl">
+            <Button onClick={() => setShowAuthDialog(true)} className="bg-[#e11d48] text-white px-8 py-6 text-lg">
               Login / Register
             </Button>
           </div>
         ) : (
-          // PROCESSUS D'ACHAT
-          <div className="max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-3 gap-8 items-start">
-              <div className="lg:col-span-2 space-y-8">
-                
-                {/* ÉTAPE 1: ZONE */}
-                {step >= 1 && (
-                  <div className={step === 1 ? 'opacity-100' : 'opacity-60'}>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-4">1. Choose Location</h2>
-                    <ZoneSelector 
-                      selectedZone={selectedZone} 
-                      onSelectZone={(zone) => {
-                        setSelectedZone(zone);
-                        // Auto-avancer après sélection
-                        setTimeout(() => {
-                          setStep(2);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }, 300);
-                      }}
-                    />
-                  </div>
+          // FORMULAIRE DYNAMIQUE
+          <div className="max-w-4xl mx-auto">
+            {/* ÉTAPE 1: ZONE */}
+            <div ref={zoneRef} className="mb-12">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">1. Choose Location</h2>
+                {validateZone() && (
+                  <Check className="h-5 w-5 text-emerald-500" />
                 )}
+              </div>
+              <ZoneSelector 
+                selectedZone={selectedZone} 
+                onSelectZone={handleSelectZone}
+              />
+            </div>
 
-                {/* ÉTAPE 2: SKIN */}
-                {step >= 2 && selectedZone && (
-                  <div className={step === 2 ? 'opacity-100' : 'opacity-60'}>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-4">2. Choose Design</h2>
-                    <SkinSelector 
-                      selectedSkin={selectedSkin} 
-                      onSelectSkin={(skin) => {
-                        setSelectedSkin(skin);
-                        // Auto-avancer après sélection
-                        setTimeout(() => {
-                          setStep(3);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }, 300);
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* ÉTAPE 3: CONTENT */}
-                {step >= 3 && selectedZone && selectedSkin && (
-                  <div className={step === 3 ? 'opacity-100' : 'opacity-60'}>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-4">3. Personalize Message</h2>
-                    <ContentForm 
-                      contentText={contentText} onContentTextChange={setContentText}
-                      authorName={authorName} onAuthorNameChange={setAuthorName}
-                      visibility={visibility} onVisibilityChange={(v) => setVisibility(v)}
-                      termsAccepted={termsAccepted} onTermsAcceptedChange={setTermsAccepted}
-                      imageRightsGranted={imageRightsGranted} onImageRightsGrantedChange={setImageRightsGranted}
-                      mediaType={mediaType} onMediaTypeChange={setMediaType}
-                      mediaUrl={mediaUrl} onMediaUrlChange={setMediaUrl} mediaFile={mediaFile} onMediaFileChange={setMediaFile}
-                    />
-                  </div>
-                )}
-
-                {/* ÉTAPE 4: NUMBER */}
-                {step >= 4 && selectedZone && selectedSkin && contentText.trim() && termsAccepted && (
-                  <div className={step === 4 ? 'opacity-100' : 'opacity-60'}>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-4">4. Custom Number (Optional)</h2>
-                    <NumberSelector 
-                      customNumber={customNumber} 
-                      onCustomNumberChange={handleCustomNumberChange}
-                      selectedNumber={selectedNumber} 
-                      onSelectedNumberChange={handleNumberSelected}
-                      onCheckAvailability={async (n) => true} 
-                      onGoldenAssetPriceChange={setGoldenAssetPrice}
-                    />
-                    {customNumber && selectedNumber && step === 4 && (
-                      <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-                        <p className="text-emerald-700 text-sm">
-                          ✓ Number #{selectedNumber} selected
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* ÉTAPE 5: CHECKOUT */}
-                {step === 5 && (
-                  <div className="opacity-100">
-                    <h2 className="text-2xl font-bold text-slate-900 mb-4">5. Complete Purchase</h2>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
-                      <p className="text-slate-600 mb-6">
-                        All steps completed! Review your selection and proceed to payment.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* BOUTONS DE NAVIGATION */}
-                <div className="flex justify-between items-center pt-6 border-t border-slate-200">
-                  <Button
-                    variant="outline"
-                    onClick={goToPrevStep}
-                    disabled={step === 1}
-                    className="flex items-center gap-2"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Back
-                  </Button>
-                  
-                  {step < 5 ? (
-                    <Button
-                      onClick={goToNextStep}
-                      disabled={!validateStep(step)}
-                      className="bg-[#e11d48] hover:bg-[#be123c] text-white font-bold flex items-center gap-2"
-                    >
-                      Continue
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handlePurchase}
-                      disabled={isProcessing}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        'Pay Now'
-                      )}
-                    </Button>
+            {/* ÉTAPE 2: SKIN */}
+            {validateZone() && (
+              <div ref={skinRef} className="mb-12">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">2. Choose Design</h2>
+                  {validateSkin() && (
+                    <Check className="h-5 w-5 text-emerald-500" />
                   )}
                 </div>
-
-                {/* INDICATEUR D'ÉTAPE SIMPLE */}
-                <div className="flex justify-center gap-2">
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <div
-                      key={num}
-                      className={`w-2 h-2 rounded-full ${
-                        step === num 
-                          ? 'bg-[#e11d48]' 
-                          : step > num 
-                          ? 'bg-emerald-500' 
-                          : 'bg-slate-300'
-                      }`}
-                    />
-                  ))}
-                </div>
+                <SkinSelector 
+                  selectedSkin={selectedSkin} 
+                  onSelectSkin={handleSelectSkin}
+                />
               </div>
+            )}
 
-              {/* SIDEBAR RÉSUMÉ */}
-              <div className="lg:col-span-1 lg:sticky lg:top-24">
-                {(selectedZone || selectedSkin || contentText) ? (
+            {/* ÉTAPE 3: CONTENT */}
+            {validateZone() && validateSkin() && (
+              <div ref={contentRef} className="mb-12">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">3. Personalize Message</h2>
+                  {validateContent() && (
+                    <Check className="h-5 w-5 text-emerald-500" />
+                  )}
+                </div>
+                <ContentForm 
+                  contentText={contentText} onContentTextChange={setContentText}
+                  authorName={authorName} onAuthorNameChange={setAuthorName}
+                  visibility={visibility} onVisibilityChange={(v) => setVisibility(v)}
+                  termsAccepted={termsAccepted} onTermsAcceptedChange={setTermsAccepted}
+                  imageRightsGranted={imageRightsGranted} onImageRightsGrantedChange={setImageRightsGranted}
+                  mediaType={mediaType} onMediaTypeChange={setMediaType}
+                  mediaUrl={mediaUrl} onMediaUrlChange={setMediaUrl} mediaFile={mediaFile} onMediaFileChange={setMediaFile}
+                />
+              </div>
+            )}
+
+            {/* ÉTAPE 4: NUMBER */}
+            {validateZone() && validateSkin() && validateContent() && (
+              <div ref={numberRef} className="mb-12">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">4. Choose Number (Optional)</h2>
+                  {validateNumber() && (
+                    <Check className="h-5 w-5 text-emerald-500" />
+                  )}
+                </div>
+                <NumberSelector 
+                  customNumber={customNumber} onCustomNumberChange={setCustomNumber}
+                  selectedNumber={selectedNumber} onSelectedNumberChange={setSelectedNumber}
+                  onCheckAvailability={async (n) => true} 
+                  onGoldenAssetPriceChange={setGoldenAssetPrice}
+                />
+              </div>
+            )}
+
+            {/* ÉTAPE 5: CHECKOUT */}
+            {validateZone() && validateSkin() && validateContent() && validateNumber() && (
+              <div ref={checkoutRef} className="mb-12">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">5. Review & Checkout</h2>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
                   <CheckoutSummary
                     zone={selectedZone} 
                     skin={selectedSkin} 
@@ -427,13 +317,46 @@ function PurchasePageContent() {
                     onPurchase={handlePurchase}
                     isProcessing={isProcessing}
                   />
-                ) : (
-                  <div className="p-8 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400">
-                    <ShieldCheck className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                    <p className="text-sm font-medium">Complete the steps to see summary</p>
-                  </div>
-                )}
+                  <Button
+                    onClick={handlePurchase}
+                    disabled={isProcessing}
+                    className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white py-6 text-lg"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Complete Purchase'
+                    )}
+                  </Button>
+                </div>
               </div>
+            )}
+
+            {/* NAVIGATION RAPIDE (flottante) */}
+            <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-10">
+              {selectedZone && (
+                <Button variant="outline" size="sm" onClick={() => goToStep('zone')} className="bg-white">
+                  Location ✓
+                </Button>
+              )}
+              {selectedSkin && (
+                <Button variant="outline" size="sm" onClick={() => goToStep('skin')} className="bg-white">
+                  Design ✓
+                </Button>
+              )}
+              {contentText && termsAccepted && (
+                <Button variant="outline" size="sm" onClick={() => goToStep('content')} className="bg-white">
+                  Message ✓
+                </Button>
+              )}
+              {(customNumber ? selectedNumber : true) && (
+                <Button variant="outline" size="sm" onClick={() => goToStep('number')} className="bg-white">
+                  Number ✓
+                </Button>
+              )}
             </div>
           </div>
         )}
