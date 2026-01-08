@@ -2,10 +2,36 @@ import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
-  Lock, Heart, DollarSign, Globe, ShoppingCart, Target, Medal, ShieldCheck, 
-  ArrowRight, Smartphone, Coins, Users, MapPin, Star, TrendingUp, CheckCircle, 
-  Calendar, Eye, Award, Clock, Zap, ChevronRight, Trophy, Crown, Sparkles, 
-  InfinityIcon, Building, Euro, BarChart3, Rocket
+  Lock, 
+  Heart, 
+  DollarSign, 
+  Globe, 
+  ShoppingCart, 
+  Target, 
+  Medal, 
+  ShieldCheck, 
+  ArrowRight, 
+  Smartphone, 
+  Coins, 
+  Users, 
+  MapPin, 
+  Star, 
+  TrendingUp, 
+  CheckCircle, 
+  Calendar, 
+  Eye, 
+  Award, 
+  Clock, 
+  Zap, 
+  ChevronRight, 
+  Trophy, 
+  Crown, 
+  Sparkles, 
+  InfinityIcon, 
+  Building, 
+  Euro, 
+  BarChart3, 
+  Rocket 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -80,6 +106,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-rose-100 selection:text-rose-900">
       
+      {/* Structured Data for SEO */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <Header
@@ -147,7 +174,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
               )}
             </h1>
 
-            {/* 2. CORRECTION STRONG : Utilisation de JSX propre */}
+            {/* Sous-titre avec CORRECTION STRONG (JSX) */}
             <div className="max-w-4xl mx-auto">
               <p className="text-base sm:text-lg md:text-xl text-slate-100 leading-relaxed drop-shadow-lg font-medium px-4">
                 {locale === 'fr' ? (
@@ -211,39 +238,11 @@ export default async function Home({ params }: { params: { locale: string } }) {
         {/* STATISTICS BAR */}
         <section className="py-10 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-6xl mx-auto">
-              <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-white mb-2">347.293+</div>
-                <div className="text-sm text-slate-300">
-                  {locale === 'fr' ? 'Cadenas Numériques' :
-                   locale === 'zh-CN' ? '数字锁已放置' :
-                   'Digital Locks Placed'}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-emerald-400 mb-2">4.9/5</div>
-                <div className="text-sm text-slate-300">
-                  {locale === 'fr' ? 'Note Clients' :
-                   locale === 'zh-CN' ? '客户评分' :
-                   'Customer Rating'}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-amber-400 mb-2">142</div>
-                <div className="text-sm text-slate-300">
-                  {locale === 'fr' ? 'Pays' :
-                   locale === 'zh-CN' ? '国家/地区' :
-                   'Countries'}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-rose-400 mb-2">24/7</div>
-                <div className="text-sm text-slate-300">
-                  {locale === 'fr' ? 'Support' :
-                   locale === 'zh-CN' ? '支持服务' :
-                   'Support'}
-                </div>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-6xl mx-auto text-center">
+              <div><div className="text-3xl font-bold mb-1">347k+</div><div className="text-sm text-slate-400">Locks</div></div>
+              <div><div className="text-3xl font-bold text-emerald-400 mb-1">4.9/5</div><div className="text-sm text-slate-400">Rating</div></div>
+              <div><div className="text-3xl font-bold text-amber-400 mb-1">142</div><div className="text-sm text-slate-400">Countries</div></div>
+              <div><div className="text-3xl font-bold text-rose-400 mb-1">24/7</div><div className="text-sm text-slate-400">Support</div></div>
             </div>
           </div>
         </section>
@@ -458,7 +457,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
 
             <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
                
-               {/* 3. CORRECTION : IMAGE AR INTEGRÉE */}
+               {/* IMAGE AR PREVIEW INTEGRÉE */}
                <div className="relative h-[500px] w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-50 order-2 md:order-1">
                  <Image 
                    src="/images/ar-preview.png" 
@@ -557,8 +556,8 @@ export default async function Home({ params }: { params: { locale: string } }) {
                   <CardContent className="p-6 text-center">
                     <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-emerald-700 mx-auto mb-4">#777</div>
                     <div className="space-y-3">
-                      <div><div className="text-sm text-slate-500">Purchase Price</div><div className="text-xl font-bold text-slate-900">$149</div></div>
-                      <div><div className="text-sm text-slate-500">Sale Price</div><div className="text-2xl font-bold text-emerald-600">$12,500</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-xl font-bold text-slate-900">$149</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-2xl font-bold text-emerald-600">$12,500</div></div>
                       <div className="pt-3"><div className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-bold">+8,288%</div></div>
                     </div>
                   </CardContent>
@@ -568,30 +567,30 @@ export default async function Home({ params }: { params: { locale: string } }) {
                   <CardContent className="p-6 text-center">
                     <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-amber-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-amber-700 mx-auto mb-4">#1313</div>
                     <div className="space-y-3">
-                      <div><div className="text-sm text-slate-500">Purchase Price</div><div className="text-xl font-bold text-slate-900">$79</div></div>
-                      <div><div className="text-sm text-slate-500">Sale Price</div><div className="text-2xl font-bold text-amber-600">$2,499</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-xl font-bold text-slate-900">$79</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-2xl font-bold text-amber-600">$2,499</div></div>
                       <div className="pt-3"><div className="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-bold">+3,063%</div></div>
                     </div>
                   </CardContent>
                 </Card>
-
+                
                 <Card className="border-2 border-slate-100 hover:border-blue-200 transition-all hover:shadow-xl">
                   <CardContent className="p-6 text-center">
                     <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-blue-700 mx-auto mb-4">#2024</div>
                     <div className="space-y-3">
-                      <div><div className="text-sm text-slate-500">Purchase Price</div><div className="text-xl font-bold text-slate-900">$49</div></div>
-                      <div><div className="text-sm text-slate-500">Sale Price</div><div className="text-2xl font-bold text-blue-600">$1,850</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-xl font-bold text-slate-900">$49</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-2xl font-bold text-blue-600">$1,850</div></div>
                       <div className="pt-3"><div className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">+3,676%</div></div>
                     </div>
                   </CardContent>
                 </Card>
-
+                
                 <Card className="border-2 border-slate-100 hover:border-purple-200 transition-all hover:shadow-xl">
                   <CardContent className="p-6 text-center">
                     <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-purple-700 mx-auto mb-4">#888</div>
                     <div className="space-y-3">
-                      <div><div className="text-sm text-slate-500">Purchase Price</div><div className="text-xl font-bold text-slate-900">$49</div></div>
-                      <div><div className="text-sm text-slate-500">Sale Price</div><div className="text-2xl font-bold text-purple-600">$999</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-xl font-bold text-slate-900">$49</div></div>
+                      <div><div className="text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-2xl font-bold text-purple-600">$999</div></div>
                       <div className="pt-3"><div className="inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-bold">+3,345%</div></div>
                     </div>
                   </CardContent>
@@ -601,9 +600,17 @@ export default async function Home({ params }: { params: { locale: string } }) {
 
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <Link href="/marketplace">
-                <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold px-10 py-6 rounded-full text-lg shadow-lg">
-                  <TrendingUp className="mr-2 h-5 w-5" />
+                <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-14 py-8 text-xl rounded-full shadow-2xl hover:scale-105 transition-transform">
+                  <TrendingUp className="mr-3 h-6 w-6" />
                   {locale === 'fr' ? 'Explorer la Marketplace' : 'Explore Marketplace'}
+                </Button>
+              </Link>
+              <Link href="/purchase?investment=true" className="w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto border-3 border-white/40 bg-white/5 hover:bg-white/10 text-slate-600 hover:text-slate-900 font-bold px-10 py-8 text-xl rounded-full">
+                  <Coins className="mr-3" />
+                  {locale === 'fr' ? 'Acheter à $29.99' :
+                   locale === 'zh-CN' ? '以$29.99购买' :
+                   'Buy Starting at $29.99'}
                 </Button>
               </Link>
             </div>
@@ -611,7 +618,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
         </section>
 
         {/* =====================================================================================
-            4. REORGANISATION : LIMITED OFFER REMONTÉE ICI
+            LIMITED TIME OFFER (Remontée AVANT la FAQ)
         ===================================================================================== */}
         <section className="py-24 bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden">
           <div className="absolute inset-0 opacity-10">
