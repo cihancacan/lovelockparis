@@ -453,9 +453,103 @@ export default async function Home({ params }: { params: { locale: string } }) {
           </div>
         </section>
 
-        {/* HOW IT WORKS */}
+        {/* HOW IT WORKS - AVEC LA SECTION AR EN PREMIER */}
         <section className="py-24 bg-white">
           <div className="container mx-auto px-4">
+            {/* Section AR Preview en premier */}
+            <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-3xl p-6 md:p-12 max-w-5xl mx-auto mb-20">
+              <div className="flex flex-col lg:flex-row items-center gap-8">
+                <div className="lg:w-1/2">
+                  <h3 className="text-3xl font-bold text-slate-900 mb-6">
+                    {locale === 'fr' ? 'Visualisez Votre Cadenas en Réalité Augmentée' :
+                     locale === 'zh-CN' ? '在增强现实中查看您的锁' :
+                     'View Your Lock in Augmented Reality'}
+                  </h3>
+                  <p className="text-slate-700 text-lg mb-6">
+                    {locale === 'fr' ? 'Notre technologie de réalité augmentée vous permet de voir votre cadenas numérique apparaître exactement à l\'emplacement choisi sur le véritable Pont des Arts. Pointez simplement votre smartphone vers le pont pour vivre une expérience magique.' :
+                     locale === 'zh-CN' ? '我们的增强现实技术让您可以在艺术桥的真实位置上看到您的数字锁。只需将智能手机对准桥梁即可体验神奇的时刻。' :
+                     'Our augmented reality technology allows you to see your digital lock appear exactly at your chosen location on the actual Pont des Arts. Simply point your smartphone at the bridge for a magical experience.'}
+                  </p>
+                  <div className="flex flex-wrap gap-4 mb-6">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-emerald-500" />
+                      <span className="text-slate-700">
+                        {locale === 'fr' ? 'Prévisualisation en temps réel' :
+                         locale === 'zh-CN' ? '实时预览' :
+                         'Real-time preview'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-emerald-500" />
+                      <span className="text-slate-700">
+                        {locale === 'fr' ? 'Compatible iOS et Android' :
+                         locale === 'zh-CN' ? '兼容iOS和Android' :
+                         'iOS & Android compatible'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-emerald-500" />
+                      <span className="text-slate-700">
+                        {locale === 'fr' ? 'Pas d\'application à télécharger' :
+                         locale === 'zh-CN' ? '无需下载应用' :
+                         'No app download required'}
+                      </span>
+                    </div>
+                  </div>
+                  <Link href="/ar-view">
+                    <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
+                      <Smartphone className="mr-2 h-5 w-5" />
+                      {locale === 'fr' ? 'Essayer la Prévisualisation AR' :
+                       locale === 'zh-CN' ? '尝试AR预览' :
+                       'Try AR Preview Now'}
+                    </Button>
+                  </Link>
+                </div>
+                <div className="lg:w-1/2 relative">
+                  <div className="relative w-full h-64 md:h-80 lg:h-96 rounded-2xl overflow-hidden shadow-2xl">
+                    <Image
+                      src="/images/ar-preview.png"
+                      alt="Augmented reality preview showing digital love lock on Pont des Arts bridge"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                      <div className="flex items-center gap-2 text-white">
+                        <Eye className="h-5 w-5" />
+                        <span className="text-sm font-medium">
+                          {locale === 'fr' ? 'Aperçu en réalité augmentée sur smartphone' :
+                           locale === 'zh-CN' ? '智能手机增强现实预览' :
+                           'AR preview on smartphone'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Badge mobile-friendly */}
+                  <div className="absolute -bottom-3 -right-3 md:-bottom-4 md:-right-4 bg-white p-2 md:p-3 rounded-lg md:rounded-xl shadow-lg border">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 md:w-8 md:h-8 bg-blue-100 rounded md:rounded-lg flex items-center justify-center">
+                        <Smartphone className="h-3 w-3 md:h-4 md:w-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="text-xs md:text-xs text-slate-500">
+                          {locale === 'fr' ? 'Scannez avec votre' :
+                           locale === 'zh-CN' ? '使用您的' :
+                           'Scan with your'}
+                        </div>
+                        <div className="text-xs md:text-sm font-bold text-slate-900">
+                          {locale === 'fr' ? 'Caméra smartphone' :
+                           locale === 'zh-CN' ? '智能手机摄像头' :
+                           'Smartphone camera'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section How to Place Your Lock */}
             <div className="text-center mb-20">
               <h2 className="text-4xl md:text-5xl font-serif font-bold text-slate-900 mb-6">
                 {locale === 'fr' ? (
@@ -473,7 +567,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
               
               <div className="relative">
                 <div className="absolute -top-4 -left-4 w-12 h-12 bg-rose-500 text-white rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg">1</div>
@@ -559,96 +653,6 @@ export default async function Home({ params }: { params: { locale: string } }) {
                 </Card>
               </div>
 
-            </div>
-
-            {/* Section image AR preview */}
-            <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-3xl p-6 md:p-12 max-w-5xl mx-auto">
-              <div className="flex flex-col lg:flex-row items-center gap-8">
-                <div className="lg:w-1/2">
-                  <h3 className="text-3xl font-bold text-slate-900 mb-6">
-                    {locale === 'fr' ? 'Visualisez Votre Cadenas en Réalité Augmentée' :
-                     locale === 'zh-CN' ? '在增强现实中查看您的锁' :
-                     'View Your Lock in Augmented Reality'}
-                  </h3>
-                  <p className="text-slate-700 text-lg mb-6">
-                    {locale === 'fr' ? 'Notre technologie de réalité augmentée vous permet de voir votre cadenas numérique apparaître exactement à l\'emplacement choisi sur le véritable Pont des Arts. Pointez simplement votre smartphone vers le pont pour vivre une expérience magique.' :
-                     locale === 'zh-CN' ? '我们的增强现实技术让您可以在艺术桥的真实位置上看到您的数字锁。只需将智能手机对准桥梁即可体验神奇的时刻。' :
-                     'Our augmented reality technology allows you to see your digital lock appear exactly at your chosen location on the actual Pont des Arts. Simply point your smartphone at the bridge for a magical experience.'}
-                  </p>
-                  <div className="flex flex-wrap gap-4 mb-6">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-emerald-500" />
-                      <span className="text-slate-700">
-                        {locale === 'fr' ? 'Prévisualisation en temps réel' :
-                         locale === 'zh-CN' ? '实时预览' :
-                         'Real-time preview'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-emerald-500" />
-                      <span className="text-slate-700">
-                        {locale === 'fr' ? 'Compatible iOS et Android' :
-                         locale === 'zh-CN' ? '兼容iOS和Android' :
-                         'iOS & Android compatible'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-emerald-500" />
-                      <span className="text-slate-700">
-                        {locale === 'fr' ? 'Pas d\'application à télécharger' :
-                         locale === 'zh-CN' ? '无需下载应用' :
-                         'No app download required'}
-                      </span>
-                    </div>
-                  </div>
-                  <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
-                    <Smartphone className="mr-2 h-5 w-5" />
-                    {locale === 'fr' ? 'Essayer la Prévisualisation AR' :
-                     locale === 'zh-CN' ? '尝试AR预览' :
-                     'Try AR Preview Now'}
-                  </Button>
-                </div>
-                <div className="lg:w-1/2 relative">
-                  <div className="relative w-full h-64 md:h-80 lg:h-96 rounded-2xl overflow-hidden shadow-2xl">
-                    <Image
-                      src="/images/ar-preview.png"
-                      alt="Augmented reality preview showing digital love lock on Pont des Arts bridge"
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                      <div className="flex items-center gap-2 text-white">
-                        <Eye className="h-5 w-5" />
-                        <span className="text-sm font-medium">
-                          {locale === 'fr' ? 'Aperçu en réalité augmentée sur smartphone' :
-                           locale === 'zh-CN' ? '智能手机增强现实预览' :
-                           'AR preview on smartphone'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="absolute -bottom-3 -right-3 bg-white p-3 rounded-xl shadow-lg border">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Smartphone className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500">
-                          {locale === 'fr' ? 'Scannez avec votre' :
-                           locale === 'zh-CN' ? '使用您的手机扫描' :
-                           'Scan with your'}
-                        </div>
-                        <div className="text-sm font-bold text-slate-900">
-                          {locale === 'fr' ? 'Caméra smartphone' :
-                           locale === 'zh-CN' ? '智能手机摄像头' :
-                           'Smartphone camera'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -1108,6 +1112,12 @@ export default async function Home({ params }: { params: { locale: string } }) {
                   </a>
                   <a href="/concept" className="block text-slate-600 hover:text-[#e11d48]">
                     Concept & Value
+                  </a>
+                  <a href="/boost" className="block text-slate-600 hover:text-[#e11d48]">
+                    Boost Visibility
+                  </a>
+                  <a href="/sell" className="block text-slate-600 hover:text-[#e11d48]">
+                    Sell Lock
                   </a>
                 </div>
               </div>
