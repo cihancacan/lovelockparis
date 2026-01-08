@@ -139,22 +139,6 @@ const getInitials = (name: string | null | undefined) => {
     .slice(0, 2);
 };
 
-// Fonction pour déterminer le type d'appareil
-const getDeviceType = (userAgent: string | null) => {
-  if (!userAgent) return 'Inconnu';
-  
-  if (/mobile/i.test(userAgent)) return 'Mobile';
-  if (/tablet/i.test(userAgent)) return 'Tablette';
-  if (/ipad/i.test(userAgent)) return 'iPad';
-  if (/iphone/i.test(userAgent)) return 'iPhone';
-  if (/android/i.test(userAgent)) return 'Android';
-  if (/windows/i.test(userAgent)) return 'Windows';
-  if (/macintosh/i.test(userAgent)) return 'Mac';
-  if (/linux/i.test(userAgent)) return 'Linux';
-  
-  return 'Desktop';
-};
-
 export function UserManagement() {
   const { userProfile } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -225,7 +209,7 @@ export function UserManagement() {
 
       const enrichedUsers = (profiles || []).map((p: any) => {
         const userLocks = locks?.filter((l: any) => l.owner_id === p.id) || [];
-        const userPurchases = transactions?.filter((t: any) => t.buyer_id === p.id) || [];
+        const userPurchases = transactions?.filter((t: any) => t.user_id === p.id) || [];
         const userSales = transactions?.filter((t: any) => t.seller_id === p.id) || [];
 
         const totalSpent = userPurchases.reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
@@ -300,7 +284,6 @@ export function UserManagement() {
   const fetchUserActivities = async (userId: string) => {
     setActivitiesLoading(true);
     try {
-      // Si la table n'existe pas, on crée une liste vide
       const { data, error } = await supabase
         .from('user_activities')
         .select('*')
@@ -309,7 +292,7 @@ export function UserManagement() {
         .limit(100);
 
       if (error) {
-        console.log('Table user_activities non trouvée, création de données simulées');
+        console.log('Table user_activities non trouvée');
         // Créer des données simulées pour la démo
         const mockActivities: UserActivity[] = [
           {
@@ -333,6 +316,17 @@ export function UserManagement() {
             user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             device_type: 'Desktop',
             browser: 'Chrome'
+          },
+          {
+            id: '3',
+            user_id: userId,
+            action: 'ar_view',
+            details: { location: 'pont-des-arts' },
+            created_at: new Date(Date.now() - 7200000).toISOString(),
+            ip_address: '192.168.1.1',
+            user_agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15',
+            device_type: 'Mobile',
+            browser: 'Safari'
           }
         ];
         setUserActivities(mockActivities);
@@ -369,6 +363,16 @@ export function UserManagement() {
             user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             location_data: { country: 'FR', city: 'Paris', region: 'Île-de-France' },
             device_info: { platform: 'Windows', browser: 'Chrome', version: '120.0' }
+          },
+          {
+            id: '2',
+            user_id: userId,
+            created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+            expires_at: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+            ip_address: '89.156.32.14',
+            user_agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15',
+            location_data: { country: 'US', city: 'New York', region: 'NY' },
+            device_info: { platform: 'iOS', browser: 'Safari', version: '14.0' }
           }
         ];
         setUserSessions(mockSessions);
@@ -541,6 +545,25 @@ export function UserManagement() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success('Données exportées');
+  };
+
+  // FONCTION CORRIGÉE POUR L'ERREUR .slice()
+  const formatLockId = (lockId: any) => {
+    if (!lockId) return 'N/A';
+    try {
+      // Si c'est déjà une chaîne
+      if (typeof lockId === 'string') {
+        return `#${lockId.slice(0, 8)}`;
+      }
+      // Si c'est un objet avec propriété id
+      if (lockId.id && typeof lockId.id === 'string') {
+        return `#${lockId.id.slice(0, 8)}`;
+      }
+      // Sinon, convertir en chaîne
+      return `#${lockId.toString().slice(0, 8)}`;
+    } catch (error) {
+      return '#ERROR';
+    }
   };
 
   return (
@@ -1119,7 +1142,10 @@ export function UserManagement() {
                           {selectedUser.owned_locks.map((lock: any) => (
                             <div key={lock.id} className="border rounded-lg p-4 hover:bg-slate-50">
                               <div className="flex justify-between items-start mb-2">
-                                <div className="font-bold text-slate-900">#{lock.id.slice(0, 8)}</div>
+                                <div className="font-bold text-slate-900">
+                                  {/* CORRECTION APPLIQUÉE ICI */}
+                                  {formatLockId(lock.id)}
+                                </div>
                                 <Badge variant="outline" className="text-xs">
                                   ${lock.price || 0}
                                 </Badge>
