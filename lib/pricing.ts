@@ -23,9 +23,9 @@ export const MEDIA_PRICES: Record<MediaType, number> = {
   audio: 14.99,
 };
 
-export const PLATFORM_COMMISSION_RATE = 0.30;
+export const PLATFORM_COMMISSION_RATE = 0.20;
 export const CUSTOM_NUMBER_PRICE = 19.99;
-export const PRIVATE_LOCK_PRICE = 5.00;
+export const PRIVATE_LOCK_PRICE = 0;
 
 // --- CALCULATEUR ---
 export function calculateLockPrice(
