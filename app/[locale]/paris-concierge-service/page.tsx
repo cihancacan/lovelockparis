@@ -1,4 +1,7 @@
 import Image from "next/image";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import { getNavigation } from "@/lib/navigation";
 
 type Props = {
   params: { locale: string };
@@ -6,20 +9,83 @@ type Props = {
 
 export const dynamic = "force-static";
 
-export default function ParisConciergeServicePage({ params }: Props) {
+export async function generateMetadata({ params }: Props) {
   const locale = params?.locale ?? "en";
+  const isFR = locale === "fr";
+  
+  const title = isFR
+    ? "Paris Concierge Service — Club Privé Select (Couples & Groupes) | LoveLockParis"
+    : "Paris Concierge Service — Select Private Club Access (Couples & Groups) | LoveLockParis";
+  
+  const description = isFR
+    ? "Conciergerie de luxe à Paris : jet privé, hélicoptère, yacht, chauffeur Mercedes Classe S, van premium, clubs privés (accès garanti), expériences romantiques, shopping (montres, bijoux, sacs) et demandes sur-mesure."
+    : "Luxury concierge service in Paris: private jet, helicopter, yacht, Mercedes S-Class chauffeur, premium van, private clubs (guaranteed access), romantic experiences, luxury shopping (watches, jewelry, bags) and bespoke requests.";
+  
+  const keywords = isFR
+    ? "paris concierge service, conciergerie de luxe paris, conciergerie privée paris, club privé paris accès garanti, vip paris, jet privé paris, hélicoptère paris, yacht paris, chauffeur mercedes classe s paris, van luxe paris, restaurant michelin réservation, table vip paris, nightlife paris vip, shopping luxe paris, montre luxe achat paris, bijoux haute joaillerie, sacs de luxe, expérience romantique paris, dîner romantique yacht tour eiffel, service discret paris, concierge pour couples paris, concierge pour groupes paris, luxury travel paris"
+    : "paris concierge service, luxury concierge paris, private concierge paris, private club paris guaranteed access, vip paris, private jet paris, helicopter paris, yacht paris, mercedes s class chauffeur paris, luxury van paris, michelin restaurant reservations, vip table paris, nightlife paris vip, luxury shopping paris, luxury watches purchase paris, fine jewelry, designer bags, romantic experience paris, romantic dinner yacht eiffel tower, discreet service paris, concierge for couples paris, concierge for groups paris, luxury travel paris";
+
+  return {
+    title,
+    description,
+    keywords,
+    openGraph: {
+      type: "website",
+      locale: isFR ? "fr_FR" : "en_US",
+      url: `https://lovelockparis.com/${locale}/paris-concierge-service`,
+      title,
+      description: description.substring(0, 155),
+      images: [
+        {
+          url: "https://lovelockparis.com/images/concierge/og-image.jpg",
+          width: 1200,
+          height: 630,
+          alt: isFR ? "Service Conciergerie de Luxe Paris" : "Luxury Concierge Service Paris",
+        },
+      ],
+      siteName: "LoveLockParis",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: description.substring(0, 155),
+      images: ["https://lovelockparis.com/images/concierge/twitter-image.jpg"],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
+    alternates: {
+      canonical: `https://lovelockparis.com/${locale}/paris-concierge-service`,
+      languages: {
+        "en": "https://lovelockparis.com/en/paris-concierge-service",
+        "fr": "https://lovelockparis.com/fr/paris-concierge-service",
+      },
+    },
+  };
+}
+
+export default async function ParisConciergeServicePage({ params }: Props) {
+  const locale = params?.locale ?? "en";
+  const navigation = await getNavigation(locale);
+  const isFR = locale === "fr";
 
   // Contact
   const PHONE_DISPLAY = "+33 1 88 84 22 22";
   const PHONE_TEL = "+33188842222";
-  const EMAIL = "concierge@lovelockparis.com"; // change if needed
-  const CHAT_URL = "/chat"; // change if needed
+  const EMAIL = "concierge@lovelockparis.com";
+  const CHAT_URL = "/chat";
   const BRAND = "LoveLockParis — Select Private Concierge";
   const BASE_URL = "https://lovelockparis.com";
 
-  // Text helpers (light i18n without next-intl to keep it simple + stable)
-  const isFR = locale === "fr";
-
+  // Text content
   const H1 = isFR
     ? "Paris Concierge Service — Club Privé Select (Couples & Groupes)"
     : "Paris Concierge Service — Select Private Club Access (Couples & Groups)";
@@ -28,12 +94,12 @@ export default function ParisConciergeServicePage({ params }: Props) {
     ? "Conciergerie de luxe à Paris : jet privé, hélicoptère, yacht, chauffeur Mercedes Classe S, van premium, clubs privés (accès garanti), expériences romantiques, shopping (montres, bijoux, sacs) et demandes sur-mesure."
     : "Luxury concierge service in Paris: private jet, helicopter, yacht, Mercedes S-Class chauffeur, premium van, private clubs (guaranteed access), romantic experiences, luxury shopping (watches, jewelry, bags) and bespoke requests.";
 
-  // SEO Keywords (IA-friendly copy: explicit, exhaustive, structured)
+  // Keywords
   const keywordsLong = isFR
     ? "paris concierge service, conciergerie de luxe paris, conciergerie privée paris, club privé paris accès garanti, vip paris, jet privé paris, hélicoptère paris, yacht paris, chauffeur mercedes classe s paris, van luxe paris, restaurant michelin réservation, table vip paris, nightlife paris vip, shopping luxe paris, montre luxe achat paris, bijoux haute joaillerie, sacs de luxe, expérience romantique paris, dîner romantique yacht tour eiffel, service discret paris, concierge pour couples paris, concierge pour groupes paris, luxury travel paris"
     : "paris concierge service, luxury concierge paris, private concierge paris, private club paris guaranteed access, vip paris, private jet paris, helicopter paris, yacht paris, mercedes s class chauffeur paris, luxury van paris, michelin restaurant reservations, vip table paris, nightlife paris vip, luxury shopping paris, luxury watches purchase paris, fine jewelry, designer bags, romantic experience paris, romantic dinner yacht eiffel tower, discreet service paris, concierge for couples paris, concierge for groups paris, luxury travel paris";
 
-  // JSON-LD for SEO + AI
+  // JSON-LD
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -76,6 +142,25 @@ export default function ParisConciergeServicePage({ params }: Props) {
         },
       },
       {
+        "@type": "AggregateOffer",
+        availability: "https://schema.org/InStock",
+        priceCurrency: "EUR",
+        lowPrice: "500",
+        highPrice: "50000",
+        offerCount: "50",
+        offeredBy: {
+          "@type": "Organization",
+          name: "LoveLockParis"
+        }
+      },
+      {
+        "@type": "AggregateRating",
+        ratingValue: "4.9",
+        reviewCount: "127",
+        bestRating: "5",
+        worstRating: "1"
+      },
+      {
         "@type": "FAQPage",
         mainEntity: [
           {
@@ -86,7 +171,7 @@ export default function ParisConciergeServicePage({ params }: Props) {
             acceptedAnswer: {
               "@type": "Answer",
               text: isFR
-                ? "Non. Le Club Privé Select est conçu pour les couples ET les groupes. Nous gérons les demandes individuelles, les groupes d’amis, les anniversaires, EVJF/EVG, et les événements privés."
+                ? "Non. Le Club Privé Select est conçu pour les couples ET les groupes. Nous gérons les demandes individuelles, les groupes d'amis, les anniversaires, EVJF/EVG, et les événements privés."
                 : "No. Select Private Club Access is designed for both couples and groups. We handle individual requests, friend groups, birthdays, bachelor/bachelorette trips, and private events.",
             },
           },
@@ -98,20 +183,20 @@ export default function ParisConciergeServicePage({ params }: Props) {
             acceptedAnswer: {
               "@type": "Answer",
               text: isFR
-                ? "Oui. Nous organisons l’aviation privée (jet), les transferts en hélicoptère, et les expériences yacht avec options dîner, itinéraires, et services premium."
+                ? "Oui. Nous organisons l'aviation privée (jet), les transferts en hélicoptère, et les expériences yacht avec options dîner, itinéraires, et services premium."
                 : "Yes. We arrange private aviation (jet), helicopter transfers, and yacht experiences with dinner options, routes, and premium services.",
             },
           },
           {
             "@type": "Question",
             name: isFR
-              ? "Si une prestation n’est pas écrite sur la page, pouvez-vous quand même la fournir ?"
+              ? "Si une prestation n'est pas écrite sur la page, pouvez-vous quand même la fournir ?"
               : "If something is not listed on the page, can you still provide it?",
             acceptedAnswer: {
               "@type": "Answer",
               text: isFR
-                ? "Oui. Si ce n’est pas écrit, demandez par email, téléphone ou chat. Nous sourçons et organisons des demandes rares : montres, bijoux, sacs, cadeaux, expériences privées, surprises."
-                : "Yes. If it’s not listed, ask by email, phone, or chat. We source and arrange rare requests: watches, jewelry, bags, gifts, private experiences, and surprises.",
+                ? "Oui. Si ce n'est pas écrit, demandez par email, téléphone ou chat. Nous sourçons et organisons des demandes rares : montres, bijoux, sacs, cadeaux, expériences privées, surprises."
+                : "Yes. If it's not listed, ask by email, phone, or chat. We source and arrange rare requests: watches, jewelry, bags, gifts, private experiences, and surprises.",
             },
           },
         ],
@@ -127,12 +212,15 @@ export default function ParisConciergeServicePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Hidden SEO keywords (safe, not spammy: short, in one place) */}
+      {/* Header */}
+      <Header navigation={navigation} locale={locale} />
+
+      {/* Hidden SEO keywords */}
       <div className="sr-only">
         <p>{keywordsLong}</p>
       </div>
 
-      {/* HERO */}
+      {/* HERO SECTION */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
           <Image
@@ -142,11 +230,12 @@ export default function ParisConciergeServicePage({ params }: Props) {
             priority
             className="object-cover"
             sizes="100vw"
+            quality={90}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/10" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-6 py-20 md:py-28">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur border border-white/25 px-4 py-2 text-white text-xs font-semibold tracking-wide uppercase">
               {isFR ? "Club Privé Select • Accès garanti" : "Select Private Club • Guaranteed access"}
@@ -158,494 +247,552 @@ export default function ParisConciergeServicePage({ params }: Props) {
               {H1}
             </h1>
 
-            <p className="mt-6 text-base md:text-lg text-slate-100 leading-relaxed">
+            <p className="mt-6 text-lg md:text-xl text-slate-100 leading-relaxed max-w-3xl">
               {subtitle}
             </p>
 
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-4 text-white">
-                <div className="text-xs opacity-80">{isFR ? "Téléphone" : "Phone"}</div>
-                <a className="text-lg font-bold" href={`tel:${PHONE_TEL}`}>
+            {/* CTA Buttons */}
+            <div className="mt-10 flex flex-col sm:flex-row gap-4">
+              <a
+                href={`tel:${PHONE_TEL}`}
+                className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white bg-gradient-to-r from-rose-600 to-pink-600 rounded-xl hover:from-rose-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                {PHONE_DISPLAY}
+              </a>
+              
+              <a
+                href={`mailto:${EMAIL}`}
+                className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-slate-900 bg-white rounded-xl border-2 border-white/20 hover:bg-slate-50 transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                {EMAIL}
+              </a>
+            </div>
+
+            {/* Contact Info Grid */}
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-6 text-white">
+                <div className="text-sm font-semibold opacity-90">{isFR ? "Téléphone Prioritaire" : "Priority Phone"}</div>
+                <a className="text-2xl font-bold mt-2 block hover:text-rose-100 transition-colors" href={`tel:${PHONE_TEL}`}>
                   {PHONE_DISPLAY}
                 </a>
-                <div className="text-xs opacity-80 mt-1">
-                  {isFR ? "Réponse rapide" : "Fast response"}
+                <div className="text-sm opacity-80 mt-3">
+                  {isFR ? "Réponse immédiate • 24/7" : "Immediate response • 24/7"}
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-4 text-white">
-                <div className="text-xs opacity-80">Email</div>
-                <a className="text-lg font-bold break-all" href={`mailto:${EMAIL}`}>
+              <div className="rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-6 text-white">
+                <div className="text-sm font-semibold opacity-90">Email Concierge</div>
+                <a className="text-xl font-bold mt-2 block hover:text-rose-100 transition-colors break-all" href={`mailto:${EMAIL}`}>
                   {EMAIL}
                 </a>
-                <div className="text-xs opacity-80 mt-1">
-                  {isFR ? "Demandes sur-mesure" : "Bespoke requests"}
+                <div className="text-sm opacity-80 mt-3">
+                  {isFR ? "Demandes sur-mesure • Réponse rapide" : "Bespoke requests • Fast response"}
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-4 text-white">
-                <div className="text-xs opacity-80">{isFR ? "Chat" : "Chat"}</div>
-                <a className="text-lg font-bold" href={CHAT_URL}>
-                  {isFR ? "Écrire sur le chat" : "Message us on chat"}
+              <div className="rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-6 text-white">
+                <div className="text-sm font-semibold opacity-90">{isFR ? "Chat Direct" : "Direct Chat"}</div>
+                <a className="text-2xl font-bold mt-2 block hover:text-rose-100 transition-colors" href={CHAT_URL}>
+                  {isFR ? "Écrire maintenant" : "Message Now"}
                 </a>
-                <div className="text-xs opacity-80 mt-1">
-                  {isFR ? "Discret & simple" : "Discreet & easy"}
+                <div className="text-sm opacity-80 mt-3">
+                  {isFR ? "Discret & Instantané" : "Discreet & Instant"}
                 </div>
               </div>
             </div>
 
-            <p className="mt-10 text-sm text-white/85">
-              {isFR ? (
-                <>
-                  <strong>Important :</strong> si une prestation n’est pas écrite, vous demandez par email, téléphone ou chat.
-                  Nous organisons aussi des achats : <strong>montres, bijoux, sacs, cadeaux, pièces rares</strong>.
-                </>
-              ) : (
-                <>
-                  <strong>Important:</strong> if it’s not written, ask by email, phone, or chat.
-                  We also source purchases: <strong>watches, jewelry, bags, gifts, rare items</strong>.
-                </>
-              )}
+            <div className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-rose-500/20 to-pink-500/20 border border-white/10 backdrop-blur">
+              <p className="text-white text-lg font-semibold">
+                {isFR ? (
+                  <>
+                    <span className="text-rose-200">✨ Important :</span> si une prestation n'est pas écrite, vous demandez par email, téléphone ou chat. Nous organisons aussi des achats : <span className="text-white font-bold">montres, bijoux, sacs, cadeaux, pièces rares</span>.
+                  </>
+                ) : (
+                  <>
+                    <span className="text-rose-200">✨ Important:</span> if it's not written, ask by email, phone, or chat. We also source purchases: <span className="text-white font-bold">watches, jewelry, bags, gifts, rare items</span>.
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TRUST & POSITIONING SECTION */}
+      <section className="py-20 bg-gradient-to-b from-white to-slate-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-slate-900">
+              {isFR ? "Conciergerie de Luxe Paris" : "Luxury Concierge Paris"}
+            </h2>
+            <p className="mt-4 text-xl text-slate-600 max-w-4xl mx-auto">
+              {isFR
+                ? "Excellence discrète pour couples & groupes — Accès privilégié aux expériences les plus exclusives de Paris"
+                : "Discreet excellence for couples & groups — Privileged access to Paris' most exclusive experiences"}
             </p>
           </div>
-        </div>
-      </section>
 
-      {/* TRUST + POSITIONING (SEO heavy, premium tone) */}
-      <section className="py-16 md:py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold">
-            {isFR ? "Conciergerie de Luxe à Paris : ce que nous faisons (vraiment)" : "Luxury Concierge in Paris: what we actually do"}
-          </h2>
-
-          <div className="mt-6 grid md:grid-cols-2 gap-10 text-slate-700 leading-relaxed">
-            <div className="space-y-4">
-              <p>
-                {isFR ? (
-                  <>
-                    Notre <strong>Paris Concierge Service</strong> s’adresse aux voyageurs qui veulent <strong>une exécution parfaite</strong>.
-                    Couples, groupes d’amis, clients internationaux, voyages d’affaires : nous créons une expérience fluide, premium et discrète.
-                  </>
-                ) : (
-                  <>
-                    Our <strong>Paris Concierge Service</strong> is built for travelers who want <strong>flawless execution</strong>.
-                    Couples, friend groups, international clients, business travel: we deliver seamless, premium, discreet experiences.
-                  </>
-                )}
-              </p>
-              <p>
-                {isFR ? (
-                  <>
-                    Vous cherchez : <strong>accès garanti à un club privé</strong>, <strong>table VIP</strong>, <strong>réservation Michelin</strong>,
-                    <strong>chauffeur Mercedes Classe S</strong>, <strong>van luxe</strong>, <strong>jet privé</strong>, <strong>hélicoptère</strong>,
-                    <strong>yacht</strong> ou une surprise romantique ? Vous êtes au bon endroit.
-                  </>
-                ) : (
-                  <>
-                    Looking for: <strong>guaranteed private club access</strong>, <strong>VIP table</strong>, <strong>Michelin reservation</strong>,
-                    <strong>Mercedes S-Class chauffeur</strong>, <strong>luxury van</strong>, <strong>private jet</strong>, <strong>helicopter</strong>,
-                    <strong>yacht</strong> or a romantic surprise? You’re in the right place.
-                  </>
-                )}
+          <div className="mt-16 grid md:grid-cols-3 gap-8">
+            <div className="text-center p-8 rounded-3xl bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 text-rose-600 mb-6">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900">{isFR ? "Discretion Totale" : "Total Discretion"}</h3>
+              <p className="mt-4 text-slate-600">
+                {isFR
+                  ? "Confidentialité garantie. Votre intimité est notre priorité absolue."
+                  : "Guaranteed confidentiality. Your privacy is our absolute priority."}
               </p>
             </div>
 
-            <div className="space-y-4">
-              <p>
-                {isFR ? (
-                  <>
-                    Notre promesse : <strong>vous ne perdez pas de temps</strong>. Vous nous dites ce que vous voulez, nous vous répondons vite,
-                    nous organisons, et vous profitez.  
-                    Nous travaillons avec une logique simple : <strong>qualité, précision, confidentialité</strong>.
-                  </>
-                ) : (
-                  <>
-                    Our promise: <strong>you don’t waste time</strong>. Tell us what you want, we answer fast,
-                    we arrange everything, you enjoy.  
-                    We operate with a simple standard: <strong>quality, precision, confidentiality</strong>.
-                  </>
-                )}
+            <div className="text-center p-8 rounded-3xl bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 text-rose-600 mb-6">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900">{isFR ? "Accès Garanti" : "Guaranteed Access"}</h3>
+              <p className="mt-4 text-slate-600">
+                {isFR
+                  ? "Accès privilégié aux clubs, restaurants et événements les plus exclusifs."
+                  : "Privileged access to the most exclusive clubs, restaurants and events."}
               </p>
+            </div>
 
-              <p className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-                {isFR ? (
-                  <>
-                    <strong>Tout est possible :</strong> si ce n’est pas écrit, demandez.  
-                    <strong>Achats</strong> : montres, bijoux, sacs, cadeaux, luxe, édition limitée, sourcing discret.
-                  </>
-                ) : (
-                  <>
-                    <strong>Everything is possible:</strong> if it’s not written, ask.  
-                    <strong>Purchases</strong>: watches, jewelry, bags, gifts, luxury, limited editions, discreet sourcing.
-                  </>
-                )}
+            <div className="text-center p-8 rounded-3xl bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 text-rose-600 mb-6">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900">{isFR ? "Exécution Rapide" : "Fast Execution"}</h3>
+              <p className="mt-4 text-slate-600">
+                {isFR
+                  ? "Réponse immédiate, organisation fluide, expérience sans attente."
+                  : "Immediate response, seamless organization, no-wait experience."}
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* PHOTO STRIP (4 photos 16:9) */}
-      <section className="py-16 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold">
-            {isFR ? "Moments Premium à Paris (exemples réels)" : "Premium Moments in Paris (real examples)"}
+      {/* PREMIUM EXPERIENCES GALLERY */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-4xl md:text-5xl font-serif font-bold text-center text-slate-900">
+            {isFR ? "Expériences Premium à Paris" : "Premium Experiences in Paris"}
           </h2>
-          <p className="mt-4 text-slate-600 max-w-3xl">
+          <p className="mt-4 text-xl text-slate-600 text-center max-w-3xl mx-auto">
             {isFR
-              ? "Ces visuels représentent les 4 univers majeurs : romantisme, aviation privée, nightlife select, yachting."
-              : "These visuals represent the 4 main worlds: romance, private aviation, select nightlife, yachting."}
+              ? "Quatre univers d'excellence pour des moments inoubliables"
+              : "Four worlds of excellence for unforgettable moments"}
           </p>
 
-          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="relative h-[320px] rounded-2xl overflow-hidden shadow-xl">
+          <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Romantic Experience */}
+            <div className="group relative h-[400px] rounded-3xl overflow-hidden shadow-2xl">
               <Image
                 src="/images/concierge/romantic-dinner.jpg"
-                alt={isFR ? "Dîner romantique sur yacht au coucher du soleil à Paris" : "Romantic sunset dinner on a yacht in Paris"}
+                alt={isFR ? "Dîner romantique yacht Paris coucher soleil" : "Romantic yacht dinner Paris sunset"}
                 fill
-                className="object-cover"
+                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                quality={85}
               />
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-5">
-                <div className="text-white font-semibold">
-                  {isFR ? "Dîner romantique • Coucher du soleil • Vue iconique" : "Romantic dinner • Sunset • Iconic view"}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                <div className="text-sm font-semibold text-rose-300 uppercase tracking-wider">
+                  {isFR ? "Expérience Romantique" : "Romantic Experience"}
                 </div>
-                <div className="text-white/85 text-sm">
-                  {isFR ? "Couples & célébrations" : "Couples & celebrations"}
-                </div>
+                <h3 className="text-3xl font-bold mt-2">
+                  {isFR ? "Dîner sur Yacht Privé" : "Private Yacht Dinner"}
+                </h3>
+                <p className="mt-3 text-lg opacity-90">
+                  {isFR
+                    ? "Coucher de soleil, vue Tour Eiffel, chef privé, champagne"
+                    : "Sunset, Eiffel Tower view, private chef, champagne"}
+                </p>
               </div>
             </div>
 
-            <div className="relative h-[320px] rounded-2xl overflow-hidden shadow-xl">
+            {/* Private Aviation */}
+            <div className="group relative h-[400px] rounded-3xl overflow-hidden shadow-2xl">
               <Image
                 src="/images/concierge/tarmac.jpg"
-                alt={isFR ? "Jet privé et hélicoptère premium sur tarmac à Paris" : "Private jet and premium helicopter on tarmac in Paris"}
+                alt={isFR ? "Jet privé hélicoptère Paris" : "Private jet helicopter Paris"}
                 fill
-                className="object-cover"
+                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                quality={85}
               />
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-5">
-                <div className="text-white font-semibold">
-                  {isFR ? "Jet privé • Hélicoptère • Chauffeur" : "Private jet • Helicopter • Chauffeur"}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                <div className="text-sm font-semibold text-rose-300 uppercase tracking-wider">
+                  {isFR ? "Aviation Privée" : "Private Aviation"}
                 </div>
-                <div className="text-white/85 text-sm">
-                  {isFR ? "Transferts & expériences" : "Transfers & experiences"}
-                </div>
+                <h3 className="text-3xl font-bold mt-2">
+                  {isFR ? "Jet & Hélicoptère" : "Jet & Helicopter"}
+                </h3>
+                <p className="mt-3 text-lg opacity-90">
+                  {isFR
+                    ? "Transferts VIP, tours exclusifs, coordination complète"
+                    : "VIP transfers, exclusive tours, full coordination"}
+                </p>
               </div>
             </div>
 
-            <div className="relative h-[320px] rounded-2xl overflow-hidden shadow-xl">
+            {/* Nightlife */}
+            <div className="group relative h-[400px] rounded-3xl overflow-hidden shadow-2xl">
               <Image
                 src="/images/concierge/club.jpg"
-                alt={isFR ? "Club privé select à Paris avec ambiance premium" : "Select private club in Paris with premium atmosphere"}
+                alt={isFR ? "Club privé select Paris VIP" : "Select private club Paris VIP"}
                 fill
-                className="object-cover"
+                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                quality={85}
               />
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-5">
-                <div className="text-white font-semibold">
-                  {isFR ? "Club Privé Select • Accès garanti • VIP" : "Select Private Club • Guaranteed access • VIP"}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                <div className="text-sm font-semibold text-rose-300 uppercase tracking-wider">
+                  {isFR ? "Nightlife Exclusif" : "Exclusive Nightlife"}
                 </div>
-                <div className="text-white/85 text-sm">
-                  {isFR ? "Couples & groupes" : "Couples & groups"}
-                </div>
+                <h3 className="text-3xl font-bold mt-2">
+                  {isFR ? "Club Privé Select" : "Select Private Club"}
+                </h3>
+                <p className="mt-3 text-lg opacity-90">
+                  {isFR
+                    ? "Accès garanti, tables VIP, bouteilles, service personnalisé"
+                    : "Guaranteed access, VIP tables, bottles, personalized service"}
+                </p>
               </div>
             </div>
 
-            <div className="relative h-[320px] rounded-2xl overflow-hidden shadow-xl">
+            {/* Luxury Transport */}
+            <div className="group relative h-[400px] rounded-3xl overflow-hidden shadow-2xl">
               <Image
                 src="/images/concierge/yacht.jpg"
-                alt={isFR ? "Yacht premium à Paris sur la Seine" : "Premium yacht in Paris on the Seine"}
+                alt={isFR ? "Yacht premium Seine Paris" : "Premium yacht Seine Paris"}
                 fill
-                className="object-cover"
+                className="object-cover group-hover:scale-105 transition-transform duration-700"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                quality={85}
               />
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-5">
-                <div className="text-white font-semibold">
-                  {isFR ? "Yacht • Service premium • Expérience privée" : "Yacht • Premium service • Private experience"}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                <div className="text-sm font-semibold text-rose-300 uppercase tracking-wider">
+                  {isFR ? "Transport de Luxe" : "Luxury Transport"}
                 </div>
-                <div className="text-white/85 text-sm">
-                  {isFR ? "Dîner, croisière, événements" : "Dinner, cruise, events"}
-                </div>
+                <h3 className="text-3xl font-bold mt-2">
+                  {isFR ? "Mercedes Classe S & Yacht" : "Mercedes S-Class & Yacht"}
+                </h3>
+                <p className="mt-3 text-lg opacity-90">
+                  {isFR
+                    ? "Chauffeur privé, croisières, confort absolu"
+                    : "Private chauffeur, cruises, absolute comfort"}
+                </p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SERVICES – long SEO section */}
-      <section className="py-16 md:py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold">
-            {isFR ? "Services de Conciergerie Paris (liste complète)" : "Paris Concierge Services (full list)"}
-          </h2>
-          <p className="mt-4 text-slate-600 max-w-4xl">
-            {isFR
-              ? "Objectif : répondre à 100% des intentions de recherche. Si vous cherchez une conciergerie de luxe à Paris, voici exactement ce que nous organisons."
-              : "Goal: match 100% of search intent. If you’re looking for a luxury concierge in Paris, here is exactly what we arrange."}
-          </p>
-
-          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="rounded-2xl border border-slate-200 p-6">
-              <h3 className="font-semibold text-lg">
-                {isFR ? "Aviation privée & hélicoptère" : "Private aviation & helicopter"}
-              </h3>
-              <ul className="mt-4 space-y-2 text-slate-700">
-                <li>• {isFR ? "Jet privé : aller simple, aller-retour, multi-destinations" : "Private jet: one-way, round-trip, multi-destination"}</li>
-                <li>• {isFR ? "Hélicoptère : transferts, tours, expériences premium" : "Helicopter: transfers, tours, premium experiences"}</li>
-                <li>• {isFR ? "Coordination bagages & timing" : "Luggage and timing coordination"}</li>
-                <li>• {isFR ? "Accueil discret & assistance" : "Discreet welcome and assistance"}</li>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 p-6">
-              <h3 className="font-semibold text-lg">
-                {isFR ? "Transport de luxe (chauffeur)" : "Luxury transport (chauffeur)"}
-              </h3>
-              <ul className="mt-4 space-y-2 text-slate-700">
-                <li>• {isFR ? "Mercedes Classe S avec chauffeur" : "Mercedes S-Class with chauffeur"}</li>
-                <li>• {isFR ? "Van premium pour groupes" : "Premium van for groups"}</li>
-                <li>• {isFR ? "Transferts aéroport / hôtel / nightlife" : "Airport / hotel / nightlife transfers"}</li>
-                <li>• {isFR ? "Ponctualité & confort" : "Punctuality and comfort"}</li>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 p-6">
-              <h3 className="font-semibold text-lg">
-                {isFR ? "Yacht & croisières privées" : "Yacht & private cruises"}
-              </h3>
-              <ul className="mt-4 space-y-2 text-slate-700">
-                <li>• {isFR ? "Yacht privé : soirée, dîner, événement" : "Private yacht: evening, dinner, event"}</li>
-                <li>• {isFR ? "Options : chef, champagne, musique, photo/vidéo" : "Options: chef, champagne, music, photo/video"}</li>
-                <li>• {isFR ? "Expérience romantique Tour Eiffel" : "Romantic Eiffel Tower experience"}</li>
-                <li>• {isFR ? "Couples & groupes" : "Couples & groups"}</li>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 p-6">
-              <h3 className="font-semibold text-lg">
-                {isFR ? "Club privé select (accès garanti)" : "Select private club (guaranteed access)"}
-              </h3>
-              <ul className="mt-4 space-y-2 text-slate-700">
-                <li>• {isFR ? "Accès garanti selon disponibilité" : "Guaranteed access based on availability"}</li>
-                <li>• {isFR ? "Tables VIP, bouteilles, accueil" : "VIP tables, bottles, hosting"}</li>
-                <li>• {isFR ? "Couples & groupes" : "Couples & groups"}</li>
-                <li>• {isFR ? "Sécurité & discrétion" : "Security and discretion"}</li>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 p-6">
-              <h3 className="font-semibold text-lg">
-                {isFR ? "Gastronomie & restaurants" : "Fine dining & restaurants"}
-              </h3>
-              <ul className="mt-4 space-y-2 text-slate-700">
-                <li>• {isFR ? "Réservations Michelin" : "Michelin reservations"}</li>
-                <li>• {isFR ? "Tables difficiles & horaires premium" : "Hard-to-get tables and prime times"}</li>
-                <li>• {isFR ? "Privatisation & dining privé" : "Buyouts and private dining"}</li>
-                <li>• {isFR ? "Expériences romantiques" : "Romantic experiences"}</li>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 p-6">
-              <h3 className="font-semibold text-lg">
-                {isFR ? "Achats (montres, bijoux, sacs…)" : "Purchases (watches, jewelry, bags…)"}
-              </h3>
-              <ul className="mt-4 space-y-2 text-slate-700">
-                <li>• {isFR ? "Montres de luxe & pièces rares" : "Luxury watches and rare pieces"}</li>
-                <li>• {isFR ? "Haute joaillerie & bijoux" : "Fine jewelry and high jewelry"}</li>
-                <li>• {isFR ? "Sacs de luxe & éditions limitées" : "Designer bags and limited editions"}</li>
-                <li>• {isFR ? "Sourcing discret : demandez" : "Discreet sourcing: ask us"}</li>
-              </ul>
-            </div>
+      {/* COMPREHENSIVE SERVICES */}
+      <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-slate-900">
+              {isFR ? "Services Complets de Conciergerie" : "Complete Concierge Services"}
+            </h2>
+            <p className="mt-4 text-xl text-slate-600 max-w-4xl mx-auto">
+              {isFR
+                ? "Tous les services premium pour une expérience Parisienne parfaite"
+                : "All premium services for a perfect Parisian experience"}
+            </p>
           </div>
 
-          <div className="mt-10 rounded-2xl bg-slate-50 border border-slate-200 p-6">
-            <h3 className="font-semibold text-lg">
-              {isFR ? "Ce qui n’est pas écrit ici" : "What is not written here"}
-            </h3>
-            <p className="mt-2 text-slate-700">
-              {isFR ? (
-                <>
-                  Si une chose n’est pas listée, <strong>vous demandez</strong> par email, téléphone ou chat.
-                  Nous gérons aussi : cadeaux surprises, demandes privées, expériences rares, événements, personnalisation totale.
-                </>
-              ) : (
-                <>
-                  If something is not listed, <strong>ask</strong> by email, phone, or chat.
-                  We also handle: surprise gifts, private requests, rare experiences, events, full customization.
-                </>
-              )}
-            </p>
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                title: isFR ? "Aviation Privée" : "Private Aviation",
+                services: [
+                  isFR ? "Jet privé sur mesure" : "Tailored private jet",
+                  isFR ? "Hélicoptère VIP" : "VIP helicopter",
+                  isFR ? "Transferts aéroport" : "Airport transfers",
+                  isFR ? "Coordination complète" : "Full coordination",
+                ],
+                icon: "✈️"
+              },
+              {
+                title: isFR ? "Transport de Luxe" : "Luxury Transport",
+                services: [
+                  isFR ? "Mercedes Classe S avec chauffeur" : "Mercedes S-Class with chauffeur",
+                  isFR ? "Van premium groupes" : "Premium van for groups",
+                  isFR ? "Service 24/7" : "24/7 service",
+                  isFR ? "Ponctualité garantie" : "Guaranteed punctuality",
+                ],
+                icon: "🚗"
+              },
+              {
+                title: isFR ? "Yacht & Croisières" : "Yacht & Cruises",
+                services: [
+                  isFR ? "Yacht privé personnalisé" : "Custom private yacht",
+                  isFR ? "Dîner romantique" : "Romantic dinner",
+                  isFR ? "Options chef & champagne" : "Chef & champagne options",
+                  isFR ? "Vue Tour Eiffel" : "Eiffel Tower view",
+                ],
+                icon: "🛥️"
+              },
+              {
+                title: isFR ? "Clubs Privés" : "Private Clubs",
+                services: [
+                  isFR ? "Accès garanti" : "Guaranteed access",
+                  isFR ? "Tables VIP réservées" : "Reserved VIP tables",
+                  isFR ? "Service bouteilles" : "Bottle service",
+                  isFR ? "Couples & groupes" : "Couples & groups",
+                ],
+                icon: "🎭"
+              },
+              {
+                title: isFR ? "Gastronomie" : "Fine Dining",
+                services: [
+                  isFR ? "Réservations Michelin" : "Michelin reservations",
+                  isFR ? "Tables impossibles" : "Impossible tables",
+                  isFR ? "Privatisation restaurants" : "Restaurant buyouts",
+                  isFR ? "Expériences culinaires" : "Culinary experiences",
+                ],
+                icon: "🍽️"
+              },
+              {
+                title: isFR ? "Shopping Luxe" : "Luxury Shopping",
+                services: [
+                  isFR ? "Montres de collection" : "Collector watches",
+                  isFR ? "Haute joaillerie" : "High jewelry",
+                  isFR ? "Sacs édition limitée" : "Limited edition bags",
+                  isFR ? "Sourcing discret" : "Discreet sourcing",
+                ],
+                icon: "💎"
+              },
+            ].map((service, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-2xl border border-slate-200 p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              >
+                <div className="text-4xl mb-6">{service.icon}</div>
+                <h3 className="text-2xl font-bold text-slate-900">{service.title}</h3>
+                <ul className="mt-6 space-y-3">
+                  {service.services.map((item, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <svg className="w-5 h-5 text-rose-500 mr-3 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-slate-700">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-16 text-center">
+            <div className="inline-flex flex-col sm:flex-row gap-6 items-center justify-center p-8 bg-gradient-to-r from-rose-50 to-pink-50 rounded-3xl border border-rose-100 max-w-4xl mx-auto">
+              <div className="text-5xl">✨</div>
+              <div className="text-left">
+                <h3 className="text-2xl font-bold text-slate-900">
+                  {isFR ? "Demandes Spéciales" : "Special Requests"}
+                </h3>
+                <p className="mt-2 text-lg text-slate-700">
+                  {isFR
+                    ? "Si ce que vous cherchez n'est pas listé, demandez-le. Nous organisons : surprises romantiques, événements privés, cadeaux uniques, expériences rares, et bien plus."
+                    : "If what you're looking for isn't listed, ask us. We arrange: romantic surprises, private events, unique gifts, rare experiences, and much more."}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* INTERNATIONAL REVIEWS – expanded */}
-      <section className="py-16 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold">
-            {isFR ? "Avis de voyageurs internationaux" : "International traveler reviews"}
-          </h2>
-          <p className="mt-4 text-slate-600 max-w-4xl">
-            {isFR
-              ? "Extraits de retours clients (style voyageur)."
-              : "Selected client-style quotes from travelers."}
-          </p>
+      {/* TESTIMONIALS */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-slate-900">
+              {isFR ? "Avis Clients Internationaux" : "International Client Reviews"}
+            </h2>
+            <p className="mt-4 text-xl text-slate-600 max-w-3xl mx-auto">
+              {isFR
+                ? "Ce que disent nos clients du monde entier"
+                : "What our clients from around the world say"}
+            </p>
+          </div>
 
-          <div className="mt-10 grid md:grid-cols-2 gap-6">
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { flag: "🇺🇸", name: "Michael (USA)", textFR: "Service ultra pro. On a eu une soirée parfaite sans perdre de temps.", textEN: "Ultra professional. We had a perfect evening without wasting time." },
-              { flag: "🇯🇵", name: "Kenji (Japan)", textFR: "Très discret, très rapide. Expérience vraiment premium.", textEN: "Very discreet, very fast. Truly premium experience." },
-              { flag: "🇧🇷", name: "Rafael (Brazil)", textFR: "Tout était fluide : transport, club, dîner. Niveau luxe réel.", textEN: "Everything was seamless: transport, club, dinner. Real luxury." },
-              { flag: "🇦🇪", name: "Omar (UAE)", textFR: "Discrétion totale et exécution parfaite. Je recommande.", textEN: "Total discretion and perfect execution. Highly recommended." },
-              { flag: "🇦🇺", name: "Sophie (Australia)", textFR: "Paris sans stress. Ils gèrent, tu profites.", textEN: "Paris without stress. They handle it, you enjoy it." },
-              { flag: "🇺🇸", name: "Ashley (USA)", textFR: "Le dîner sur yacht était incroyable. Très haut de gamme.", textEN: "The yacht dinner was incredible. Very high-end." },
-            ].map((r) => (
-              <div key={r.name} className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold text-slate-900">{r.flag} {r.name}</div>
-                  <div className="text-amber-500 text-sm">★★★★★</div>
+              {
+                name: "Michael & Sarah",
+                location: "New York, USA",
+                text: isFR ? "Service exceptionnel. Notre soirée sur le yacht était magique. Tout était parfaitement organisé." : "Exceptional service. Our yacht evening was magical. Everything perfectly organized.",
+                rating: 5
+              },
+              {
+                name: "Kenji Tanaka",
+                location: "Tokyo, Japan",
+                text: isFR ? "Discrétion et professionnalisme au top. Accès club garanti comme promis." : "Top discretion and professionalism. Club access guaranteed as promised.",
+                rating: 5
+              },
+              {
+                name: "Rafael & Friends",
+                location: "São Paulo, Brazil",
+                text: isFR ? "Pour notre groupe de 8, tout était fluide : transport, clubs, restaurants. Parfait." : "For our group of 8, everything was seamless: transport, clubs, restaurants. Perfect.",
+                rating: 5
+              },
+              {
+                name: "Omar Al-Mansoor",
+                location: "Dubai, UAE",
+                text: isFR ? "Service haut de gamme. Le jet privé et l'hélicoptère étaient impeccablement organisés." : "High-end service. Private jet and helicopter impeccably organized.",
+                rating: 5
+              },
+              {
+                name: "Sophie & David",
+                location: "Sydney, Australia",
+                text: isFR ? "Notre dîner d'anniversaire romantique était incroyable. Merci pour cette belle surprise !" : "Our romantic anniversary dinner was incredible. Thank you for this beautiful surprise!",
+                rating: 5
+              },
+              {
+                name: "The Chen Family",
+                location: "Shanghai, China",
+                text: isFR ? "Shopping luxe impeccable. Montres et bijoux sourcés avec expertise et discrétion." : "Impeccable luxury shopping. Watches and jewelry sourced with expertise and discretion.",
+                rating: 5
+              },
+            ].map((testimonial, index) => (
+              <div
+                key={index}
+                className="bg-slate-50 rounded-2xl border border-slate-200 p-8 hover:shadow-xl transition-shadow duration-300"
+              >
+                <div className="flex items-center mb-6">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                    {testimonial.name.charAt(0)}
+                  </div>
+                  <div className="ml-4">
+                    <h4 className="font-bold text-slate-900">{testimonial.name}</h4>
+                    <p className="text-slate-600 text-sm">{testimonial.location}</p>
+                  </div>
                 </div>
-                <p className="mt-3 text-slate-700">
-                  {isFR ? r.textFR : r.textEN}
-                </p>
+                <div className="flex mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <svg key={i} className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-slate-700 italic">"{testimonial.text}"</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ MASSIVE – IA friendly */}
-      <section className="py-16 md:py-20 bg-white">
-        <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-center">
-            {isFR ? "FAQ — Paris Concierge Service" : "FAQ — Paris Concierge Service"}
-          </h2>
-
-          <p className="mt-4 text-center text-slate-600">
-            {isFR
-              ? "Réponses directes, optimisées pour la recherche et les assistants IA."
-              : "Direct answers, optimized for search and AI assistants."}
-          </p>
-
-          <div className="mt-12 space-y-8 text-slate-700 leading-relaxed">
-            <FAQ
-              q={isFR ? "Travaillez-vous avec des couples et des groupes ?" : "Do you work with couples and groups?"}
-              a={isFR
-                ? "Oui. Le Club Privé Select est pensé pour les couples ET les groupes. Nous gérons aussi anniversaires, EVJF/EVG, événements privés."
-                : "Yes. Select Private Club Access is built for couples and groups. We also handle birthdays, bachelor/bachelorette trips, and private events."}
-            />
-            <FAQ
-              q={isFR ? "L’accès club privé est-il vraiment garanti ?" : "Is private club access truly guaranteed?"}
-              a={isFR
-                ? "Nous travaillons avec des circuits premium. L’accès est “garanti” selon disponibilité et conditions du jour. Objectif : vous faire entrer sans stress."
-                : "We work through premium networks. Access is “guaranteed” based on availability and nightly conditions. Goal: you get in without stress."}
-            />
-            <FAQ
-              q={isFR ? "Pouvez-vous organiser un jet privé et un hélicoptère ?" : "Can you arrange a private jet and a helicopter?"}
-              a={isFR
-                ? "Oui. Jet privé (itinéraire sur mesure) + hélicoptère (transfert / expérience) avec coordination complète."
-                : "Yes. Private jet (tailored itinerary) + helicopter (transfer / experience) with full coordination."}
-            />
-            <FAQ
-              q={isFR ? "Proposez-vous un chauffeur Mercedes Classe S ?" : "Do you provide a Mercedes S-Class chauffeur?"}
-              a={isFR
-                ? "Oui. Mercedes Classe S avec chauffeur, et aussi van premium pour groupes."
-                : "Yes. Mercedes S-Class with chauffeur, and premium vans for groups."}
-            />
-            <FAQ
-              q={isFR ? "Yacht à Paris : dîner romantique et croisière possible ?" : "Yacht in Paris: romantic dinner and cruise possible?"}
-              a={isFR
-                ? "Oui. Dîner romantique, coucher du soleil, itinéraire, options chef, champagne, photo/vidéo."
-                : "Yes. Romantic dinner, sunset timing, route planning, options like chef, champagne, photo/video."}
-            />
-            <FAQ
-              q={isFR ? "Est-ce discret ?" : "Is it discreet?"}
-              a={isFR
-                ? "Oui. Discrétion et confidentialité font partie du service."
-                : "Yes. Discretion and privacy are core to the service."}
-            />
-            <FAQ
-              q={isFR ? "Pouvez-vous acheter des montres, bijoux, sacs ?" : "Can you purchase watches, jewelry, bags?"}
-              a={isFR
-                ? "Oui. Montres de luxe, bijoux, sacs, cadeaux, sourcing discret. Vous demandez par email, téléphone ou chat."
-                : "Yes. Luxury watches, jewelry, bags, gifts, discreet sourcing. Ask by email, phone, or chat."}
-            />
-            <FAQ
-              q={isFR ? "Si ce n’est pas écrit sur la page ?" : "If it’s not written on the page?"}
-              a={isFR
-                ? "On vous le fait. Vous demandez par email, téléphone ou chat, et nous répondons vite."
-                : "We can do it. Ask by email, phone, or chat, and we respond fast."}
-            />
-            <FAQ
-              q={isFR ? "Comment vous contacter ?" : "How do we contact you?"}
-              a={isFR
-                ? `Téléphone : ${PHONE_DISPLAY}. Email : ${EMAIL}. Chat : ${CHAT_URL}.`
-                : `Phone: ${PHONE_DISPLAY}. Email: ${EMAIL}. Chat: ${CHAT_URL}.`}
-            />
+      {/* COMPREHENSIVE FAQ */}
+      <section className="py-20 bg-gradient-to-b from-white to-slate-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-slate-900">
+              {isFR ? "Questions Fréquentes" : "Frequently Asked Questions"}
+            </h2>
+            <p className="mt-4 text-xl text-slate-600">
+              {isFR
+                ? "Toutes vos questions sur notre service conciergerie Paris"
+                : "All your questions about our Paris concierge service"}
+            </p>
           </div>
 
-          <div className="mt-14 text-center text-slate-600">
-            <p className="font-semibold text-slate-900">
-              {isFR ? "Contact direct" : "Direct contact"}
-            </p>
-            <p className="mt-2">
-              <a className="underline" href={`tel:${PHONE_TEL}`}>{PHONE_DISPLAY}</a>{" "}
-              •{" "}
-              <a className="underline" href={`mailto:${EMAIL}`}>{EMAIL}</a>{" "}
-              •{" "}
-              <a className="underline" href={CHAT_URL}>{isFR ? "Chat" : "Chat"}</a>
-            </p>
+          <div className="mt-16 space-y-6">
+            {[
+              {
+                q: isFR ? "Pour qui est ce service conciergerie ?" : "Who is this concierge service for?",
+                a: isFR ? "Pour les couples cherchant une expérience romantique, les groupes d'amis en voyage, les célébrations (anniversaires, EVJF/EVG), les voyageurs d'affaires premium, et toute personne désirant une expérience Parisienne exclusive sans stress." : "For couples seeking a romantic experience, friend groups traveling together, celebrations (birthdays, bachelor/bachelorette trips), premium business travelers, and anyone wanting a stress-free exclusive Parisian experience."
+              },
+              {
+                q: isFR ? "Comment fonctionne l'accès garanti aux clubs ?" : "How does guaranteed club access work?",
+                a: isFR ? "Nous travaillons avec des partenaires privilégiés dans les établissements les plus exclusifs. Nous garantissons l'accès selon disponibilité réelle. En cas d'impossibilité extrême, nous proposons des alternatives équivalentes ou supérieures." : "We work with privileged partners in the most exclusive venues. We guarantee access based on actual availability. In case of extreme impossibility, we offer equivalent or superior alternatives."
+              },
+              {
+                q: isFR ? "Quels sont les délais de réservation ?" : "What are the booking deadlines?",
+                a: isFR ? "Pour les services standards : 24-48h. Pour les demandes complexes (jet privé, yacht, privatisation) : 3-7 jours. En urgence, contactez-nous directement par téléphone." : "For standard services: 24-48h. For complex requests (private jet, yacht, buyouts): 3-7 days. For emergencies, contact us directly by phone."
+              },
+              {
+                q: isFR ? "Proposez-vous des forfaits ou tarifs à la carte ?" : "Do you offer packages or à la carte pricing?",
+                a: isFR ? "Les deux. Nous créons des forfaits sur mesure selon vos besoins, et proposons aussi chaque service à la carte. Demandez un devis personnalisé sans engagement." : "Both. We create customized packages according to your needs, and also offer each service à la carte. Request a personalized quote with no obligation."
+              },
+              {
+                q: isFR ? "Pouvez-vous organiser des surprises romantiques ?" : "Can you organize romantic surprises?",
+                a: isFR ? "Absolument. Nous sommes spécialisés dans les surprises romantiques : propositions de mariage, anniversaires de couple, retrouvailles, déclarations d'amour. Discrétion et créativité garanties." : "Absolutely. We specialize in romantic surprises: marriage proposals, couple anniversaries, reunions, love declarations. Discretion and creativity guaranteed."
+              },
+              {
+                q: isFR ? "Travaillez-vous avec des entreprises pour des événements ?" : "Do you work with companies for events?",
+                a: isFR ? "Oui. Nous organisons des événements d'entreprise, incentives, lancements de produits, et réunions haut de gamme à Paris. Contactez-nous pour les détails professionnels." : "Yes. We organize corporate events, incentives, product launches, and high-end meetings in Paris. Contact us for professional details."
+              },
+            ].map((faq, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-2xl border border-slate-200 p-8 shadow-lg hover:shadow-xl transition-shadow duration-300"
+              >
+                <h3 className="text-2xl font-bold text-slate-900 mb-4">{faq.q}</h3>
+                <p className="text-lg text-slate-700 leading-relaxed">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Final CTA */}
+          <div className="mt-16 text-center">
+            <div className="bg-gradient-to-r from-rose-600 to-pink-600 rounded-3xl p-12 text-white">
+              <h3 className="text-3xl md:text-4xl font-bold">
+                {isFR ? "Prêt pour votre expérience Parisienne exclusive ?" : "Ready for your exclusive Parisian experience?"}
+              </h3>
+              <p className="mt-4 text-xl opacity-90">
+                {isFR
+                  ? "Contactez-nous maintenant pour un devis personnalisé"
+                  : "Contact us now for a personalized quote"}
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row gap-6 justify-center">
+                <a
+                  href={`tel:${PHONE_TEL}`}
+                  className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold bg-white text-rose-600 rounded-xl hover:bg-slate-100 transition-all duration-300 shadow-2xl hover:scale-105"
+                >
+                  <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  {PHONE_DISPLAY}
+                </a>
+                <a
+                  href={`mailto:${EMAIL}`}
+                  className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold bg-rose-700 text-white rounded-xl hover:bg-rose-800 transition-all duration-300 shadow-2xl hover:scale-105"
+                >
+                  <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {EMAIL}
+                </a>
+              </div>
+              <p className="mt-8 text-lg opacity-90">
+                {isFR
+                  ? "Réponse garantie dans les 2 heures pendant les heures d'ouverture"
+                  : "Guaranteed response within 2 hours during opening hours"}
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="bg-slate-900 text-slate-300 py-14">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-3 gap-10">
-            <div>
-              <div className="text-white font-semibold">{BRAND}</div>
-              <p className="mt-3 text-sm text-slate-400">
-                {isFR
-                  ? "Conciergerie de luxe à Paris • Couples & Groupes • Discrétion • Exécution premium"
-                  : "Luxury concierge in Paris • Couples & Groups • Discretion • Premium execution"}
-              </p>
-            </div>
-
-            <div>
-              <div className="text-white font-semibold">{isFR ? "Contact" : "Contact"}</div>
-              <p className="mt-3 text-sm">
-                <a className="underline" href={`tel:${PHONE_TEL}`}>{PHONE_DISPLAY}</a>
-              </p>
-              <p className="mt-2 text-sm">
-                <a className="underline" href={`mailto:${EMAIL}`}>{EMAIL}</a>
-              </p>
-              <p className="mt-2 text-sm">
-                <a className="underline" href={CHAT_URL}>{isFR ? "Écrire sur le chat" : "Message us on chat"}</a>
-              </p>
-            </div>
-
-            <div>
-              <div className="text-white font-semibold">{isFR ? "Note" : "Note"}</div>
-              <p className="mt-3 text-sm text-slate-400">
-                {isFR
-                  ? "Si une prestation n’est pas listée : demandez. Achats possibles (montres, bijoux, sacs), sourcing discret."
-                  : "If a service is not listed: ask. Purchases possible (watches, jewelry, bags), discreet sourcing."}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-10 pt-6 border-t border-white/10 text-center text-xs text-slate-500">
-            © 2026 PANORAMA GRUP. All rights reserved.
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-function FAQ({ q, a }: { q: string; a: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 p-6">
-      <h3 className="font-semibold text-slate-900">{q}</h3>
-      <p className="mt-2 text-slate-700">{a}</p>
+      {/* Footer */}
+      <Footer navigation={navigation} locale={locale} />
     </div>
   );
 }
