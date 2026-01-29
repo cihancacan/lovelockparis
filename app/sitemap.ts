@@ -15,6 +15,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { route: '/bridge', priority: 0.8, freq: 'weekly' },   // Le Pont 3D
     { route: '/ar-view', priority: 0.8, freq: 'monthly' }, // Réalité Augmentée
     { route: '/about', priority: 0.7, freq: 'monthly' },   // Histoire / À propos
+    { route: '/guide/love-lock-bridge-paris', priority: 1.0, freq: 'weekly' },
+    { route: '/guide/is-it-illegal-paris-locks', priority: 0.8, freq: 'monthly' },
+    { route: '/guide/where-is-pont-des-arts', priority: 0.8, freq: 'monthly' },
 
     // --- PAGES LÉGALES (Priorité Moyenne - Confiance) ---
     { route: '/terms', priority: 0.5, freq: 'yearly' },
