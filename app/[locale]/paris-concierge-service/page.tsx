@@ -1,7 +1,5 @@
 import Image from "next/image";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import { getNavigation } from "@/lib/navigation";
+import type { Metadata } from "next";
 
 type Props = {
   params: { locale: string };
@@ -9,7 +7,7 @@ type Props = {
 
 export const dynamic = "force-static";
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = params?.locale ?? "en";
   const isFR = locale === "fr";
   
@@ -72,9 +70,8 @@ export async function generateMetadata({ params }: Props) {
   };
 }
 
-export default async function ParisConciergeServicePage({ params }: Props) {
+export default function ParisConciergeServicePage({ params }: Props) {
   const locale = params?.locale ?? "en";
-  const navigation = await getNavigation(locale);
   const isFR = locale === "fr";
 
   // Contact
@@ -204,6 +201,14 @@ export default async function ParisConciergeServicePage({ params }: Props) {
     ],
   };
 
+  // Simple navigation for this page only
+  const simpleNav = {
+    home: { href: `/${locale}`, label: isFR ? "Accueil" : "Home" },
+    about: { href: `/${locale}/about`, label: isFR ? "À propos" : "About" },
+    services: { href: `/${locale}/services`, label: isFR ? "Services" : "Services" },
+    contact: { href: `/${locale}/contact`, label: isFR ? "Contact" : "Contact" },
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900 selection:bg-rose-100 selection:text-rose-900">
       {/* SEO structured data */}
@@ -212,13 +217,47 @@ export default async function ParisConciergeServicePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Header */}
-      <Header navigation={navigation} locale={locale} />
-
       {/* Hidden SEO keywords */}
       <div className="sr-only">
         <p>{keywordsLong}</p>
       </div>
+
+      {/* SIMPLE HEADER - No external dependencies */}
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <a href={`/${locale}`} className="text-2xl font-bold text-rose-600">
+                LoveLockParis
+              </a>
+              <span className="ml-2 text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                {isFR ? "Conciergerie" : "Concierge"}
+              </span>
+            </div>
+            <nav className="hidden md:flex items-center space-x-8">
+              <a href={simpleNav.home.href} className="text-slate-700 hover:text-rose-600 transition-colors">
+                {simpleNav.home.label}
+              </a>
+              <a href={simpleNav.about.href} className="text-slate-700 hover:text-rose-600 transition-colors">
+                {simpleNav.about.label}
+              </a>
+              <a href={simpleNav.services.href} className="text-slate-700 hover:text-rose-600 transition-colors">
+                {simpleNav.services.label}
+              </a>
+              <a href={simpleNav.contact.href} className="bg-rose-600 text-white px-6 py-2 rounded-lg hover:bg-rose-700 transition-colors">
+                {simpleNav.contact.label}
+              </a>
+            </nav>
+            <div className="md:hidden">
+              <button className="text-slate-700">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
 
       {/* HERO SECTION */}
       <section className="relative overflow-hidden">
@@ -791,8 +830,73 @@ export default async function ParisConciergeServicePage({ params }: Props) {
         </div>
       </section>
 
-      {/* Footer */}
-      <Footer navigation={navigation} locale={locale} />
+      {/* SIMPLE FOOTER - No external dependencies */}
+      <footer className="bg-slate-900 text-slate-300 py-14">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-3 gap-10">
+            <div>
+              <div className="text-white font-semibold text-xl">{BRAND}</div>
+              <p className="mt-4 text-slate-400">
+                {isFR
+                  ? "Conciergerie de luxe à Paris • Couples & Groupes • Discrétion • Exécution premium"
+                  : "Luxury concierge in Paris • Couples & Groups • Discretion • Premium execution"}
+              </p>
+            </div>
+
+            <div>
+              <div className="text-white font-semibold text-lg mb-4">{isFR ? "Contact Rapide" : "Quick Contact"}</div>
+              <div className="space-y-3">
+                <a 
+                  href={`tel:${PHONE_TEL}`} 
+                  className="block text-lg font-semibold text-white hover:text-rose-300 transition-colors"
+                >
+                  {PHONE_DISPLAY}
+                </a>
+                <a 
+                  href={`mailto:${EMAIL}`} 
+                  className="block text-white hover:text-rose-300 transition-colors break-all"
+                >
+                  {EMAIL}
+                </a>
+                <a 
+                  href={CHAT_URL} 
+                  className="block text-white hover:text-rose-300 transition-colors"
+                >
+                  {isFR ? "💬 Chat Direct" : "💬 Direct Chat"}
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <div className="text-white font-semibold text-lg mb-4">{isFR ? "Note Importante" : "Important Note"}</div>
+              <p className="text-slate-400">
+                {isFR
+                  ? "Si une prestation n'est pas listée : demandez. Achats possibles (montres, bijoux, sacs), sourcing discret, demandes spéciales."
+                  : "If a service is not listed: ask. Purchases possible (watches, jewelry, bags), discreet sourcing, special requests."}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-12 pt-8 border-t border-white/10">
+            <div className="flex flex-col md:flex-row justify-between items-center">
+              <div className="text-slate-500 text-sm">
+                © {new Date().getFullYear()} LoveLockParis. {isFR ? "Tous droits réservés." : "All rights reserved."}
+              </div>
+              <div className="mt-4 md:mt-0 flex space-x-6">
+                <a href={`/${locale}/privacy`} className="text-slate-400 hover:text-white text-sm transition-colors">
+                  {isFR ? "Confidentialité" : "Privacy"}
+                </a>
+                <a href={`/${locale}/terms`} className="text-slate-400 hover:text-white text-sm transition-colors">
+                  {isFR ? "Conditions" : "Terms"}
+                </a>
+                <a href={`/${locale}/contact`} className="text-slate-400 hover:text-white text-sm transition-colors">
+                  {isFR ? "Contact" : "Contact"}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
