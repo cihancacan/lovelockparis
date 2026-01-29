@@ -1,52 +1,106 @@
-import { getTranslations } from 'next-intl/server';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Header } from '@/components/home/header';
-import { Button } from '@/components/ui/button';
-import { MapPin, Navigation } from 'lucide-react';
+import Link from "next/link";
+import { Header } from "@/components/home/header";
 
 export async function generateMetadata() {
   return {
-    title: 'Where is the Love Lock Bridge in Paris? Map & GPS',
-    description: 'Exact location of the Pont des Arts, metro stations, and how to find the Love Lock spot in Paris.',
-    keywords: ['Pont des Arts location', 'Love lock bridge map', 'Metro station love lock bridge'],
+    title:
+      "Where Is the Love Lock Bridge Paris? Pont des Arts Location Explained",
+    description:
+      "Where is the famous Love Lock Bridge Paris located? Discover the Pont des Arts, its exact position, and why lovers are drawn to this bridge.",
+    keywords: [
+      "where is pont des arts",
+      "love lock bridge location",
+      "bridge with locks paris map",
+      "pont des arts paris location",
+      "lock bridge paris location",
+    ],
   };
 }
 
-export default async function Page({ params }: { params: { locale: string } }) {
-  const t = await getTranslations('home');
+export default function Page() {
+  const nav = {
+    navBridge: "Bridge",
+    problemHeading: "Problem",
+    solutionHeading: "Solution",
+    ctaStart: "Start",
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      <Header translations={{ navBridge: t('nav.bridge'), problemHeading: t('problem.heading'), solutionHeading: t('solution.heading'), ctaStart: t('cta.start') }} />
-      <main className="container mx-auto px-4 py-20 max-w-3xl">
-        <h1 className="text-4xl font-bold mb-6 text-slate-900">Where is the Love Lock Bridge?</h1>
-        
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 mb-10">
-          <div className="flex items-center gap-3 mb-4">
-             <MapPin className="h-6 w-6 text-blue-600"/>
-             <span className="text-xl font-bold">Pont des Arts, 75006 Paris</span>
-          </div>
-          <p className="text-slate-600 mb-4">It connects the <strong>Institut de France</strong> (Left Bank) to the <strong>Louvre Museum</strong> (Right Bank).</p>
-          <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-lg">
-             <div><strong>Metro:</strong> Louvre-Rivoli (Line 1)</div>
-             <div><strong>Metro:</strong> Pont Neuf (Line 7)</div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+      <Header translations={nav as any} />
 
-        <div className="prose prose-lg">
-          <h3>How to see the locks?</h3>
-          <p>If you go there today, you will see glass panels. To see the locks, you need the **LoveLockParis App** (Web). It uses AR to show the virtual locks on the bridge.</p>
-        </div>
+      <main className="container mx-auto px-4 py-24">
+        <article className="mx-auto max-w-3xl space-y-20">
 
-        <div className="mt-12 text-center">
-          <Link href="/bridge">
-            <Button size="lg" variant="outline" className="mr-4">View 3D Map</Button>
-          </Link>
-          <Link href="/purchase">
-            <Button size="lg" className="bg-[#e11d48] text-white">Place a Lock Here</Button>
-          </Link>
-        </div>
+          <section>
+            <h1 className="text-4xl md:text-5xl font-serif font-extrabold">
+              Where is the Love Lock Bridge in Paris?
+            </h1>
+
+            <p className="mt-6 text-xl text-slate-700 leading-relaxed">
+              People don’t search for the Pont des Arts by accident.
+              They search for it because they feel drawn to something —
+              even before they know where it is.
+            </p>
+          </section>
+
+          <section>
+            <p className="text-lg leading-relaxed text-slate-700">
+              The bridge lies quietly between two worlds:
+              the Louvre on one side,
+              Saint-Germain-des-Prés on the other.
+            </p>
+
+            <p className="mt-4 text-lg leading-relaxed text-slate-700">
+              It is a pedestrian bridge,
+              light and open,
+              designed not for speed but for pause.
+              That is why it became the
+              <strong> bridge with locks in Paris</strong>.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-3xl font-serif font-extrabold">
+              Why this bridge?
+            </h2>
+
+            <p className="mt-6 text-lg leading-relaxed text-slate-700">
+              Lovers don’t choose the Pont des Arts because of a sign.
+              They choose it because of what it connects.
+            </p>
+
+            <p className="mt-4 text-lg leading-relaxed text-slate-700">
+              Art and life.
+              History and youth.
+              Silence and movement.
+            </p>
+          </section>
+
+          <section>
+            <p className="text-lg leading-relaxed text-slate-700">
+              This is where the story of the
+              <strong> love lock bridge Paris</strong> truly began.
+              And it’s why people still arrive here,
+              even after the locks are gone.
+            </p>
+
+            <p className="mt-4 text-lg leading-relaxed text-slate-700">
+              To understand how the ritual started,
+              how it ended,
+              and what remains today,
+              the full story continues here —
+              <Link
+                href="/guide/love-lock-bridge-paris"
+                className="text-[#e11d48] underline underline-offset-4 font-semibold ml-1"
+              >
+                the complete Love Lock Bridge Paris story
+              </Link>
+              .
+            </p>
+          </section>
+
+        </article>
       </main>
     </div>
   );
