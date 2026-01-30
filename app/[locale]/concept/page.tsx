@@ -1,31 +1,33 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { 
-  TrendingUp, ShieldCheck, Globe, Lock, ArrowRight, 
-  Coins, BarChart3, Rocket, Gem, Repeat, MapPin, Eye, Wallet, 
-  Zap, Cloud, InfinityIcon, Gift, Target, Users, TrendingDown, 
-  Clock, Building, CheckCircle, DollarSign, PieChart, LineChart,
-  Heart, Sparkles // <--- C'EST ICI QU'ILS DOIVENT ÊTRE
+import {
+  TrendingUp, ShieldCheck, Globe,
+  Coins, Gem, MapPin, Eye, Wallet,
+  InfinityIcon, Clock, CheckCircle,
+  Heart
 } from 'lucide-react';
 import { Header } from '@/components/home/header';
 import { Card, CardContent } from '@/components/ui/card';
 
 export const metadata: Metadata = {
   title: 'LoveLockParis Concept | Digital Love Lock Investment & Passive Income Strategy',
-  description: 'Invest in digital real estate on Pont des Arts. Earn from views, resell on marketplace, benefit from finite supply & infinite demand. Turn romance into ROI.',
-  keywords: 'digital love lock investment, virtual love lock paris, love lock passive income, pont des arts digital real estate, buy love lock paris, love lock marketplace',
+  description:
+    'Invest in digital real estate on Pont des Arts. Earn from views, resell on marketplace, benefit from finite supply & infinite demand. Turn romance into ROI.',
+  keywords:
+    'digital love lock investment, virtual love lock paris, love lock passive income, pont des arts digital real estate, buy love lock paris, love lock marketplace',
 };
 
-export default function ConceptPage() {
-  // Structured Data for Investment/FINANCE
+export default function ConceptPage({ params }: { params: { locale: string } }) {
+  const locale = params?.locale || 'en';
+
   const investmentSchema = {
     "@context": "https://schema.org",
     "@type": "InvestmentOrDeposit",
     "name": "Digital Love Lock Investment on Pont des Arts",
     "description": "Digital asset investment combining romantic value with financial appreciation potential.",
-    "url": "https://lovelockparis.com/concept",
+    "url": `https://lovelockparis.com/${locale}/concept`,
     "offers": {
       "@type": "Offer",
       "price": "29.99",
@@ -39,6 +41,7 @@ export default function ConceptPage() {
   };
 
   return (
+
     <div className="min-h-screen bg-white text-slate-900 font-sans">
       {/* Structured Data */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(investmentSchema) }} />
