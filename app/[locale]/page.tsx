@@ -1080,15 +1080,65 @@ export default async function Home({ params }: { params: { locale: string } }) {
 
       <PurchaseNotifications />
 
-      <PurchaseNotifications />
 
- {/* FOOTER */}
+{/* FOOTER */}
 <footer className="border-t border-slate-200 bg-white py-8 sm:py-12 md:py-16">
   <div className="container mx-auto px-4">
     <div className="max-w-6xl mx-auto">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10 mb-8 sm:mb-10 md:mb-12">
-        
-        {/* BRAND */}
+
+        {/* CONCIERGE — MOBILE FIRST (visible en haut sur mobile, caché dès lg) */}
+        <div className="lg:hidden">
+          <h4 className="font-extrabold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
+            Concierge
+          </h4>
+
+          <a
+            href="/paris-concierge-service"
+            className="group block rounded-2xl border border-amber-200 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 shadow-xl hover:shadow-2xl transition"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-extrabold text-white">
+                  Paris Concierge Service
+                </div>
+                <div className="text-[11px] font-bold tracking-[0.16em] text-amber-300 uppercase mt-1">
+                  VIP • Private Access • Luxury
+                </div>
+              </div>
+
+              <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-extrabold tracking-wider text-white">
+                SELECT
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                <div className="text-[10px] font-bold text-white/80">Jet</div>
+                <div className="text-[11px] font-extrabold text-white">Tarmac</div>
+              </div>
+              <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                <div className="text-[10px] font-bold text-white/80">Mercedes</div>
+                <div className="text-[11px] font-extrabold text-white">S-Class</div>
+              </div>
+              <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                <div className="text-[10px] font-bold text-white/80">Nightlife</div>
+                <div className="text-[11px] font-extrabold text-white">Clubs</div>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between">
+              <div className="text-xs font-semibold text-white/85">
+                Fast reply • Discreet • Premium
+              </div>
+              <div className="text-xs font-extrabold text-amber-300 group-hover:text-amber-200">
+                Open →
+              </div>
+            </div>
+          </a>
+        </div>
+
+        {/* BRAND (desktop: concierge juste en dessous) */}
         <div>
           <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
             <Heart className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-[#e11d48] fill-[#e11d48]" />
@@ -1096,6 +1146,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
               LoveLock<span className="text-[#e11d48]">Paris</span>
             </span>
           </div>
+
           <p className="text-xs sm:text-sm text-slate-600">
             {locale === 'fr'
               ? "Le registre numérique officiel du Pont des Cadenas d'Amour. Préserver le romantisme, protéger le patrimoine."
@@ -1103,6 +1154,62 @@ export default async function Home({ params }: { params: { locale: string } }) {
               ? "艺术桥爱情锁官方数字注册平台，自2026年起保护浪漫与文化遗产。"
               : "The official digital registry of the Pont des Arts Love Lock Bridge. Preserving romance and heritage."}
           </p>
+
+          {/* CONCIERGE — DESKTOP sous la brand (visible dès lg) */}
+          <div className="hidden lg:block mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-extrabold text-slate-900 text-sm">
+                Concierge
+              </h4>
+              <span className="text-[10px] font-extrabold tracking-[0.18em] text-amber-600 uppercase">
+                VIP Select
+              </span>
+            </div>
+
+            <a
+              href="/paris-concierge-service"
+              className="group block rounded-2xl border border-amber-200 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 shadow-xl hover:shadow-2xl transition"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-extrabold text-white">
+                    Paris Concierge Service
+                  </div>
+                  <div className="text-[11px] font-bold tracking-[0.16em] text-amber-300 uppercase mt-1">
+                    VIP • Private Access • Luxury
+                  </div>
+                </div>
+
+                <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-extrabold tracking-wider text-white">
+                  SELECT
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                  <div className="text-[10px] font-bold text-white/80">Jet</div>
+                  <div className="text-[11px] font-extrabold text-white">Tarmac</div>
+                </div>
+                <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                  <div className="text-[10px] font-bold text-white/80">Mercedes</div>
+                  <div className="text-[11px] font-extrabold text-white">S-Class</div>
+                </div>
+                <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                  <div className="text-[10px] font-bold text-white/80">Yacht</div>
+                  <div className="text-[11px] font-extrabold text-white">Seine</div>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+                <div className="text-xs font-semibold text-white/85">
+                  Fast reply • Discreet • Premium
+                </div>
+                <div className="text-xs font-extrabold text-amber-300 group-hover:text-amber-200">
+                  Open →
+                </div>
+              </div>
+            </a>
+          </div>
         </div>
 
         {/* NAVIGATION */}
@@ -1138,30 +1245,9 @@ export default async function Home({ params }: { params: { locale: string } }) {
               Romantic Things to Do in Paris
             </a>
           </div>
-
-          {/* mini séparateur */}
-          <div className="h-px bg-slate-100 my-4"></div>
-
-          {/* CONCIERGE (mise en avant) */}
-          <div>
-            <h4 className="font-bold text-amber-600 text-sm sm:text-base mb-3 sm:mb-4">
-              Concierge
-            </h4>
-            <a
-              href="/paris-concierge-service"
-              className="block rounded-xl border border-amber-300 bg-gradient-to-br from-amber-50 to-white px-4 py-3 hover:shadow-md transition"
-            >
-              <div className="text-sm font-extrabold text-amber-700">
-                Paris Concierge Service
-              </div>
-              <div className="text-[11px] font-bold tracking-wide text-amber-500 uppercase mt-1">
-                VIP • Private Access • Luxury
-              </div>
-            </a>
-          </div>
         </div>
 
-        {/* LEGAL (on garde) */}
+        {/* LEGAL */}
         <div>
           <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
             Legal
@@ -1197,6 +1283,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
     </div>
   </div>
 </footer>
+
     </div>
   );
 }
