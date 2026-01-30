@@ -339,29 +339,75 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* FOOTER avec Micro-données */}
-      <footer className="py-12 text-center border-t bg-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <Heart className="h-8 w-8 text-[#e11d48] fill-[#e11d48]" />
-              <span className="text-2xl font-serif font-bold text-slate-900">LoveLock<span className="text-[#e11d48]">Paris</span></span>
+     {/* FOOTER (INLINE) */}
+        <footer className="bg-slate-950 text-white">
+          <div className="container mx-auto px-4 max-w-6xl py-12">
+            <div className="grid md:grid-cols-4 gap-8">
+              <div className="md:col-span-2">
+                <p className="font-serif text-2xl font-bold">Paris Concierge Service</p>
+                <p className="mt-3 text-white/75 leading-relaxed text-sm">
+                  {isFR
+                    ? "Conciergerie de luxe à Paris pour couples et groupes : jet privé, avion, hélicoptère, yacht, Mercedes Classe S, van premium, restaurants, club privé select (accès garanti) et shopping luxe."
+                    : "Luxury concierge in Paris for couples and groups: private jet, flights, helicopter, yacht, S-Class, premium van, restaurants, private club select (guaranteed access) and luxury shopping."}
+                </p>
+
+                <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                  <a href={`tel:${PHONE_TEL}`} className="w-full sm:w-auto">
+                    <Button className="w-full sm:w-auto rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold">
+                      <Phone className="mr-2 h-4 w-4" />
+                      {PHONE_DISPLAY}
+                    </Button>
+                  </a>
+                  <a href={`mailto:${EMAIL}`} className="w-full sm:w-auto">
+                    <Button variant="outline" className="w-full sm:w-auto rounded-full border-white/30 text-white hover:bg-white hover:text-slate-950 font-bold">
+                      <Mail className="mr-2 h-4 w-4" />
+                      {EMAIL}
+                    </Button>
+                  </a>
+                </div>
+
+                <p className="mt-4 text-xs text-white/55">
+                  {isFR
+                    ? "Le chat est disponible sur le site. Si un besoin n’est pas listé : mail, appel ou chat."
+                    : "Chat is available on the site. If a request isn’t listed: email, call or chat."}
+                </p>
+              </div>
+
+              <div>
+                <p className="font-bold text-white">Services</p>
+                <ul className="mt-3 space-y-2 text-sm text-white/75">
+                  <li className="flex gap-2"><Plane className="h-4 w-4 text-white/70" /> Jet / Avion / Tarmac</li>
+                  <li className="flex gap-2"><Ship className="h-4 w-4 text-white/70" /> Yacht</li>
+                  <li className="flex gap-2"><Car className="h-4 w-4 text-white/70" /> Mercedes S + Van</li>
+                  <li className="flex gap-2"><Crown className="h-4 w-4 text-white/70" /> Club privé select</li>
+                  <li className="flex gap-2"><Award className="h-4 w-4 text-white/70" /> Shopping luxe</li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-bold text-white">Paris</p>
+                <ul className="mt-3 space-y-2 text-sm text-white/75">
+                  <li className="flex gap-2"><MapPin className="h-4 w-4 text-white/70" /> Paris • Île-de-France</li>
+                  <li className="flex gap-2"><Calendar className="h-4 w-4 text-white/70" /> 7j/7 • 24/7</li>
+                  <li className="flex gap-2"><ShieldCheck className="h-4 w-4 text-white/70" /> Discrétion & sécurité</li>
+                  <li className="flex gap-2"><Users className="h-4 w-4 text-white/70" /> Couples & groupes</li>
+                </ul>
+              </div>
             </div>
-            <p className="text-sm text-slate-600 mb-8 max-w-2xl mx-auto">
-              The Official Digital Successor to the Pont des Arts Love Lock Tradition. 
-              Preserving Romance, Protecting Heritage.
-            </p>
-            
-            <div className="text-xs text-slate-500 space-y-2">
-              <p>© 2025 PANORAMA GRUP. All rights reserved. LoveLockParis™ is a registered trademark.</p>
-              <p className="text-slate-400">
-                Historical Reference: Pont des Arts, 75006 Paris, France • Bridge constructed: 1804 • 
-                Love lock tradition: 2008-2015 • Digital renaissance: 2025-present
+
+            <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <p className="text-xs text-white/55">
+                © {new Date().getFullYear()} • Paris Concierge Service • All rights reserved.
+              </p>
+              <p className="text-xs text-white/55">
+                {isFR
+                  ? "Aucune promesse irréaliste : tout se fait selon disponibilité et validation."
+                  : "No unrealistic promises: everything depends on availability and validation."}
               </p>
             </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </main>
     </div>
   );
-} 
+}
