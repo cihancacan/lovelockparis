@@ -11,7 +11,14 @@ export const metadata: Metadata = {
   keywords: 'love lock bridge paris history, pont des arts collapse, why are love locks illegal, love lock ban paris 2015, digital love lock alternative, love lock bridge story, paris bridge collapse weight',
 };
 
-export default function AboutPage() {
+export default function AboutPage({
+  params,
+}: {
+  params: { locale: string };
+}) {
+  // ✅ FIX: locale est maintenant défini
+  const locale = params?.locale ?? 'en';
+
   // Structured Data for SEO
   const historicalSchema = {
     "@context": "https://schema.org",
@@ -53,7 +60,8 @@ export default function AboutPage() {
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent"></div>
-        <div className="relative z-10 max-w-4xl mx-auto text-white space-y-6 pt+2">
+        {/* ✅ FIX Tailwind: pt+2 -> pt-2 */}
+        <div className="relative z-10 max-w-4xl mx-auto text-white space-y-6 pt-2">
           
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur border border-white/30 text-xs font-bold uppercase tracking-widest animate-fade-in">
             <History className="h-4 w-4" /> The Untold Story
@@ -339,208 +347,208 @@ export default function AboutPage() {
         </div>
       </section>
 
-   {/* FOOTER */}
-<footer className="border-t border-slate-200 bg-white py-8 sm:py-12 md:py-16">
-  <div className="container mx-auto px-4">
-    <div className="max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10 mb-8 sm:mb-10 md:mb-12">
+      {/* FOOTER */}
+      <footer className="border-t border-slate-200 bg-white py-8 sm:py-12 md:py-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10 mb-8 sm:mb-10 md:mb-12">
 
-        {/* CONCIERGE — MOBILE FIRST (visible en haut sur mobile, caché dès lg) */}
-        <div className="lg:hidden">
-          <h4 className="font-extrabold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-            Concierge
-          </h4>
+              {/* CONCIERGE — MOBILE FIRST (visible en haut sur mobile, caché dès lg) */}
+              <div className="lg:hidden">
+                <h4 className="font-extrabold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
+                  Concierge
+                </h4>
 
-          <a
-            href="/paris-concierge-service"
-            className="group block rounded-2xl border border-amber-200 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 shadow-xl hover:shadow-2xl transition"
-          >
-            <div className="flex items-start justify-between gap-3">
+                <a
+                  href="/paris-concierge-service"
+                  className="group block rounded-2xl border border-amber-200 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 shadow-xl hover:shadow-2xl transition"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-extrabold text-white">
+                        Paris Concierge Service
+                      </div>
+                      <div className="text-[11px] font-bold tracking-[0.16em] text-amber-300 uppercase mt-1">
+                        VIP • Private Access • Luxury
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-extrabold tracking-wider text-white">
+                      SELECT
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                      <div className="text-[10px] font-bold text-white/80">Jet</div>
+                      <div className="text-[11px] font-extrabold text-white">Tarmac</div>
+                    </div>
+                    <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                      <div className="text-[10px] font-bold text-white/80">Mercedes</div>
+                      <div className="text-[11px] font-extrabold text-white">S-Class</div>
+                    </div>
+                    <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                      <div className="text-[10px] font-bold text-white/80">Nightlife</div>
+                      <div className="text-[11px] font-extrabold text-white">Clubs</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="text-xs font-semibold text-white/85">
+                      Fast reply • Discreet • Premium
+                    </div>
+                    <div className="text-xs font-extrabold text-amber-300 group-hover:text-amber-200">
+                      Open →
+                    </div>
+                  </div>
+                </a>
+              </div>
+
+              {/* BRAND (desktop: concierge juste en dessous) */}
               <div>
-                <div className="text-sm font-extrabold text-white">
-                  Paris Concierge Service
+                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                  <Heart className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-[#e11d48] fill-[#e11d48]" />
+                  <span className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
+                    LoveLock<span className="text-[#e11d48]">Paris</span>
+                  </span>
                 </div>
-                <div className="text-[11px] font-bold tracking-[0.16em] text-amber-300 uppercase mt-1">
-                  VIP • Private Access • Luxury
-                </div>
-              </div>
 
-              <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-extrabold tracking-wider text-white">
-                SELECT
-              </div>
-            </div>
+                <p className="text-xs sm:text-sm text-slate-600">
+                  {locale === 'fr'
+                    ? "Le registre numérique officiel du Pont des Cadenas d'Amour. Préserver le romantisme, protéger le patrimoine."
+                    : locale === 'zh-CN'
+                    ? "艺术桥爱情锁官方数字注册平台，自2026年起保护浪漫与文化遗产。"
+                    : "The official digital registry of the Pont des Arts Love Lock Bridge. Preserving romance and heritage."}
+                </p>
 
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                <div className="text-[10px] font-bold text-white/80">Jet</div>
-                <div className="text-[11px] font-extrabold text-white">Tarmac</div>
-              </div>
-              <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                <div className="text-[10px] font-bold text-white/80">Mercedes</div>
-                <div className="text-[11px] font-extrabold text-white">S-Class</div>
-              </div>
-              <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                <div className="text-[10px] font-bold text-white/80">Nightlife</div>
-                <div className="text-[11px] font-extrabold text-white">Clubs</div>
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between">
-              <div className="text-xs font-semibold text-white/85">
-                Fast reply • Discreet • Premium
-              </div>
-              <div className="text-xs font-extrabold text-amber-300 group-hover:text-amber-200">
-                Open →
-              </div>
-            </div>
-          </a>
-        </div>
-
-        {/* BRAND (desktop: concierge juste en dessous) */}
-        <div>
-          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-            <Heart className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-[#e11d48] fill-[#e11d48]" />
-            <span className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
-              LoveLock<span className="text-[#e11d48]">Paris</span>
-            </span>
-          </div>
-
-          <p className="text-xs sm:text-sm text-slate-600">
-            {locale === 'fr'
-              ? "Le registre numérique officiel du Pont des Cadenas d'Amour. Préserver le romantisme, protéger le patrimoine."
-              : locale === 'zh-CN'
-              ? "艺术桥爱情锁官方数字注册平台，自2026年起保护浪漫与文化遗产。"
-              : "The official digital registry of the Pont des Arts Love Lock Bridge. Preserving romance and heritage."}
-          </p>
-
-          {/* CONCIERGE — DESKTOP sous la brand (visible dès lg) */}
-          <div className="hidden lg:block mt-6">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-extrabold text-slate-900 text-sm">
-                Concierge
-              </h4>
-              <span className="text-[10px] font-extrabold tracking-[0.18em] text-amber-600 uppercase">
-                VIP Select
-              </span>
-            </div>
-
-            <a
-              href="/paris-concierge-service"
-              className="group block rounded-2xl border border-amber-200 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 shadow-xl hover:shadow-2xl transition"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-extrabold text-white">
-                    Paris Concierge Service
+                {/* CONCIERGE — DESKTOP sous la brand (visible dès lg) */}
+                <div className="hidden lg:block mt-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-extrabold text-slate-900 text-sm">
+                      Concierge
+                    </h4>
+                    <span className="text-[10px] font-extrabold tracking-[0.18em] text-amber-600 uppercase">
+                      VIP Select
+                    </span>
                   </div>
-                  <div className="text-[11px] font-bold tracking-[0.16em] text-amber-300 uppercase mt-1">
-                    VIP • Private Access • Luxury
-                  </div>
-                </div>
 
-                <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-extrabold tracking-wider text-white">
-                  SELECT
+                  <a
+                    href="/paris-concierge-service"
+                    className="group block rounded-2xl border border-amber-200 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 shadow-xl hover:shadow-2xl transition"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-extrabold text-white">
+                          Paris Concierge Service
+                        </div>
+                        <div className="text-[11px] font-bold tracking-[0.16em] text-amber-300 uppercase mt-1">
+                          VIP • Private Access • Luxury
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-extrabold tracking-wider text-white">
+                        SELECT
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                        <div className="text-[10px] font-bold text-white/80">Jet</div>
+                        <div className="text-[11px] font-extrabold text-white">Tarmac</div>
+                      </div>
+                      <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                        <div className="text-[10px] font-bold text-white/80">Mercedes</div>
+                        <div className="text-[11px] font-extrabold text-white">S-Class</div>
+                      </div>
+                      <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
+                        <div className="text-[10px] font-bold text-white/80">Yacht</div>
+                        <div className="text-[11px] font-extrabold text-white">Seine</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="text-xs font-semibold text-white/85">
+                        Fast reply • Discreet • Premium
+                      </div>
+                      <div className="text-xs font-extrabold text-amber-300 group-hover:text-amber-200">
+                        Open →
+                      </div>
+                    </div>
+                  </a>
                 </div>
               </div>
 
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                  <div className="text-[10px] font-bold text-white/80">Jet</div>
-                  <div className="text-[11px] font-extrabold text-white">Tarmac</div>
+              {/* NAVIGATION */}
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
+                  Navigation
+                </h4>
+                <div className="space-y-2 text-xs sm:text-sm">
+                  <a href="/marketplace" className="block text-slate-600 hover:text-[#e11d48]">Marketplace</a>
+                  <a href="/bridge" className="block text-slate-600 hover:text-[#e11d48]">3D Bridge</a>
+                  <a href="/ar-view" className="block text-slate-600 hover:text-[#e11d48]">AR View</a>
+                  <a href="/concept" className="block text-slate-600 hover:text-[#e11d48]">Concept</a>
+                  <a href="/about" className="block text-slate-600 hover:text-[#e11d48]">History</a>
                 </div>
-                <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                  <div className="text-[10px] font-bold text-white/80">Mercedes</div>
-                  <div className="text-[11px] font-extrabold text-white">S-Class</div>
-                </div>
-                <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                  <div className="text-[10px] font-bold text-white/80">Yacht</div>
-                  <div className="text-[11px] font-extrabold text-white">Seine</div>
+              </div>
+
+              {/* PARIS GUIDES */}
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
+                  Paris Guides
+                </h4>
+                <div className="space-y-2 text-xs sm:text-sm">
+                  <a href="/guide/is-it-illegal-paris-locks" className="block text-slate-600 hover:text-[#e11d48]">
+                    Is It Illegal to Put Love Locks in Paris?
+                  </a>
+                  <a href="/guide/love-lock-bridge-paris" className="block text-slate-600 hover:text-[#e11d48]">
+                    Love Lock Bridge Paris
+                  </a>
+                  <a href="/guide/where-is-pont-des-arts" className="block text-slate-600 hover:text-[#e11d48]">
+                    Where Is Pont des Arts?
+                  </a>
+                  <a href="/romantic-things-to-do-in-paris" className="block text-slate-600 hover:text-[#e11d48]">
+                    Romantic Things to Do in Paris
+                  </a>
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center justify-between">
-                <div className="text-xs font-semibold text-white/85">
-                  Fast reply • Discreet • Premium
-                </div>
-                <div className="text-xs font-extrabold text-amber-300 group-hover:text-amber-200">
-                  Open →
+              {/* LEGAL */}
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
+                  Legal
+                </h4>
+                <div className="space-y-2 text-xs sm:text-sm">
+                  <a href="/legal" className="block text-slate-600 hover:text-[#e11d48]">
+                    Legal Notice
+                  </a>
+                  <a href="/terms" className="block text-slate-600 hover:text-[#e11d48]">
+                    Terms of Service
+                  </a>
+                  <a href="/privacy" className="block text-slate-600 hover:text-[#e11d48]">
+                    Privacy Policy
+                  </a>
                 </div>
               </div>
-            </a>
+            </div>
+
+            {/* BOTTOM */}
+            <div className="pt-4 sm:pt-6 md:pt-8 border-t border-slate-100 text-center">
+              <p className="text-xs sm:text-sm text-slate-600 mb-2">
+                {locale === 'fr'
+                  ? "Pont des Arts • 75006 Paris • GPS : 48.858370, 2.337480"
+                  : locale === 'zh-CN'
+                  ? "巴黎艺术桥 • 75006 巴黎 • GPS：48.858370, 2.337480"
+                  : "Pont des Arts • 75006 Paris • GPS: 48.858370, 2.337480"}
+              </p>
+
+              <p className="text-[10px] sm:text-xs text-slate-500">
+                © 2026 PANORAMA GRUP. LoveLockParis™ — All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
-
-        {/* NAVIGATION */}
-        <div>
-          <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-            Navigation
-          </h4>
-          <div className="space-y-2 text-xs sm:text-sm">
-            <a href="/marketplace" className="block text-slate-600 hover:text-[#e11d48]">Marketplace</a>
-            <a href="/bridge" className="block text-slate-600 hover:text-[#e11d48]">3D Bridge</a>
-            <a href="/ar-view" className="block text-slate-600 hover:text-[#e11d48]">AR View</a>
-            <a href="/concept" className="block text-slate-600 hover:text-[#e11d48]">Concept</a>
-            <a href="/about" className="block text-slate-600 hover:text-[#e11d48]">History</a>
-          </div>
-        </div>
-
-        {/* PARIS GUIDES */}
-        <div>
-          <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-            Paris Guides
-          </h4>
-          <div className="space-y-2 text-xs sm:text-sm">
-            <a href="/guide/is-it-illegal-paris-locks" className="block text-slate-600 hover:text-[#e11d48]">
-              Is It Illegal to Put Love Locks in Paris?
-            </a>
-            <a href="/guide/love-lock-bridge-paris" className="block text-slate-600 hover:text-[#e11d48]">
-              Love Lock Bridge Paris
-            </a>
-            <a href="/guide/where-is-pont-des-arts" className="block text-slate-600 hover:text-[#e11d48]">
-              Where Is Pont des Arts?
-            </a>
-            <a href="/romantic-things-to-do-in-paris" className="block text-slate-600 hover:text-[#e11d48]">
-              Romantic Things to Do in Paris
-            </a>
-          </div>
-        </div>
-
-        {/* LEGAL */}
-        <div>
-          <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-            Legal
-          </h4>
-          <div className="space-y-2 text-xs sm:text-sm">
-            <a href="/legal" className="block text-slate-600 hover:text-[#e11d48]">
-              Legal Notice
-            </a>
-            <a href="/terms" className="block text-slate-600 hover:text-[#e11d48]">
-              Terms of Service
-            </a>
-            <a href="/privacy" className="block text-slate-600 hover:text-[#e11d48]">
-              Privacy Policy
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* BOTTOM */}
-      <div className="pt-4 sm:pt-6 md:pt-8 border-t border-slate-100 text-center">
-        <p className="text-xs sm:text-sm text-slate-600 mb-2">
-          {locale === 'fr'
-            ? "Pont des Arts • 75006 Paris • GPS : 48.858370, 2.337480"
-            : locale === 'zh-CN'
-            ? "巴黎艺术桥 • 75006 巴黎 • GPS：48.858370, 2.337480"
-            : "Pont des Arts • 75006 Paris • GPS: 48.858370, 2.337480"}
-        </p>
-
-        <p className="text-[10px] sm:text-xs text-slate-500">
-          © 2026 PANORAMA GRUP. LoveLockParis™ — All rights reserved.
-        </p>
-      </div>
-    </div>
-  </div>
-</footer>
+      </footer>
 
     </div>
   );
