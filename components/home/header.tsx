@@ -1,176 +1,166 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Menu, X, ArrowRight } from "lucide-react";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { 
+  Heart, Shield, Menu, 
+  Camera, Smartphone, Lightbulb, BookOpen, Globe, Lock, TrendingUp 
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { LanguageSelector } from '@/components/ui/language-selector';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { useAuth } from '@/lib/auth-context';
+import { isAdmin } from '@/lib/admin';
+import { cn } from '@/lib/utils';
 
-type HeaderTranslations = {
-  navBridge?: string;
-  navConcierge?: string;
-  ctaStart?: string;
+type HeaderProps = {
+  translations?: {
+    navBridge: string;
+    problemHeading: string;
+    solutionHeading: string;
+    ctaStart: string;
+  };
 };
 
-function cx(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
+export function Header({ translations }: HeaderProps) {
+  const { user, loading } = useAuth();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const showAdminLink = !loading && user && isAdmin(user.email);
 
-export function Header({
-  locale,
-  translations,
-}: {
-  locale: string;
-  translations?: HeaderTranslations;
-}) {
-  const [open, setOpen] = React.useState(false);
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-  const t: Required<HeaderTranslations> = {
-    navBridge: translations?.navBridge ?? "3D Bridge",
-    navConcierge: translations?.navConcierge ?? "Concierge",
-    ctaStart: translations?.ctaStart ?? "Start",
+  const headerClass = cn(
+    "sticky top-0 z-50 transition-all duration-300 border-b w-full",
+    isScrolled 
+      ? "bg-white/95 backdrop-blur-md border-slate-200 py-2 shadow-sm" 
+      : "bg-white/80 backdrop-blur-sm border-transparent py-4" 
+  );
+
+  const t = translations || {
+    navBridge: "The Bridge",
+    ctaStart: "Secure My Spot"
   };
 
-  const homeHref = `/${locale}`;
-  const conciergeHref = `/${locale}/paris-concierge-service`;
-  const bridgeHref = `/${locale}#bridge`;
-
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200/60 bg-white/80 backdrop-blur-xl">
-      <div className="mx-auto max-w-6xl px-4">
-        <div className="flex h-16 items-center justify-between">
+    <header className={headerClass}>
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between">
+          
           {/* LOGO */}
-          <Link href={homeHref} className="flex items-center gap-3">
-            <div className="relative h-9 w-9 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <Image
-                src="/logo.png"
-                alt="Love Lock Paris"
-                fill
-                className="object-contain p-1"
-                sizes="36px"
-                priority
-              />
-            </div>
-            <div className="leading-tight">
-              <div className="text-sm font-extrabold tracking-tight text-slate-900">
-                Love Lock Paris
-              </div>
-              <div className="text-[11px] font-semibold text-slate-500">
-                Paris • Premium Experience
-              </div>
-            </div>
+          <Link href="/" className="flex items-center space-x-2 group z-50">
+            <Heart className="h-7 w-7 text-[#e11d48] fill-[#e11d48]" />
+            <span className="text-xl md:text-2xl font-serif font-bold tracking-tight text-slate-900">
+              LoveLock<span className="text-[#e11d48]">Paris</span>
+            </span>
           </Link>
 
-          {/* NAV DESKTOP */}
-          <nav className="hidden md:flex items-center gap-7">
-            {/* CONCIERGE – couleur différente */}
+          {/* ===== DESKTOP NAV ===== */}
+          <nav className="hidden lg:flex items-center gap-6 font-sans">
+
+            {/* CONCIERGE (AJOUTÉ) */}
             <Link
-              href={conciergeHref}
-              className="text-sm font-extrabold text-rose-600 hover:text-rose-700 transition"
+              href="/paris-concierge-service"
+              className="text-sm font-extrabold text-[#e11d48] hover:text-[#be123c] transition-colors"
             >
-              {t.navConcierge}
+              Concierge
             </Link>
 
-            <Link
-              href={bridgeHref}
-              className="text-sm font-semibold text-slate-700 hover:text-slate-900 transition"
-            >
-              {t.navBridge}
+            <Link href="/marketplace">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 font-bold text-sm">
+                <TrendingUp size={16}/> Marketplace
+              </div>
             </Link>
 
-            <Link href={homeHref}>
-              <Button className="rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold">
+            <Link href="/concept" className="text-sm font-bold text-slate-700 hover:text-[#e11d48]">
+              Concept
+            </Link>
+            <Link href="/about" className="text-sm font-bold text-slate-700 hover:text-[#e11d48]">
+              History
+            </Link>
+            <Link href="/bridge" className="text-sm font-bold text-slate-700 hover:text-[#e11d48]">
+              3D Bridge
+            </Link>
+
+            {showAdminLink && (
+              <Link href="/admin" className="text-sm font-bold text-blue-600">
+                <Shield className="h-3 w-3 inline" /> Admin
+              </Link>
+            )}
+
+            <LanguageSelector />
+
+            {!loading && (
+              user ? (
+                <Link href="/dashboard" className="text-sm font-bold text-slate-900">
+                  Dashboard
+                </Link>
+              ) : (
+                <Link href="/purchase" className="text-sm font-bold text-slate-700">
+                  Login
+                </Link>
+              )
+            )}
+
+            <Link href="/purchase">
+              <Button className="bg-[#e11d48] text-white font-bold rounded-full px-6">
                 {t.ctaStart}
-                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </nav>
 
-          {/* BOUTON MOBILE */}
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="md:hidden inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-sm"
-            aria-label="Open menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
+          {/* ===== MOBILE NAV ===== */}
+          <div className="lg:hidden flex items-center gap-2">
+            <LanguageSelector />
 
-      {/* MENU MOBILE */}
-      <div
-        className={cx(
-          "fixed inset-0 z-[60] md:hidden transition",
-          open ? "pointer-events-auto" : "pointer-events-none"
-        )}
-      >
-        {/* Overlay */}
-        <div
-          className={cx(
-            "absolute inset-0 bg-black/40 transition-opacity",
-            open ? "opacity-100" : "opacity-0"
-          )}
-          onClick={() => setOpen(false)}
-        />
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost">
+                  <Menu className="h-7 w-7" />
+                </Button>
+              </SheetTrigger>
 
-        {/* Panel */}
-        <div
-          className={cx(
-            "absolute right-0 top-0 h-full w-[86%] max-w-sm bg-white shadow-2xl transition-transform",
-            open ? "translate-x-0" : "translate-x-full"
-          )}
-        >
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-            <div className="font-extrabold text-slate-900">Menu</div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900"
-              aria-label="Close menu"
-            >
-              <X className="h-5 w-5" />
-            </button>
+              <SheetContent side="right">
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-[#e11d48]" /> Menu
+                  </SheetTitle>
+                </SheetHeader>
+
+                <div className="mt-6 space-y-2">
+
+                  {/* CONCIERGE MOBILE (AJOUTÉ) */}
+                  <Link
+                    href="/paris-concierge-service"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-[#e11d48] font-extrabold"
+                  >
+                    Concierge
+                  </Link>
+
+                  <Link href="/marketplace" onClick={() => setIsOpen(false)}>
+                    Marketplace
+                  </Link>
+                  <Link href="/bridge" onClick={() => setIsOpen(false)}>
+                    3D Bridge
+                  </Link>
+                  <Link href="/concept" onClick={() => setIsOpen(false)}>
+                    Concept
+                  </Link>
+                  <Link href="/about" onClick={() => setIsOpen(false)}>
+                    History
+                  </Link>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
 
-          <div className="px-5 py-5 space-y-3">
-            {/* CONCIERGE – mis en avant */}
-            <Link
-              href={conciergeHref}
-              onClick={() => setOpen(false)}
-              className="block rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-base font-extrabold text-rose-700"
-            >
-              {t.navConcierge}
-              <div className="text-xs font-semibold text-rose-500 mt-1">
-                Paris VIP • Clubs privés • Jet • Hélico • Yacht
-              </div>
-            </Link>
-
-            <Link
-              href={bridgeHref}
-              onClick={() => setOpen(false)}
-              className="block rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-bold text-slate-900"
-            >
-              {t.navBridge}
-            </Link>
-
-            <Link href={homeHref} onClick={() => setOpen(false)}>
-              <Button className="w-full rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-6">
-                {t.ctaStart}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-
-            <div className="pt-3 text-xs text-slate-500 leading-relaxed">
-              Le chat est déjà sur le site. Pour réserver : email ou téléphone.
-            </div>
-          </div>
-
-          <div className="absolute bottom-0 left-0 right-0 border-t border-slate-200 p-5">
-            <div className="text-xs text-slate-500">
-              © {new Date().getFullYear()} Love Lock Paris
-            </div>
-          </div>
         </div>
       </div>
     </header>
