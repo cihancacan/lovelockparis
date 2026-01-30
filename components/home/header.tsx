@@ -42,7 +42,6 @@ export function Header({
           {/* LOGO */}
           <Link href={homeHref} className="flex items-center gap-3">
             <div className="relative h-9 w-9 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              {/* Remplace le src si ton logo est ailleurs */}
               <Image
                 src="/logo.png"
                 alt="Love Lock Paris"
@@ -64,9 +63,10 @@ export function Header({
 
           {/* NAV DESKTOP */}
           <nav className="hidden md:flex items-center gap-7">
+            {/* CONCIERGE – couleur différente */}
             <Link
               href={conciergeHref}
-              className="text-sm font-bold text-slate-900 hover:text-rose-600 transition"
+              className="text-sm font-extrabold text-rose-600 hover:text-rose-700 transition"
             >
               {t.navConcierge}
             </Link>
@@ -134,13 +134,14 @@ export function Header({
           </div>
 
           <div className="px-5 py-5 space-y-3">
+            {/* CONCIERGE – mis en avant */}
             <Link
               href={conciergeHref}
               onClick={() => setOpen(false)}
-              className="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-extrabold text-slate-900"
+              className="block rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-base font-extrabold text-rose-700"
             >
               {t.navConcierge}
-              <div className="text-xs font-semibold text-slate-500 mt-1">
+              <div className="text-xs font-semibold text-rose-500 mt-1">
                 Paris VIP • Clubs privés • Jet • Hélico • Yacht
               </div>
             </Link>
