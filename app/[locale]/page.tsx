@@ -1082,100 +1082,118 @@ export default async function Home({ params }: { params: { locale: string } }) {
 
       <PurchaseNotifications />
 
-      {/* FOOTER */}
-      <footer className="border-t border-slate-200 bg-white py-8 sm:py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10 mb-8 sm:mb-10 md:mb-12">
-              
-              {/* BRAND */}
-              <div>
-                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                  <Heart className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-[#e11d48] fill-[#e11d48]" />
-                  <span className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
-                    LoveLock<span className="text-[#e11d48]">Paris</span>
-                  </span>
-                </div>
-                <p className="text-xs sm:text-sm text-slate-600">
-                  {locale === 'fr'
-                    ? "Le registre numérique officiel du Pont des Cadenas d'Amour. Préserver le romantisme, protéger le patrimoine."
-                    : locale === 'zh-CN'
-                    ? "艺术桥爱情锁官方数字注册平台，自2026年起保护浪漫与文化遗产。"
-                    : "The official digital registry of the Pont des Arts Love Lock Bridge. Preserving romance and heritage."}
-                </p>
-              </div>
+ {/* FOOTER */}
+<footer className="border-t border-slate-200 bg-white py-8 sm:py-12 md:py-16">
+  <div className="container mx-auto px-4">
+    <div className="max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10 mb-8 sm:mb-10 md:mb-12">
+        
+        {/* BRAND */}
+        <div>
+          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <Heart className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-[#e11d48] fill-[#e11d48]" />
+            <span className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
+              LoveLock<span className="text-[#e11d48]">Paris</span>
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-600">
+            {locale === 'fr'
+              ? "Le registre numérique officiel du Pont des Cadenas d'Amour. Préserver le romantisme, protéger le patrimoine."
+              : locale === 'zh-CN'
+              ? "艺术桥爱情锁官方数字注册平台，自2026年起保护浪漫与文化遗产。"
+              : "The official digital registry of the Pont des Arts Love Lock Bridge. Preserving romance and heritage."}
+          </p>
+        </div>
 
-              {/* NAVIGATION */}
-              <div>
-                <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-                  Navigation
-                </h4>
-                <div className="space-y-2 text-xs sm:text-sm">
-                  <a href="/marketplace" className="block text-slate-600 hover:text-[#e11d48]">Marketplace</a>
-                  <a href="/bridge" className="block text-slate-600 hover:text-[#e11d48]">3D Bridge</a>
-                  <a href="/ar-view" className="block text-slate-600 hover:text-[#e11d48]">AR View</a>
-                  <a href="/concept" className="block text-slate-600 hover:text-[#e11d48]">Concept</a>
-                  <a href="/about" className="block text-slate-600 hover:text-[#e11d48]">History</a>
-                </div>
-              </div>
-
-              {/* GUIDES & PARIS */}
-              <div>
-                <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-                  Paris Guides
-                </h4>
-                <div className="space-y-2 text-xs sm:text-sm">
-                  <a href="/guide/is-it-illegal-paris-locks" className="block text-slate-600 hover:text-[#e11d48]">
-                    Is It Illegal to Put Love Locks in Paris?
-                  </a>
-                  <a href="/guide/love-lock-bridge-paris" className="block text-slate-600 hover:text-[#e11d48]">
-                    Love Lock Bridge Paris
-                  </a>
-                  <a href="/guide/where-is-pont-des-arts" className="block text-slate-600 hover:text-[#e11d48]">
-                    Where Is Pont des Arts?
-                  </a>
-                  <a href="/romantic-things-to-do-in-paris" className="block text-slate-600 hover:text-[#e11d48]">
-                    Romantic Things to Do in Paris
-                  </a>
-                </div>
-              </div>
-
-              {/* CONCIERGE */}
-              <div>
-                <h4 className="font-bold text-amber-600 text-sm sm:text-base mb-3 sm:mb-4">
-                  Concierge
-                </h4>
-                <a
-                  href="/paris-concierge-service"
-                  className="block rounded-xl border border-amber-300 bg-gradient-to-br from-amber-50 to-white px-4 py-3 hover:shadow-md transition"
-                >
-                  <div className="text-sm font-extrabold text-amber-700">
-                    Paris Concierge Service
-                  </div>
-                  <div className="text-[11px] font-bold tracking-wide text-amber-500 uppercase mt-1">
-                    VIP • Private Access • Luxury
-                  </div>
-                </a>
-              </div>
-            </div>
-
-            {/* BOTTOM */}
-            <div className="pt-4 sm:pt-6 md:pt-8 border-t border-slate-100 text-center">
-              <p className="text-xs sm:text-sm text-slate-600 mb-2">
-                {locale === 'fr'
-                  ? "Pont des Arts • 75006 Paris • GPS : 48.858370, 2.337480"
-                  : locale === 'zh-CN'
-                  ? "巴黎艺术桥 • 75006 巴黎 • GPS：48.858370, 2.337480"
-                  : "Pont des Arts • 75006 Paris • GPS: 48.858370, 2.337480"}
-              </p>
-
-              <p className="text-[10px] sm:text-xs text-slate-500">
-                © 2026 PANORAMA GRUP. LoveLockParis™ — All rights reserved.
-              </p>
-            </div>
+        {/* NAVIGATION */}
+        <div>
+          <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
+            Navigation
+          </h4>
+          <div className="space-y-2 text-xs sm:text-sm">
+            <a href="/marketplace" className="block text-slate-600 hover:text-[#e11d48]">Marketplace</a>
+            <a href="/bridge" className="block text-slate-600 hover:text-[#e11d48]">3D Bridge</a>
+            <a href="/ar-view" className="block text-slate-600 hover:text-[#e11d48]">AR View</a>
+            <a href="/concept" className="block text-slate-600 hover:text-[#e11d48]">Concept</a>
+            <a href="/about" className="block text-slate-600 hover:text-[#e11d48]">History</a>
           </div>
         </div>
-      </footer>
+
+        {/* PARIS GUIDES */}
+        <div>
+          <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
+            Paris Guides
+          </h4>
+          <div className="space-y-2 text-xs sm:text-sm">
+            <a href="/guide/is-it-illegal-paris-locks" className="block text-slate-600 hover:text-[#e11d48]">
+              Is It Illegal to Put Love Locks in Paris?
+            </a>
+            <a href="/guide/love-lock-bridge-paris" className="block text-slate-600 hover:text-[#e11d48]">
+              Love Lock Bridge Paris
+            </a>
+            <a href="/guide/where-is-pont-des-arts" className="block text-slate-600 hover:text-[#e11d48]">
+              Where Is Pont des Arts?
+            </a>
+            <a href="/romantic-things-to-do-in-paris" className="block text-slate-600 hover:text-[#e11d48]">
+              Romantic Things to Do in Paris
+            </a>
+          </div>
+
+          {/* mini séparateur */}
+          <div className="h-px bg-slate-100 my-4"></div>
+
+          {/* CONCIERGE (mise en avant) */}
+          <div>
+            <h4 className="font-bold text-amber-600 text-sm sm:text-base mb-3 sm:mb-4">
+              Concierge
+            </h4>
+            <a
+              href="/paris-concierge-service"
+              className="block rounded-xl border border-amber-300 bg-gradient-to-br from-amber-50 to-white px-4 py-3 hover:shadow-md transition"
+            >
+              <div className="text-sm font-extrabold text-amber-700">
+                Paris Concierge Service
+              </div>
+              <div className="text-[11px] font-bold tracking-wide text-amber-500 uppercase mt-1">
+                VIP • Private Access • Luxury
+              </div>
+            </a>
+          </div>
+        </div>
+
+        {/* LEGAL (on garde) */}
+        <div>
+          <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
+            Legal
+          </h4>
+          <div className="space-y-2 text-xs sm:text-sm">
+            <a href="/legal" className="block text-slate-600 hover:text-[#e11d48]">
+              Legal Notice
+            </a>
+            <a href="/terms" className="block text-slate-600 hover:text-[#e11d48]">
+              Terms of Service
+            </a>
+            <a href="/privacy" className="block text-slate-600 hover:text-[#e11d48]">
+              Privacy Policy
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* BOTTOM */}
+      <div className="pt-4 sm:pt-6 md:pt-8 border-t border-slate-100 text-center">
+        <p className="text-xs sm:text-sm text-slate-600 mb-2">
+          {locale === 'fr'
+            ? "Pont des Arts • 75006 Paris • GPS : 48.858370, 2.337480"
+            : locale === 'zh-CN'
+            ? "巴黎艺术桥 • 75006 巴黎 • GPS：48.858370, 2.337480"
+            : "Pont des Arts • 75006 Paris • GPS: 48.858370, 2.337480"}
+        </p>
+
+        <p className="text-[10px] sm:text-xs text-slate-500">
+          © 2026 PANORAMA GRUP. LoveLockParis™ — All rights reserved.
+        </p>
+      </div>
     </div>
-  );
-}
+  </div>
+</footer>
