@@ -702,3 +702,6 @@ export default function ConceptPage({ params }: { params: { locale: string } }) 
     </div>
   </div>
 </footer>
+</div>
+  );
+}
