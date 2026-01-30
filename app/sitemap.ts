@@ -12,6 +12,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { route: '', priority: 1.0, freq: 'daily' },           // Accueil
     { route: '/purchase', priority: 0.9, freq: 'daily' },  // Achat (Money Page)
     { route: '/concept', priority: 0.9, freq: 'monthly' }, // Explication du concept (TRES IMPORTANT)
+    { route: '/romantic-things-to-do-in-paris', priority: 0.9, freq: 'monthly' }, // SEO tourisme / couple
+    { route: '/paris-concierge-service', priority: 0.9, freq: 'monthly' },        // Concierge VIP (high value)
     { route: '/bridge', priority: 0.8, freq: 'weekly' },   // Le Pont 3D
     { route: '/ar-view', priority: 0.8, freq: 'monthly' }, // Réalité Augmentée
     { route: '/about', priority: 0.7, freq: 'monthly' },   // Histoire / À propos
