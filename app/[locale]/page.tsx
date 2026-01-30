@@ -1197,3 +1197,6 @@ export default async function Home({ params }: { params: { locale: string } }) {
     </div>
   </div>
 </footer>
+    </div>
+  );
+}
