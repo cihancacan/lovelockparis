@@ -684,8 +684,8 @@ export default async function ParisConciergeServicePage({
               </h2>
               <p className="mt-3 text-slate-600 max-w-3xl mx-auto text-sm sm:text-base">
                 {isFR
-                  ? "Réponses claires, SEO dense, et très lisible (IA-friendly)."
-                  : "Clear answers, SEO-dense, and easy to parse (AI-friendly)."}
+                  ? "Réponses claires."
+                  : "Clear answers."}
               </p>
             </div>
 
