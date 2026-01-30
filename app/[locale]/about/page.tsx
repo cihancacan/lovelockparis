@@ -1,9 +1,14 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
 import { Header } from '@/components/home/header';
-import { History, Heart, AlertTriangle, CheckCircle, ShieldCheck, Calendar, MapPin, Users, Lock, Globe, Scale, Key, Building, Trash2, Sparkles } from 'lucide-react';
+import { History, Heart, AlertTriangle, CheckCircle, ShieldCheck, Calendar, MapPin, Users, Lock, Globe, Scale, Key, Building, Trash2, Sparkles, Phone, Mail, Plane, Ship, Car, Crown, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+
+// Ajout des constantes manquantes
+const PHONE_TEL = "+33123456789";
+const PHONE_DISPLAY = "+33 1 23 45 67 89";
+const EMAIL = "contact@lovelockparis.com";
 
 export const metadata: Metadata = {
   title: 'Love Lock Bridge Paris History | The True Story of Pont des Arts Collapse & Digital Renaissance',
@@ -12,6 +17,9 @@ export const metadata: Metadata = {
 };
 
 export default function AboutPage() {
+  // Ajout de la variable isFR manquante
+  const isFR = true;
+  
   // Structured Data for SEO
   const historicalSchema = {
     "@context": "https://schema.org",
@@ -53,9 +61,9 @@ export default function AboutPage() {
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent"></div>
-        <div className="relative z-10 max-w-4xl mx-auto text-white space-y-6 pt+2">
+        <div className="relative z-10 max-w-4xl mx-auto text-white space-y-6 pt-12">
           
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur border border-white/30 text-xs font-bold uppercase tracking-widest animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur border border-white/30 text-xs font-bold uppercase tracking-widest">
             <History className="h-4 w-4" /> The Untold Story
           </div>
           
@@ -339,75 +347,74 @@ export default function AboutPage() {
         </div>
       </section>
 
-     {/* FOOTER (INLINE) */}
-        <footer className="bg-slate-950 text-white">
-          <div className="container mx-auto px-4 max-w-6xl py-12">
-            <div className="grid md:grid-cols-4 gap-8">
-              <div className="md:col-span-2">
-                <p className="font-serif text-2xl font-bold">Paris Concierge Service</p>
-                <p className="mt-3 text-white/75 leading-relaxed text-sm">
-                  {isFR
-                    ? "Conciergerie de luxe à Paris pour couples et groupes : jet privé, avion, hélicoptère, yacht, Mercedes Classe S, van premium, restaurants, club privé select (accès garanti) et shopping luxe."
-                    : "Luxury concierge in Paris for couples and groups: private jet, flights, helicopter, yacht, S-Class, premium van, restaurants, private club select (guaranteed access) and luxury shopping."}
-                </p>
+      {/* FOOTER (INLINE) */}
+      <footer className="bg-slate-950 text-white">
+        <div className="container mx-auto px-4 max-w-6xl py-12">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div className="md:col-span-2">
+              <p className="font-serif text-2xl font-bold">Paris Concierge Service</p>
+              <p className="mt-3 text-white/75 leading-relaxed text-sm">
+                {isFR
+                  ? "Conciergerie de luxe à Paris pour couples et groupes : jet privé, avion, hélicoptère, yacht, Mercedes Classe S, van premium, restaurants, club privé select (accès garanti) et shopping luxe."
+                  : "Luxury concierge in Paris for couples and groups: private jet, flights, helicopter, yacht, S-Class, premium van, restaurants, private club select (guaranteed access) and luxury shopping."}
+              </p>
 
-                <div className="mt-5 flex flex-col sm:flex-row gap-3">
-                  <a href={`tel:${PHONE_TEL}`} className="w-full sm:w-auto">
-                    <Button className="w-full sm:w-auto rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold">
-                      <Phone className="mr-2 h-4 w-4" />
-                      {PHONE_DISPLAY}
-                    </Button>
-                  </a>
-                  <a href={`mailto:${EMAIL}`} className="w-full sm:w-auto">
-                    <Button variant="outline" className="w-full sm:w-auto rounded-full border-white/30 text-white hover:bg-white hover:text-slate-950 font-bold">
-                      <Mail className="mr-2 h-4 w-4" />
-                      {EMAIL}
-                    </Button>
-                  </a>
-                </div>
-
-                <p className="mt-4 text-xs text-white/55">
-                  {isFR
-                    ? "Le chat est disponible sur le site. Si un besoin n’est pas listé : mail, appel ou chat."
-                    : "Chat is available on the site. If a request isn’t listed: email, call or chat."}
-                </p>
+              <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                <a href={`tel:${PHONE_TEL}`} className="w-full sm:w-auto">
+                  <Button className="w-full sm:w-auto rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold">
+                    <Phone className="mr-2 h-4 w-4" />
+                    {PHONE_DISPLAY}
+                  </Button>
+                </a>
+                <a href={`mailto:${EMAIL}`} className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full sm:w-auto rounded-full border-white/30 text-white hover:bg-white hover:text-slate-950 font-bold">
+                    <Mail className="mr-2 h-4 w-4" />
+                    {EMAIL}
+                  </Button>
+                </a>
               </div>
 
-              <div>
-                <p className="font-bold text-white">Services</p>
-                <ul className="mt-3 space-y-2 text-sm text-white/75">
-                  <li className="flex gap-2"><Plane className="h-4 w-4 text-white/70" /> Jet / Avion / Tarmac</li>
-                  <li className="flex gap-2"><Ship className="h-4 w-4 text-white/70" /> Yacht</li>
-                  <li className="flex gap-2"><Car className="h-4 w-4 text-white/70" /> Mercedes S + Van</li>
-                  <li className="flex gap-2"><Crown className="h-4 w-4 text-white/70" /> Club privé select</li>
-                  <li className="flex gap-2"><Award className="h-4 w-4 text-white/70" /> Shopping luxe</li>
-                </ul>
-              </div>
-
-              <div>
-                <p className="font-bold text-white">Paris</p>
-                <ul className="mt-3 space-y-2 text-sm text-white/75">
-                  <li className="flex gap-2"><MapPin className="h-4 w-4 text-white/70" /> Paris • Île-de-France</li>
-                  <li className="flex gap-2"><Calendar className="h-4 w-4 text-white/70" /> 7j/7 • 24/7</li>
-                  <li className="flex gap-2"><ShieldCheck className="h-4 w-4 text-white/70" /> Discrétion & sécurité</li>
-                  <li className="flex gap-2"><Users className="h-4 w-4 text-white/70" /> Couples & groupes</li>
-                </ul>
-              </div>
+              <p className="mt-4 text-xs text-white/55">
+                {isFR
+                  ? "Le chat est disponible sur le site. Si un besoin n'est pas listé : mail, appel ou chat."
+                  : "Chat is available on the site. If a request isn't listed: email, call or chat."}
+              </p>
             </div>
 
-            <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <p className="text-xs text-white/55">
-                © {new Date().getFullYear()} • Paris Concierge Service • All rights reserved.
-              </p>
-              <p className="text-xs text-white/55">
-                {isFR
-                  ? "Aucune promesse irréaliste : tout se fait selon disponibilité et validation."
-                  : "No unrealistic promises: everything depends on availability and validation."}
-              </p>
+            <div>
+              <p className="font-bold text-white">Services</p>
+              <ul className="mt-3 space-y-2 text-sm text-white/75">
+                <li className="flex gap-2"><Plane className="h-4 w-4 text-white/70" /> Jet / Avion / Tarmac</li>
+                <li className="flex gap-2"><Ship className="h-4 w-4 text-white/70" /> Yacht</li>
+                <li className="flex gap-2"><Car className="h-4 w-4 text-white/70" /> Mercedes S + Van</li>
+                <li className="flex gap-2"><Crown className="h-4 w-4 text-white/70" /> Club privé select</li>
+                <li className="flex gap-2"><Award className="h-4 w-4 text-white/70" /> Shopping luxe</li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="font-bold text-white">Paris</p>
+              <ul className="mt-3 space-y-2 text-sm text-white/75">
+                <li className="flex gap-2"><MapPin className="h-4 w-4 text-white/70" /> Paris • Île-de-France</li>
+                <li className="flex gap-2"><Calendar className="h-4 w-4 text-white/70" /> 7j/7 • 24/7</li>
+                <li className="flex gap-2"><ShieldCheck className="h-4 w-4 text-white/70" /> Discrétion & sécurité</li>
+                <li className="flex gap-2"><Users className="h-4 w-4 text-white/70" /> Couples & groupes</li>
+              </ul>
             </div>
           </div>
-        </footer>
-      </main>
+
+          <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <p className="text-xs text-white/55">
+              © {new Date().getFullYear()} • Paris Concierge Service • All rights reserved.
+            </p>
+            <p className="text-xs text-white/55">
+              {isFR
+                ? "Aucune promesse irréaliste : tout se fait selon disponibilité et validation."
+                : "No unrealistic promises: everything depends on availability and validation."}
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
