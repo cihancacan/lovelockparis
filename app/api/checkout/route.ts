@@ -15,71 +15,126 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'https://lovelockparis.com';
-    const userId = body.userId;
-    const userEmail = body.userEmail;
-    
-    const type = body.type || 'new_lock'; 
+
+    const origin =
+      req.headers.get('origin') ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      'https://lovelockparis.com';
+
+    const userId = body.userId || null;
+    const userEmail = (body.userEmail || '').trim();
+
+    if (!userEmail) {
+      return NextResponse.json({ error: 'Missing userEmail' }, { status: 400 });
+    }
+
+    const type = body.type || 'new_lock';
     const lockId = body.selectedNumber || body.lockId;
-    
+
+    // ✅ Supabase Admin (service role)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+    });
+
+    // ✅ IMPORTANT : si invité (userId null) -> on récupère/crée un user Supabase par email
+    let finalUserId: string | null = userId;
+
+    if (!finalUserId) {
+      // 1) tenter de trouver l'user par email
+      const { data: existingUserData, error: getErr } =
+        await supabase.auth.admin.getUserByEmail(userEmail);
+
+      if (getErr) {
+        // pas bloquant, on continue
+        console.log('getUserByEmail error:', getErr.message);
+      }
+
+      if (existingUserData?.user?.id) {
+        finalUserId = existingUserData.user.id;
+      } else {
+        // 2) sinon créer
+        const { data: created, error: createErr } =
+          await supabase.auth.admin.createUser({
+            email: userEmail,
+            email_confirm: true,
+          });
+
+        if (createErr) {
+          return NextResponse.json({ error: createErr.message }, { status: 500 });
+        }
+
+        finalUserId = created.user?.id || null;
+      }
+    }
+
+    if (!finalUserId) {
+      return NextResponse.json({ error: 'Unable to create/find user' }, { status: 500 });
+    }
+
     // CALCUL DU PRIX (GESTION MEDIA UPGRADE)
     let finalPrice = 29.99;
-    
+
     if (type === 'new_lock') finalPrice = Number(body.totalPrice) || 29.99;
     else if (type === 'boost') finalPrice = Number(body.price);
     else if (type === 'marketplace') finalPrice = Number(body.price);
-    else if (type === 'media_upgrade') {
-        // Prix défini par le type de média demandé
-        finalPrice = Number(body.price) || 9.99; 
-    }
+    else if (type === 'media_upgrade') finalPrice = Number(body.price) || 9.99;
     else if (type === 'media_unlock') finalPrice = 4.99;
 
     // CAS 1 : NOUVEAU CADENAS
     if (type === 'new_lock') {
-      const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
       await supabase.from('locks').upsert({
-          id: lockId,
-          owner_id: userId,
-          zone: body.zone?.id || body.zone || 'Standard',
-          skin: body.skin?.id || body.skin || 'Gold',
-          content_text: body.contentText || 'Love Lock',
-          status: 'Pending',
-          price: finalPrice,
-          is_private: body.isPrivate || false,
-          golden_asset_price: null,
-          media_type: body.mediaType !== 'none' ? body.mediaType : null, // Sauvegarde du type média dès l'achat
-          pending_until: new Date(Date.now() + 1000 * 60 * 60).toISOString()
+        id: lockId,
+        owner_id: finalUserId, // ✅ plus jamais null
+        zone: body.zone?.id || body.zone || 'Standard',
+        skin: body.skin?.id || body.skin || 'Gold',
+        content_text: body.contentText || 'Love Lock',
+        status: 'Pending',
+        price: finalPrice,
+        is_private: body.isPrivate || false,
+        golden_asset_price: null,
+        media_type: body.mediaType !== 'none' ? body.mediaType : null,
+        pending_until: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
       });
     }
 
+    // Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: type === 'media_upgrade' ? `Add Media Feature` : (type === 'boost' ? `Boost Visibility` : `Love Lock #${lockId}`),
-            description: type === 'media_upgrade' ? `Activation for Lock #${lockId}` : 'Digital Service',
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name:
+                type === 'media_upgrade'
+                  ? `Add Media Feature`
+                  : type === 'boost'
+                  ? `Boost Visibility`
+                  : `Love Lock #${lockId}`,
+              description:
+                type === 'media_upgrade'
+                  ? `Activation for Lock #${lockId}`
+                  : 'Digital Service',
+            },
+            unit_amount: Math.round(finalPrice * 100),
           },
-          unit_amount: Math.round(finalPrice * 100),
+          quantity: 1,
         },
-        quantity: 1,
-      }],
+      ],
       mode: 'payment',
       success_url: `${origin}/dashboard?payment_success=true`,
       cancel_url: `${origin}/purchase?canceled=true`,
-      customer_email: userEmail,
+      customer_email: userEmail, // ✅ toujours présent (invité ou user)
       metadata: {
         type: type,
-        lock_id: lockId?.toString(),
-        user_id: userId,
+        lock_id: lockId?.toString() || '',
+        user_id: finalUserId, // ✅ toujours présent (important webhook)
         boost_package: body.package || '',
-        media_type: body.media_type || '', // Pour le webhook (savoir quel type activer)
-      }
+        media_type: body.media_type || body.mediaType || '',
+      },
     });
 
     return NextResponse.json({ url: session.url });
-
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
