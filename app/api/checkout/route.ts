@@ -29,7 +29,6 @@ export async function POST(req: Request) {
     }
 
     const type = body.type || 'new_lock';
-    const lockId = body.selectedNumber || body.lockId;
 
     // ✅ Supabase Admin (service role)
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -40,19 +39,16 @@ export async function POST(req: Request) {
     let finalUserId: string | null = userId;
 
     if (!finalUserId) {
-      // 1) tenter de trouver l'user par email
       const { data: existingUserData, error: getErr } =
         await supabase.auth.admin.getUserByEmail(userEmail);
 
       if (getErr) {
-        // pas bloquant, on continue
         console.log('getUserByEmail error:', getErr.message);
       }
 
       if (existingUserData?.user?.id) {
         finalUserId = existingUserData.user.id;
       } else {
-        // 2) sinon créer
         const { data: created, error: createErr } =
           await supabase.auth.admin.createUser({
             email: userEmail,
@@ -71,6 +67,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unable to create/find user' }, { status: 500 });
     }
 
+    // ✅ FIX: lockId doit exister (sinon upsert plante)
+    // 1) on tente de le lire depuis body
+    let lockIdRaw = body.selectedNumber ?? body.lockId;
+    let lockId: number | null = null;
+
+    if (typeof lockIdRaw === 'number') lockId = lockIdRaw;
+    if (typeof lockIdRaw === 'string' && lockIdRaw.trim() !== '') lockId = parseInt(lockIdRaw, 10);
+
+    // 2) si absent, on génère un id (max+1)
+    if (!lockId || Number.isNaN(lockId)) {
+      const { data: maxRow, error: maxErr } = await supabase
+        .from('locks')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (maxErr) {
+        return NextResponse.json({ error: `Cannot generate lockId: ${maxErr.message}` }, { status: 500 });
+      }
+
+      const maxId = maxRow?.id ? Number(maxRow.id) : 0;
+      lockId = maxId + 1;
+    }
+
     // CALCUL DU PRIX (GESTION MEDIA UPGRADE)
     let finalPrice = 29.99;
 
@@ -82,19 +103,23 @@ export async function POST(req: Request) {
 
     // CAS 1 : NOUVEAU CADENAS
     if (type === 'new_lock') {
-      await supabase.from('locks').upsert({
+      const { error: upsertErr } = await supabase.from('locks').upsert({
         id: lockId,
-        owner_id: finalUserId, // ✅ plus jamais null
+        owner_id: finalUserId,
         zone: body.zone?.id || body.zone || 'Standard',
         skin: body.skin?.id || body.skin || 'Gold',
         content_text: body.contentText || 'Love Lock',
         status: 'Pending',
         price: finalPrice,
         is_private: body.isPrivate || false,
-        golden_asset_price: null,
-        media_type: body.mediaType !== 'none' ? body.mediaType : null,
+        golden_asset_price: body.goldenAssetPrice ?? null,
+        media_type: body.mediaType && body.mediaType !== 'none' ? body.mediaType : null,
         pending_until: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
       });
+
+      if (upsertErr) {
+        return NextResponse.json({ error: `DB error: ${upsertErr.message}` }, { status: 500 });
+      }
     }
 
     // Stripe checkout session
@@ -124,11 +149,11 @@ export async function POST(req: Request) {
       mode: 'payment',
       success_url: `${origin}/dashboard?payment_success=true`,
       cancel_url: `${origin}/purchase?canceled=true`,
-      customer_email: userEmail, // ✅ toujours présent (invité ou user)
+      customer_email: userEmail,
       metadata: {
         type: type,
-        lock_id: lockId?.toString() || '',
-        user_id: finalUserId, // ✅ toujours présent (important webhook)
+        lock_id: String(lockId),
+        user_id: finalUserId,
         boost_package: body.package || '',
         media_type: body.media_type || body.mediaType || '',
       },
