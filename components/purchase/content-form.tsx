@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MediaType, MEDIA_PRICES } from '@/lib/pricing';
-import { Image as ImageIcon, Video as VideoIcon, Mic as MusicIcon, Upload, Camera, X, Lock, DollarSign, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Image as ImageIcon, Video as VideoIcon, Mic as MusicIcon, Upload, Camera, X, Lock, DollarSign, EyeOff, ShieldCheck, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ContentFormProps {
@@ -50,6 +50,10 @@ export function ContentForm({
   onMediaFileChange,
 }: ContentFormProps) {
   const [uploadMethod, setUploadMethod] = useState<'camera' | 'upload'>('upload');
+
+  // ✅ NOUVEAU : choix Upload maintenant vs plus tard via dashboard
+  const [mediaUploadTiming, setMediaUploadTiming] = useState<'now' | 'later'>('now');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -91,10 +95,25 @@ export function ContentForm({
   const handleMediaTypeChange = (type: MediaType) => {
     onMediaTypeChange(type);
     handleRemoveFile();
+
+    // ✅ Reset propre du timing quand on change de type
     if (type === 'none') {
       setUploadMethod('upload');
+      setMediaUploadTiming('now');
+    } else {
+      setMediaUploadTiming('now');
     }
   };
+
+  // ✅ Si l’utilisateur choisit "Later" -> on enlève tout fichier déjà sélectionné
+  useEffect(() => {
+    if (mediaType !== 'none' && mediaUploadTiming === 'later') {
+      if (mediaFile || mediaUrl) {
+        handleRemoveFile();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mediaUploadTiming]);
 
   return (
     <section className="space-y-6" aria-label="Lock Customization Form">
@@ -116,7 +135,9 @@ export function ContentForm({
         </CardHeader>
         <CardContent className="space-y-5 pt-5">
           <div className="space-y-2">
-            <Label htmlFor="author-name" className="text-slate-700 font-semibold">Names or Initials <span className="text-[#e11d48]">*</span></Label>
+            <Label htmlFor="author-name" className="text-slate-700 font-semibold">
+              Names or Initials <span className="text-[#e11d48]">*</span>
+            </Label>
             <Input
               id="author-name"
               placeholder="Ex: Julie & Thomas"
@@ -126,13 +147,13 @@ export function ContentForm({
               required
               className="bg-white border-slate-300 focus:border-[#e11d48] focus:ring-[#e11d48]"
             />
-            <p className="text-xs text-slate-400">
-              Visible on the lock face.
-            </p>
+            <p className="text-xs text-slate-400">Visible on the lock face.</p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="content-text" className="text-slate-700 font-semibold">Eternal Message <span className="text-[#e11d48]">*</span></Label>
+            <Label htmlFor="content-text" className="text-slate-700 font-semibold">
+              Eternal Message <span className="text-[#e11d48]">*</span>
+            </Label>
             <Textarea
               id="content-text"
               placeholder="Write your vow, a date, or a secret message..."
@@ -143,9 +164,7 @@ export function ContentForm({
               required
               className="bg-white border-slate-300 focus:border-[#e11d48] focus:ring-[#e11d48] resize-none"
             />
-            <p className="text-xs text-slate-400 text-right">
-              {contentText.length}/500 chars
-            </p>
+            <p className="text-xs text-slate-400 text-right">{contentText.length}/500 chars</p>
           </div>
         </CardContent>
       </Card>
@@ -163,22 +182,27 @@ export function ContentForm({
         </CardHeader>
         <CardContent className="pt-5">
           <RadioGroup value={visibility} onValueChange={(value) => onVisibilityChange(value as 'Private' | 'For_Sale')}>
-            
             {/* OPTION PRIVÉE */}
-            <div className={`flex items-start space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${visibility === 'Private' ? 'border-slate-400 bg-slate-50' : 'border-slate-100 hover:border-slate-200'}`}>
+            <div
+              className={`flex items-start space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                visibility === 'Private' ? 'border-slate-400 bg-slate-50' : 'border-slate-100 hover:border-slate-200'
+              }`}
+            >
               <RadioGroupItem value="Private" id="visibility-private" className="mt-1 text-slate-600" />
               <div className="flex-1">
                 <Label htmlFor="visibility-private" className="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
                   <EyeOff className="h-4 w-4" /> Private (Safe)
                 </Label>
-                <p className="text-xs text-slate-500 mt-1">
-                  Only you (and people with the password) can see the media content.
-                </p>
+                <p className="text-xs text-slate-500 mt-1">Only you (and people with the password) can see the media content.</p>
               </div>
             </div>
 
             {/* OPTION MONÉTISÉE (VIRAL) */}
-            <div className={`flex items-start space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer mt-3 ${visibility === 'For_Sale' ? 'border-[#e11d48] bg-rose-50' : 'border-slate-100 hover:border-slate-200'}`}>
+            <div
+              className={`flex items-start space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer mt-3 ${
+                visibility === 'For_Sale' ? 'border-[#e11d48] bg-rose-50' : 'border-slate-100 hover:border-slate-200'
+              }`}
+            >
               <RadioGroupItem value="For_Sale" id="visibility-sale" className="mt-1 text-[#e11d48]" />
               <div className="flex-1">
                 <Label htmlFor="visibility-sale" className="flex items-center gap-2 cursor-pointer font-bold text-slate-900">
@@ -202,7 +226,6 @@ export function ContentForm({
           <CardDescription>Upload a photo or video to be stored in the blockchain registry.</CardDescription>
         </CardHeader>
         <CardContent className="pt-5 space-y-6">
-          
           <div className="grid gap-3 sm:grid-cols-4">
             {mediaOptions.map((option) => {
               const isSelected = mediaType === option.type;
@@ -214,24 +237,63 @@ export function ContentForm({
                   type="button"
                   onClick={() => handleMediaTypeChange(option.type)}
                   className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all hover:scale-105 ${
-                    isSelected
-                      ? 'border-[#e11d48] bg-rose-50'
-                      : 'border-slate-100 hover:border-slate-300'
+                    isSelected ? 'border-[#e11d48] bg-rose-50' : 'border-slate-100 hover:border-slate-300'
                   }`}
                 >
                   {Icon && <Icon className={`h-6 w-6 ${isSelected ? 'text-[#e11d48]' : 'text-slate-400'}`} />}
                   <span className={`text-xs font-bold ${isSelected ? 'text-[#e11d48]' : 'text-slate-600'}`}>{option.label}</span>
                   <span className="text-[10px] text-slate-400 font-medium">
-                    {MEDIA_PRICES[option.type] === 0
-                      ? 'Free'
-                      : `+$${MEDIA_PRICES[option.type].toFixed(2)}`}
+                    {MEDIA_PRICES[option.type] === 0 ? 'Free' : `+$${MEDIA_PRICES[option.type].toFixed(2)}`}
                   </span>
                 </button>
               );
             })}
           </div>
 
+          {/* ✅ NOUVEAU : CHOIX "UPLOAD NOW" OU "LATER" */}
           {mediaType !== 'none' && (
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+              <div className="flex items-start gap-3">
+                <div className="bg-white p-2 rounded-lg border">
+                  <Clock className="h-5 w-5 text-slate-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-slate-800 text-sm">When do you want to upload your media?</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    You can upload now, or complete purchase first and add media later from your Dashboard.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <Button
+                      type="button"
+                      variant={mediaUploadTiming === 'now' ? 'default' : 'outline'}
+                      onClick={() => setMediaUploadTiming('now')}
+                      className={mediaUploadTiming === 'now' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700'}
+                    >
+                      Upload Now
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={mediaUploadTiming === 'later' ? 'default' : 'outline'}
+                      onClick={() => setMediaUploadTiming('later')}
+                      className={mediaUploadTiming === 'later' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700'}
+                    >
+                      Later (Dashboard)
+                    </Button>
+                  </div>
+
+                  {mediaUploadTiming === 'later' && (
+                    <div className="mt-3 p-3 rounded-lg bg-white border border-slate-200 text-xs text-slate-600">
+                      ✅ Your lock will be created now. You can add your {mediaType} later from <b>Dashboard → Upload Media</b>.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ✅ EXISTANT : Upload/camera UI — maintenant affiché seulement si "Upload Now" */}
+          {mediaType !== 'none' && mediaUploadTiming === 'now' && (
             <div className="p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/50">
               <div className="flex gap-2 mb-4">
                 <Button
@@ -243,6 +305,7 @@ export function ContentForm({
                 >
                   <Upload className="h-4 w-4 mr-2" /> Upload File
                 </Button>
+
                 {(mediaType === 'photo' || mediaType === 'video') && (
                   <Button
                     type="button"
