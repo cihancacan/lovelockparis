@@ -505,7 +505,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
                     </Button>
                   </Link>
                 </div>
-                <div className="lg:w-1/2 relative mt-6 lg:mt-0">
+                <div className="w-full lg:w-1/2 relative mt-6 lg:mt-0">
                   <div className="relative w-full h-48 sm:h-56 md:h-64 lg:h-80 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
                     <Image
                       src="/images/ar-preview.png"
