@@ -331,7 +331,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
                       </h4>
                       <ul className="text-slate-600 space-y-1 text-xs sm:text-sm">
                         <li>• {locale === 'fr' ? 'Illegaux (500€ d\'amende)' : locale === 'zh-CN' ? '违法（罚款500欧元）' : 'Illegal with €500 fines'}</li>
-                        <li>• {locale === 'fr' ? 'Retirés tous les 6 mois' : locale === 'zh-CN' ? '每6个月清除一次' : 'Removed every 6 months'}</li>
+                        <li>• {locale === 'fr' ? 'Retrait immédiat' : locale === 'zh-CN' ? '立即移除' : 'Immediate removal'}</li>
                         <li>• {locale === 'fr' ? 'Dégâts environnementaux' : locale === 'zh-CN' ? '环境破坏' : 'Environmental damage'}</li>
                         <li>• {locale === 'fr' ? 'Risque structurel' : locale === 'zh-CN' ? '桥梁结构风险' : 'Bridge structural risk'}</li>
                       </ul>
