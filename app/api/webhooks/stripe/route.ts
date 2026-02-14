@@ -61,22 +61,28 @@ export async function POST(request: NextRequest) {
        // UNLOCK (Visiteur)
 else if (type === 'media_unlock') {
 
-   const OWNER_SHARE = 2.99; // ✅ part reversée au propriétaire
+  if (userId && lockId) {
 
-   const { data: lock } = await supabase
-     .from('locks')
-     .select('owner_id, media_views, media_earnings')
-     .eq('id', lockId)
-     .single();
+    // 1️⃣ enregistrer unlock individuel
+    await supabase.from('media_unlocks').insert({
+      lock_id: lockId,
+      user_id: userId
+    });
 
-   if (lock && lock.owner_id) {
-       await supabase.from('locks').update({ 
-           media_views: (lock.media_views || 0) + 1,
-           media_earnings: (lock.media_earnings || 0) + OWNER_SHARE,
-           media_unlocked: true
-       }).eq('id', lockId);
-   }
+    // 2️⃣ créditer stats propriétaire
+    const { data: lock } = await supabase
+      .from('locks')
+      .select('media_views, media_earnings')
+      .eq('id', lockId)
+      .single();
+
+    await supabase.from('locks').update({
+      media_views: (lock?.media_views || 0) + 1,
+      media_earnings: (lock?.media_earnings || 0) + 2.99
+    }).eq('id', lockId);
+  }
 }
+
 
 
         // LOG
