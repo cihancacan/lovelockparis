@@ -109,7 +109,6 @@ export default function ARViewPage() {
       timer10: fr ? '10s' : zh ? '10秒' : '10s',
       share: fr ? 'Partager' : zh ? '分享' : 'Share',
       save: fr ? 'Enregistrer' : zh ? '保存' : 'Save',
-      retake: fr ? 'Reprendre' : zh ? '重拍' : 'Retake',
       flash: fr ? 'Flash' : zh ? '闪光' : 'Flash',
       flip: fr ? 'Selfie' : zh ? '切换' : 'Flip',
     };
@@ -131,7 +130,7 @@ export default function ARViewPage() {
 
   const [zoomPreset, setZoomPreset] = useState<0.5 | 1 | 2>(1);
 
-  const [flashOn, setFlashOn] = useState(false); // torch if available
+  const [flashOn, setFlashOn] = useState(false);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
 
   // Preview
@@ -153,6 +152,11 @@ export default function ARViewPage() {
 
   const showTooFarOverlay = !isAtBridge && !debugMode && !gpsLoading;
   const showARScene = (isAtBridge || debugMode) && !gpsLoading;
+
+  const isIOS = () => {
+    if (typeof navigator === 'undefined') return false;
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  };
 
   const getVideoTrack = () => {
     const stream = videoRef.current?.srcObject as MediaStream | null;
@@ -176,9 +180,14 @@ export default function ARViewPage() {
       const caps = track.getCapabilities?.();
       if (!caps?.torch) return;
       await track.applyConstraints({ advanced: [{ torch: on }] });
-    } catch {
-      // ignore
-    }
+    } catch {}
+  };
+
+  const applyMirrorAndZoomCSS = (zoom: number) => {
+    if (!videoRef.current) return;
+    const mirror = facingMode === 'user' ? -1 : 1;
+    videoRef.current.style.transform = `scale(${zoom * mirror}, ${zoom})`;
+    videoRef.current.style.transformOrigin = 'center center';
   };
 
   const startCamera = async (fm: 'environment' | 'user') => {
@@ -193,25 +202,26 @@ export default function ARViewPage() {
 
     if (videoRef.current) videoRef.current.srcObject = stream;
 
-    // re-apply torch if requested
+    // Mirror preview like Instagram (ONLY preview), capture remains normal
     setTimeout(async () => {
-      if (flashOn) await setTorch(true);
-      applyZoom(zoomPreset);
-    }, 200);
+      // re-apply torch if requested and available AND back camera
+      if (flashOn && fm === 'environment') await setTorch(true);
+      await applyZoom(zoomPreset);
+      applyMirrorAndZoomCSS(1); // ensure mirror is applied even if zoom handled by constraints
+    }, 250);
   };
 
   const applyZoom = async (value: number) => {
     try {
       const track: any = getVideoTrack();
-      if (!track) return;
+      if (!track) {
+        applyMirrorAndZoomCSS(value);
+        return;
+      }
 
       const caps = track.getCapabilities?.();
       if (!caps?.zoom) {
-        // fallback CSS zoom
-        if (videoRef.current) {
-          videoRef.current.style.transform = `scale(${value})`;
-          videoRef.current.style.transformOrigin = 'center center';
-        }
+        applyMirrorAndZoomCSS(value);
         return;
       }
 
@@ -220,11 +230,10 @@ export default function ARViewPage() {
       const clamped = Math.max(zMin, Math.min(zMax, value));
       await track.applyConstraints({ advanced: [{ zoom: clamped }] });
 
-      if (videoRef.current) {
-        videoRef.current.style.transform = `scale(1)`;
-      }
+      // Mirror preview still needed
+      applyMirrorAndZoomCSS(1);
     } catch {
-      // ignore
+      applyMirrorAndZoomCSS(value);
     }
   };
 
@@ -280,7 +289,7 @@ export default function ARViewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --- shutter sound (photo) ---
+  // shutter sound
   const playShutterSound = () => {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -320,6 +329,9 @@ export default function ARViewPage() {
     const video = videoRef.current;
     if (!video) return;
 
+    // IMPORTANT:
+    // - preview is mirrored with CSS for selfie
+    // - BUT drawImage(video) uses the raw stream (not mirrored) => photo will be non-inverted ✅
     try {
       ctx.drawImage(video, 0, 0, outW, outH);
     } catch {}
@@ -336,8 +348,12 @@ export default function ARViewPage() {
     const video = videoRef.current;
     if (!video) return;
 
-    // Flash: torch if supported, else screen flash
-    if (flashOn && hasTorchSupport()) {
+    // Flash behaviour:
+    // - back camera + torch supported => torch
+    // - selfie OR no torch => screen flash
+    const canTorch = hasTorchSupport() && facingMode === 'environment';
+
+    if (flashOn && canTorch) {
       await setTorch(true);
       await new Promise((r) => setTimeout(r, 120));
     } else if (flashOn) {
@@ -444,15 +460,6 @@ export default function ARViewPage() {
     await action();
   };
 
-  const onShutter = async () => {
-    if (mode === 'photo') {
-      await runWithTimer(takePhotoNow);
-    } else {
-      if (isRecording) stopRecording();
-      else await runWithTimer(startRecordingNow);
-    }
-  };
-
   const handleRetake = () => {
     if (previewPhotoUrl) URL.revokeObjectURL(previewPhotoUrl);
     if (previewVideoUrl) URL.revokeObjectURL(previewVideoUrl);
@@ -469,40 +476,67 @@ export default function ARViewPage() {
     a.remove();
   };
 
-  const handleDownload = () => {
-    // NOTE iPhone: ça télécharge, puis l’utilisateur peut “Enregistrer l’image/vidéo” dans Photos.
-    if (previewPhotoUrl) downloadUrl(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`);
-    if (previewVideoUrl) downloadUrl(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`);
-  };
-
   const urlToFile = async (url: string, filename: string, mime: string) => {
     const res = await fetch(url);
     const blob = await res.blob();
     return new File([blob], filename, { type: mime });
   };
 
-  const handleShare = async () => {
+  // ✅ "Enregistrer" (iPhone) = ouvre la feuille partage avec le fichier
+  // -> l'utilisateur choisit "Enregistrer l'image/vidéo" => Photos
+  // Fallback: download
+  const handleSave = async () => {
     try {
-      if (!('share' in navigator)) return;
+      const navAny: any = navigator;
 
-      if ('canShare' in navigator) {
+      if ('share' in navigator && 'canShare' in navigator) {
         if (previewPhotoUrl) {
           const file = await urlToFile(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`, 'image/jpeg');
-          if ((navigator as any).canShare?.({ files: [file] })) {
-            await (navigator as any).share({ files: [file], title: 'LoveLockParis AR' });
+          if (navAny.canShare?.({ files: [file] })) {
+            await navAny.share({ files: [file], title: 'LoveLockParis' });
             return;
           }
         }
         if (previewVideoUrl) {
           const file = await urlToFile(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`, 'video/webm');
-          if ((navigator as any).canShare?.({ files: [file] })) {
-            await (navigator as any).share({ files: [file], title: 'LoveLockParis AR' });
+          if (navAny.canShare?.({ files: [file] })) {
+            await navAny.share({ files: [file], title: 'LoveLockParis' });
             return;
           }
         }
       }
 
-      await (navigator as any).share({ title: 'LoveLockParis', url: window.location.href });
+      // fallback
+      if (previewPhotoUrl) downloadUrl(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`);
+      if (previewVideoUrl) downloadUrl(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`);
+    } catch {
+      if (previewPhotoUrl) downloadUrl(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`);
+      if (previewVideoUrl) downloadUrl(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const navAny: any = navigator;
+
+      if ('share' in navigator && 'canShare' in navigator) {
+        if (previewPhotoUrl) {
+          const file = await urlToFile(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`, 'image/jpeg');
+          if (navAny.canShare?.({ files: [file] })) {
+            await navAny.share({ files: [file], title: 'LoveLockParis AR' });
+            return;
+          }
+        }
+        if (previewVideoUrl) {
+          const file = await urlToFile(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`, 'video/webm');
+          if (navAny.canShare?.({ files: [file] })) {
+            await navAny.share({ files: [file], title: 'LoveLockParis AR' });
+            return;
+          }
+        }
+      }
+
+      await navAny.share?.({ title: 'LoveLockParis', url: window.location.href });
     } catch {}
   };
 
@@ -511,12 +545,18 @@ export default function ARViewPage() {
     const next = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(next);
     await startCamera(next);
+
+    // Re-apply mirror immediately
+    setTimeout(() => applyMirrorAndZoomCSS(1), 50);
   };
 
   const toggleFlash = async () => {
     const next = !flashOn;
     setFlashOn(next);
-    await setTorch(next);
+
+    // only torch on back camera
+    if (next && facingMode === 'environment') await setTorch(true);
+    if (!next && facingMode === 'environment') await setTorch(false);
   };
 
   // unlock checks
@@ -577,6 +617,15 @@ export default function ARViewPage() {
     }
   };
 
+  const onShutter = async () => {
+    if (mode === 'photo') {
+      await runWithTimer(takePhotoNow);
+    } else {
+      if (isRecording) stopRecording();
+      else await runWithTimer(startRecordingNow);
+    }
+  };
+
   if (!mounted) return <div className="min-h-screen bg-black" />;
 
   return (
@@ -590,10 +639,9 @@ export default function ARViewPage() {
         className="absolute inset-0 w-full h-full object-cover z-0"
       />
 
-      {/* TOP BAR (retour + quick controls) */}
+      {/* TOP BAR */}
       {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
         <div className="absolute top-0 left-0 right-0 z-50 p-4 flex items-center justify-between">
-          {/* Back arrow only */}
           <button
             onClick={() => router.back()}
             className="w-11 h-11 rounded-full bg-black/55 backdrop-blur border border-white/20 flex items-center justify-center"
@@ -604,7 +652,6 @@ export default function ARViewPage() {
           </button>
 
           <div className="flex items-center gap-2">
-            {/* Timer button with chrono icon */}
             <button
               onClick={() => setTimer((p) => (p === 0 ? 5 : p === 5 ? 10 : 0))}
               className="flex items-center gap-2 bg-black/55 hover:bg-black/70 border border-white/20 px-3 py-2 rounded-full text-xs font-black"
@@ -614,7 +661,6 @@ export default function ARViewPage() {
               {timer === 0 ? t.timerOff : timer === 5 ? t.timer5 : t.timer10}
             </button>
 
-            {/* Flash toggle */}
             <button
               onClick={toggleFlash}
               className={`w-11 h-11 rounded-full backdrop-blur border border-white/20 flex items-center justify-center ${
@@ -626,7 +672,6 @@ export default function ARViewPage() {
               <Zap className="h-5 w-5" />
             </button>
 
-            {/* Selfie / flip camera */}
             <button
               onClick={handleFlipCamera}
               className="w-11 h-11 rounded-full bg-black/55 backdrop-blur border border-white/20 flex items-center justify-center"
@@ -639,7 +684,7 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* GEOFENCE OVERLAY */}
+      {/* GEOFENCE */}
       {showTooFarOverlay && (
         <div className="absolute inset-0 z-[80] bg-black/85 backdrop-blur-md flex items-center justify-center p-6">
           <div className="w-full max-w-sm bg-white/10 p-6 rounded-3xl border border-white/20 shadow-2xl text-center">
@@ -702,7 +747,7 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* AR SCENE */}
+      {/* AR */}
       {showARScene && !previewPhotoUrl && !previewVideoUrl && (
         <div className="absolute inset-0 z-10 pointer-events-auto">
           <Canvas>
@@ -775,13 +820,7 @@ export default function ARViewPage() {
 
           <div className="flex items-center justify-center">
             <button
-              onClick={async () => {
-                if (mode === 'photo') await runWithTimer(takePhotoNow);
-                else {
-                  if (isRecording) stopRecording();
-                  else await runWithTimer(startRecordingNow);
-                }
-              }}
+              onClick={onShutter}
               className={`w-20 h-20 rounded-full flex items-center justify-center shadow-2xl active:scale-95 transition-transform ${
                 mode === 'video' && isRecording ? 'bg-red-600' : 'bg-white/90'
               }`}
@@ -810,11 +849,10 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* PREVIEW (Photo / Video) */}
+      {/* PREVIEW */}
       {(previewPhotoUrl || previewVideoUrl) && (
         <div className="absolute inset-0 z-[90] bg-black">
           <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-[95]">
-            {/* Close = retake */}
             <button
               onClick={handleRetake}
               className="w-11 h-11 rounded-full bg-black/55 backdrop-blur border border-white/20 flex items-center justify-center"
@@ -825,7 +863,6 @@ export default function ARViewPage() {
             </button>
 
             <div className="flex items-center gap-2">
-              {/* Share icon */}
               <button
                 onClick={handleShare}
                 className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center"
@@ -835,9 +872,8 @@ export default function ARViewPage() {
                 <Share2 className="h-5 w-5" />
               </button>
 
-              {/* Save icon */}
               <button
-                onClick={handleDownload}
+                onClick={handleSave}
                 className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center"
                 aria-label={t.save}
                 title={t.save}
