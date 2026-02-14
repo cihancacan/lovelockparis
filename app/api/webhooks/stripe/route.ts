@@ -18,74 +18,140 @@ export async function POST(request: NextRequest) {
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
 
-    if (!signature || !webhookSecret) return NextResponse.json({ error: 'No signature' }, { status: 400 });
+    if (!signature || !webhookSecret) {
+      return NextResponse.json({ error: 'No signature' }, { status: 400 });
+    }
 
     let event: Stripe.Event;
-    try { event = stripe.webhooks.constructEvent(body, signature, webhookSecret); } 
-    catch (err: any) { return NextResponse.json({ error: `Webhook Error` }, { status: 400 }); }
+
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    } catch {
+      return NextResponse.json({ error: 'Webhook Error' }, { status: 400 });
+    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // =====================================================
+    // CHECKOUT SUCCESS
+    // =====================================================
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
+
       const metadata = session.metadata || {};
       const type = metadata.type || 'new_lock';
       const lockId = parseInt(metadata.lock_id || '0');
-      const userId = metadata.user_id;
+      const userId = metadata.user_id || null;
       const amount = session.amount_total ? session.amount_total / 100 : 0;
 
       if (lockId) {
-        
-        // NOUVEAU LOCK
+
+        // =========================
+        // NEW LOCK
+        // =========================
         if (type === 'new_lock') {
-          await supabase.from('locks').update({ status: 'Active', pending_until: null, locked_at: new Date().toISOString() }).eq('id', lockId);
-        } 
+          await supabase
+            .from('locks')
+            .update({
+              status: 'Active',
+              pending_until: null,
+              locked_at: new Date().toISOString()
+            })
+            .eq('id', lockId);
+        }
+
+        // =========================
         // BOOST
+        // =========================
         else if (type === 'boost') {
           const pkg = metadata.boost_package || 'basic';
-          const daysToAdd = pkg === 'vip' ? 30 : pkg === 'premium' ? 14 : 7;
-          const expiresAt = new Date(); expiresAt.setDate(expiresAt.getDate() + daysToAdd);
-          await supabase.from('locks').update({ boost_level: pkg, boost_expires_at: expiresAt.toISOString() }).eq('id', lockId);
+          const daysToAdd =
+            pkg === 'vip' ? 30 :
+            pkg === 'premium' ? 14 : 7;
+
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + daysToAdd);
+
+          await supabase
+            .from('locks')
+            .update({
+              boost_level: pkg,
+              boost_expires_at: expiresAt.toISOString()
+            })
+            .eq('id', lockId);
         }
-        // MARKETPLACE
+
+        // =========================
+        // MARKETPLACE BUY
+        // =========================
         else if (type === 'marketplace') {
-          await supabase.from('locks').update({ owner_id: userId, status: 'Active', resale_price: null, boost_level: 'none' }).eq('id', lockId);
+          await supabase
+            .from('locks')
+            .update({
+              owner_id: userId,
+              status: 'Active',
+              resale_price: null,
+              boost_level: 'none'
+            })
+            .eq('id', lockId);
         }
-        
-        // --- NOUVEAU : MEDIA UPGRADE ---
+
+        // =========================
+        // MEDIA UPGRADE (owner adds media type)
+        // =========================
         else if (type === 'media_upgrade') {
-          // On active le type de média spécifique (photo, video, audio)
-          await supabase.from('locks').update({ media_type: metadata.media_type }).eq('id', lockId);
+          await supabase
+            .from('locks')
+            .update({
+              media_type: metadata.media_type || null,
+              is_media_enabled_: true
+            })
+            .eq('id', lockId);
         }
 
-       // UNLOCK (Visiteur)
-else if (type === 'media_unlock') {
+        // =========================
+        // MEDIA UNLOCK (spectator pays 4.99)
+        // =========================
+        else if (type === 'media_unlock') {
 
-  if (userId && lockId) {
+          if (userId) {
 
-    // 1️⃣ enregistrer unlock individuel
-    await supabase.from('media_unlocks').insert({
-      lock_id: lockId,
-      user_id: userId
-    });
+            // 🔒 vérifier si déjà unlock → évite double paiement logique
+            const { data: existing } = await supabase
+              .from('media_unlocks')
+              .select('id')
+              .eq('lock_id', lockId)
+              .eq('user_id', userId)
+              .maybeSingle();
 
-    // 2️⃣ créditer stats propriétaire
-    const { data: lock } = await supabase
-      .from('locks')
-      .select('media_views, media_earnings')
-      .eq('id', lockId)
-      .single();
+            if (!existing) {
+              // 1️⃣ enregistrer unlock individuel
+              await supabase.from('media_unlocks').insert({
+                lock_id: lockId,
+                user_id: userId
+              });
 
-    await supabase.from('locks').update({
-      media_views: (lock?.media_views || 0) + 1,
-      media_earnings: (lock?.media_earnings || 0) + 2.99
-    }).eq('id', lockId);
-  }
-}
+              // 2️⃣ créditer stats du cadenas
+              const { data: lock } = await supabase
+                .from('locks')
+                .select('media_views, media_earnings')
+                .eq('id', lockId)
+                .single();
 
+              await supabase
+                .from('locks')
+                .update({
+                  media_views: (lock?.media_views || 0) + 1,
+                  media_earnings: (lock?.media_earnings || 0) + 2.99
+                })
+                .eq('id', lockId);
+            }
+          }
+        }
 
-
-        // LOG
+        // =========================
+        // TRANSACTION LOG
+        // =========================
         await supabase.from('transactions').insert({
           lock_id: lockId,
           buyer_id: userId,
@@ -93,27 +159,45 @@ else if (type === 'media_unlock') {
           amount: amount
         });
 
-        // MAIL
-        const email = session.customer_email || session.metadata?.user_email;
+        // =========================
+        // EMAIL CONFIRMATION
+        // =========================
+        const email = session.customer_email || metadata.user_email;
+
         if (email && type !== 'media_unlock') {
-           try {
-              await resend.emails.send({
-                from: 'Love Lock Paris <noreply@lovelockparis.com>',
-                to: email,
-                subject: `Order Confirmed: ${type}`,
-                react: PurchaseEmail({ lockId, price: amount, date: new Date().toLocaleDateString() })
-              });
-           } catch(e) {}
+          try {
+            await resend.emails.send({
+              from: 'Love Lock Paris <noreply@lovelockparis.com>',
+              to: email,
+              subject: `Order Confirmed: ${type}`,
+              react: PurchaseEmail({
+                lockId,
+                price: amount,
+                date: new Date().toLocaleDateString()
+              })
+            });
+          } catch {}
         }
       }
     }
 
+    // =====================================================
+    // CHECKOUT EXPIRED
+    // =====================================================
     if (event.type === 'checkout.session.expired') {
       const lockId = parseInt(event.data.object.metadata?.lock_id || '0');
-      if (lockId) await supabase.from('locks').delete().eq('id', lockId).eq('status', 'Pending');
+
+      if (lockId) {
+        await supabase
+          .from('locks')
+          .delete()
+          .eq('id', lockId)
+          .eq('status', 'Pending');
+      }
     }
 
     return NextResponse.json({ received: true });
+
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
