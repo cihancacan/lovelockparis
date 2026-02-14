@@ -3,7 +3,21 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Navigation, Loader2, Camera, Video, RefreshCw, Zap, ZapOff, X, Lock } from 'lucide-react';
+import {
+  ArrowLeft,
+  MapPin,
+  Navigation,
+  Loader2,
+  Camera,
+  Video,
+  RefreshCw,
+  Zap,
+  ZapOff,
+  X,
+  Lock,
+  Share2,
+  Download,
+} from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
 import { DeviceOrientationControls, Float, Text, Billboard } from '@react-three/drei';
 import { supabase } from '@/lib/supabase';
@@ -16,10 +30,10 @@ const MAX_DISTANCE_METERS = 100;
 
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3;
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
   const a =
     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
@@ -83,12 +97,12 @@ export default function ARViewPage() {
       tooFarText: fr
         ? 'Les cadenas AR sont visibles uniquement sur le Pont des Arts à Paris.'
         : zh
-        ? 'AR 锁仅在巴黎艺术桥可见。'
-        : 'AR Love Locks are only visible on the Pont des Arts in Paris.',
+          ? 'AR 锁仅在巴黎艺术桥可见。'
+          : 'AR Love Locks are only visible on the Pont des Arts in Paris.',
       distance: fr ? 'Distance au pont' : zh ? '距离' : 'Distance to bridge',
       directions: fr ? 'Itinéraire' : zh ? '导航' : 'Get Directions',
       locating: fr ? 'Localisation...' : zh ? '定位中...' : 'Locating Bridge...',
-      simulate: fr ? '(Dev: Simuler position)' : zh ? '(开发: 模拟位置)' : '(Developer: Simulate Location)',
+      tryDemo: fr ? 'Essayer la Prévisualisation AR' : zh ? '试用 AR 预览' : 'Try AR Preview',
       hint: fr ? 'Tournez-vous pour trouver des cadenas' : zh ? '转身寻找锁' : 'Turn around to find locks',
       photo: fr ? 'Photo' : zh ? '照片' : 'Photo',
       video: fr ? 'Vidéo' : zh ? '视频' : 'Video',
@@ -96,9 +110,12 @@ export default function ARViewPage() {
       close: fr ? 'Fermer' : zh ? '关闭' : 'Close',
       noMedia: fr ? 'Aucun média' : zh ? '无媒体' : 'No media attached',
       checking: fr ? 'Vérification...' : zh ? '检查中...' : 'Checking...',
-      save: fr ? 'Enregistrer' : zh ? '保存' : 'Save',
+      download: fr ? 'Télécharger' : zh ? '下载' : 'Download',
+      share: fr ? 'Partager' : zh ? '分享' : 'Share',
       retake: fr ? 'Refaire' : zh ? '重拍' : 'Retake',
       loginNeeded: fr ? 'Connectez-vous pour débloquer' : zh ? '登录后解锁' : 'Login to unlock',
+      flash: fr ? 'Flash' : zh ? '闪光' : 'Flash',
+      flip: fr ? 'Retourner' : zh ? '翻转' : 'Flip',
     };
   }, [locale]);
 
@@ -110,7 +127,6 @@ export default function ARViewPage() {
   const [distance, setDistance] = useState<number | null>(null);
   const [isAtBridge, setIsAtBridge] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
-
   const [mounted, setMounted] = useState(false);
 
   // IG camera UI
@@ -124,7 +140,7 @@ export default function ARViewPage() {
 
   const [shutterFlash, setShutterFlash] = useState(false);
 
-  // Capture preview (no share)
+  // Preview
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
 
@@ -140,7 +156,9 @@ export default function ARViewPage() {
   const [checkingUnlock, setCheckingUnlock] = useState(false);
   const [unlockLoading, setUnlockLoading] = useState(false);
 
-  // ---------- Helpers: track capabilities ----------
+  const showTooFarOverlay = !isAtBridge && !debugMode && !gpsLoading;
+
+  // ---------- Helpers: tracks ----------
   const getVideoTrack = () => {
     const stream = videoRef.current?.srcObject as MediaStream | null;
     return stream?.getVideoTracks?.()?.[0] || null;
@@ -151,8 +169,7 @@ export default function ARViewPage() {
       const track: any = getVideoTrack();
       if (!track) return;
       const caps = track.getCapabilities?.();
-      if (!caps || !caps.torch) return; // not supported
-
+      if (!caps || !caps.torch) return;
       await track.applyConstraints({ advanced: [{ torch: on }] });
     } catch {
       // ignore
@@ -174,9 +191,8 @@ export default function ARViewPage() {
     }
   };
 
-  // ---------- Init camera + GPS ----------
+  // ---------- Init camera ----------
   const startCamera = async (nextFacing: 'environment' | 'user') => {
-    // stop old stream
     try {
       const old = videoRef.current?.srcObject as MediaStream | null;
       old?.getTracks?.()?.forEach((t) => t.stop());
@@ -189,16 +205,15 @@ export default function ARViewPage() {
 
     if (videoRef.current) videoRef.current.srcObject = stream;
 
-    // read caps
     setTimeout(() => {
       const track: any = getVideoTrack();
       const caps = track?.getCapabilities?.();
+
       if (caps?.zoom) {
         setMinZoom(caps.zoom.min ?? 1);
         setMaxZoom(caps.zoom.max ?? 1);
-        const initial = Math.max(caps.zoom.min ?? 1, Math.min(caps.zoom.max ?? 1, zoom || 1));
+        const initial = Math.max(caps.zoom.min ?? 1, Math.min(caps.zoom.max ?? 1, 1));
         setZoom(initial);
-        // try apply initial zoom
         applyZoom(initial);
       } else {
         setMinZoom(1);
@@ -206,7 +221,6 @@ export default function ARViewPage() {
         setZoom(1);
       }
 
-      // re-apply torch if requested
       if (torchOn) applyTorch(true);
     }, 150);
   };
@@ -237,7 +251,6 @@ export default function ARViewPage() {
           { enableHighAccuracy: true }
         );
 
-        // load locks
         const { data } = await supabase
           .from('locks')
           .select('id, skin, content_media_url, is_media_enabled_')
@@ -264,30 +277,32 @@ export default function ARViewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---------- Pinch to zoom ----------
+  // ---------- Pinch zoom ----------
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const lastPinchDistance = useRef<number | null>(null);
+
   const onPointerDown = (e: React.PointerEvent) => {
     (e.currentTarget as any).setPointerCapture?.(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 2) {
       const pts = Array.from(pointers.current.values());
-      const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      lastPinchDistance.current = d;
+      lastPinchDistance.current = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
     }
   };
+
   const onPointerMove = (e: React.PointerEvent) => {
     if (!pointers.current.has(e.pointerId)) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    if (pointers.current.size === 2 && maxZoom > 1) {
+    if (pointers.current.size === 2 && maxZoom > 1 && !previewPhotoUrl && !previewVideoUrl) {
       const pts = Array.from(pointers.current.values());
       const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       const last = lastPinchDistance.current;
+
       if (last) {
         const delta = d - last;
         if (Math.abs(delta) > 6) {
-          const step = (maxZoom - minZoom) / 200; // smooth
+          const step = (maxZoom - minZoom) / 200;
           const next = zoom + (delta > 0 ? step : -step);
           applyZoom(next);
           lastPinchDistance.current = d;
@@ -297,12 +312,13 @@ export default function ARViewPage() {
       }
     }
   };
+
   const onPointerUp = (e: React.PointerEvent) => {
     pointers.current.delete(e.pointerId);
     if (pointers.current.size < 2) lastPinchDistance.current = null;
   };
 
-  // ---------- Shutter effect + sound ----------
+  // ---------- Photo sound only ----------
   const playShutterSound = () => {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -317,29 +333,26 @@ export default function ARViewPage() {
       setTimeout(() => {
         o.stop();
         ctx.close();
-      }, 50);
+      }, 60);
     } catch {}
   };
 
-  const triggerShutterEffect = () => {
+  const triggerPhotoFlash = () => {
     setShutterFlash(true);
-    playShutterSound();
     setTimeout(() => setShutterFlash(false), 120);
   };
 
-  // ---------- Compose (video + AR canvas) ----------
+  // ---------- Compose video+AR ----------
   const getThreeCanvas = () => rootRef.current?.querySelector('canvas') as HTMLCanvasElement | null;
 
   const drawCompositeFrame = (ctx: CanvasRenderingContext2D, outW: number, outH: number) => {
     const video = videoRef.current;
     if (!video) return;
 
-    // Camera frame
     try {
       ctx.drawImage(video, 0, 0, outW, outH);
     } catch {}
 
-    // AR overlay
     const three = getThreeCanvas();
     if (three) {
       try {
@@ -348,12 +361,14 @@ export default function ARViewPage() {
     }
   };
 
-  // ---------- PHOTO CAPTURE ----------
+  // ---------- Take photo ----------
   const takePhoto = async () => {
     const video = videoRef.current;
     if (!video) return;
 
-    triggerShutterEffect();
+    // Flash + sound only for photo
+    triggerPhotoFlash();
+    playShutterSound();
 
     const vw = video.videoWidth || 1280;
     const vh = video.videoHeight || 720;
@@ -371,7 +386,6 @@ export default function ARViewPage() {
     );
     if (!blob) return;
 
-    // cleanup old preview
     if (previewPhotoUrl) URL.revokeObjectURL(previewPhotoUrl);
     if (previewVideoUrl) URL.revokeObjectURL(previewVideoUrl);
 
@@ -379,11 +393,10 @@ export default function ARViewPage() {
     setPreviewPhotoUrl(URL.createObjectURL(blob));
   };
 
-  // ---------- VIDEO RECORD (composite stream) ----------
+  // ---------- Video record (no shutter sound) ----------
   const startRecording = async () => {
     if (isRecording) return;
 
-    // clear previews
     if (previewPhotoUrl) URL.revokeObjectURL(previewPhotoUrl);
     if (previewVideoUrl) URL.revokeObjectURL(previewVideoUrl);
     setPreviewPhotoUrl(null);
@@ -392,7 +405,6 @@ export default function ARViewPage() {
     const video = videoRef.current;
     if (!video) return;
 
-    // canvas composite for recording
     const vw = video.videoWidth || 1280;
     const vh = video.videoHeight || 720;
 
@@ -420,23 +432,21 @@ export default function ARViewPage() {
       setIsRecording(false);
     };
 
-    // draw loop
     const loop = () => {
       drawCompositeFrame(ctx, comp.width, comp.height);
       rafRef.current = requestAnimationFrame(loop);
     };
     loop();
 
-    triggerShutterEffect();
     setIsRecording(true);
     recorder.start(250);
   };
 
   const stopRecording = () => {
     if (!isRecording) return;
-    triggerShutterEffect();
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
+
     try {
       recorderRef.current?.stop();
     } catch {
@@ -444,7 +454,7 @@ export default function ARViewPage() {
     }
   };
 
-  // ---------- Save (download) ----------
+  // ---------- Download ----------
   const downloadUrl = (url: string, filename: string) => {
     const a = document.createElement('a');
     a.href = url;
@@ -454,9 +464,59 @@ export default function ARViewPage() {
     a.remove();
   };
 
-  const handleSave = () => {
+  const handleDownload = () => {
     if (previewPhotoUrl) downloadUrl(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`);
     if (previewVideoUrl) downloadUrl(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`);
+  };
+
+  // ---------- Share ----------
+  const urlToFile = async (url: string, filename: string, mime: string) => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new File([blob], filename, { type: mime });
+  };
+
+  const handleShare = async () => {
+    try {
+      if (!('share' in navigator)) return;
+
+      // Prefer files share (mobile)
+      if ('canShare' in navigator) {
+        if (previewPhotoUrl) {
+          const file = await urlToFile(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`, 'image/jpeg');
+          const can = (navigator as any).canShare?.({ files: [file] });
+          if (can) {
+            await (navigator as any).share({
+              files: [file],
+              title: 'LoveLockParis AR',
+              text: 'LoveLockParis — AR on Pont des Arts',
+            });
+            return;
+          }
+        }
+        if (previewVideoUrl) {
+          const file = await urlToFile(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`, 'video/webm');
+          const can = (navigator as any).canShare?.({ files: [file] });
+          if (can) {
+            await (navigator as any).share({
+              files: [file],
+              title: 'LoveLockParis AR',
+              text: 'LoveLockParis — AR on Pont des Arts',
+            });
+            return;
+          }
+        }
+      }
+
+      // Fallback share link
+      await (navigator as any).share({
+        title: 'LoveLockParis',
+        text: 'LoveLockParis — AR on Pont des Arts',
+        url: window.location.href,
+      });
+    } catch {
+      // ignore
+    }
   };
 
   const handleRetake = () => {
@@ -466,14 +526,16 @@ export default function ARViewPage() {
     setPreviewVideoUrl(null);
   };
 
-  // ---------- Flip camera ----------
+  // ---------- Flip ----------
   const flipCamera = async () => {
     const next = facing === 'environment' ? 'user' : 'environment';
     setFacing(next);
-    setTorchOn(false); // torch usually not supported on selfie
-    setTimeout(async () => {
-      await startCamera(next);
-    }, 0);
+
+    // torch generally not supported on selfie
+    setTorchOn(false);
+    await applyTorch(false);
+
+    await startCamera(next);
   };
 
   // ---------- Torch toggle ----------
@@ -510,7 +572,6 @@ export default function ARViewPage() {
   const handleUnlock = async () => {
     if (!selectedLock) return;
     if (!user) {
-      // simple redirect login flow: your auth dialog may handle it elsewhere
       alert(t.loginNeeded);
       return;
     }
@@ -542,9 +603,6 @@ export default function ARViewPage() {
     }
   };
 
-  // ---------- Hide AR when too far ----------
-  const showARScene = (isAtBridge || debugMode) && !gpsLoading;
-
   // ---------- Skin color helper ----------
   const lockColor = (skin?: string | null) => {
     const s = (skin || 'gold').toLowerCase();
@@ -553,6 +611,8 @@ export default function ARViewPage() {
     if (s.includes('iron')) return '#b6b6b6';
     return '#FFD700';
   };
+
+  const showARScene = (isAtBridge || debugMode) && !gpsLoading;
 
   if (!mounted) {
     return <div className="min-h-screen bg-black" />;
@@ -576,79 +636,93 @@ export default function ARViewPage() {
         className="absolute inset-0 w-full h-full object-cover z-0"
       />
 
-      {/* Shutter flash overlay */}
-      {shutterFlash && (
-        <div className="absolute inset-0 z-[60] bg-white/80 pointer-events-none" />
-      )}
+      {/* Shutter flash overlay (PHOTO only) */}
+      {shutterFlash && <div className="absolute inset-0 z-[60] bg-white/80 pointer-events-none" />}
 
-      {/* TOP BAR (Instagram style) */}
-      <div className="absolute top-0 left-0 right-0 z-50 p-4 flex items-center justify-between pointer-events-auto">
-        <Button
-          variant="outline"
-          onClick={() => router.back()}
-          className="bg-black/40 backdrop-blur border-white/20 text-white hover:bg-black/60"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t.back}
-        </Button>
-
-        <div className="flex items-center gap-2">
-          {/* Torch */}
-          <button
-            onClick={toggleTorch}
-            className="w-11 h-11 rounded-full bg-black/40 backdrop-blur border border-white/20 flex items-center justify-center active:scale-95 transition-transform"
-            aria-label="Flash"
-            title="Flash"
-          >
-            {torchOn ? <Zap className="h-5 w-5" /> : <ZapOff className="h-5 w-5" />}
-          </button>
-
-          {/* Flip */}
-          <button
-            onClick={flipCamera}
-            className="w-11 h-11 rounded-full bg-black/40 backdrop-blur border border-white/20 flex items-center justify-center active:scale-95 transition-transform"
-            aria-label="Flip camera"
-            title="Flip camera"
-          >
-            <RefreshCw className="h-5 w-5" />
-          </button>
+      {/* LOGO ALWAYS bottom-left */}
+      <div className="absolute bottom-4 left-4 z-[90] pointer-events-none">
+        <div className="bg-black/35 backdrop-blur px-3 py-2 rounded-full border border-white/15 text-xs font-bold tracking-wide">
+          LoveLockParis
         </div>
       </div>
 
-      {/* GEOFENCE SCREEN */}
-      {(!isAtBridge && !debugMode && !gpsLoading) && (
-        <div className="absolute inset-0 z-40 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center pointer-events-auto">
-          <div className="bg-white/10 p-8 rounded-3xl border border-white/20 max-w-sm shadow-2xl">
-            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
+      {/* TOP BAR (hidden when too-far overlay to avoid overlap) */}
+      {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
+        <div className="absolute top-0 left-0 right-0 z-50 p-4 flex items-center justify-between pointer-events-auto">
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="bg-black/40 backdrop-blur border-white/20 text-white hover:bg-black/60"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" /> {t.back}
+          </Button>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTorch}
+              className="w-11 h-11 rounded-full bg-black/40 backdrop-blur border border-white/20 flex items-center justify-center active:scale-95 transition-transform"
+              aria-label={t.flash}
+              title={t.flash}
+            >
+              {torchOn ? <Zap className="h-5 w-5" /> : <ZapOff className="h-5 w-5" />}
+            </button>
+
+            <button
+              onClick={flipCamera}
+              className="w-11 h-11 rounded-full bg-black/40 backdrop-blur border border-white/20 flex items-center justify-center active:scale-95 transition-transform"
+              aria-label={t.flip}
+              title={t.flip}
+            >
+              <RefreshCw className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* GEOFENCE OVERLAY (no overlap, it owns the screen) */}
+      {showTooFarOverlay && (
+        <div className="absolute inset-0 z-[80] bg-black/85 backdrop-blur-md flex items-center justify-center p-6 pointer-events-auto">
+          <div className="w-full max-w-sm bg-white/10 p-6 rounded-3xl border border-white/20 shadow-2xl text-center">
+            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-5">
               <MapPin className="h-8 w-8 text-[#e11d48]" />
             </div>
 
             <h2 className="text-2xl font-serif font-bold mb-2">{t.tooFarTitle}</h2>
-            <p className="text-slate-300 mb-6 text-sm leading-relaxed">
-              {t.tooFarText}
-            </p>
+            <p className="text-slate-300 mb-5 text-sm leading-relaxed">{t.tooFarText}</p>
 
-            <div className="bg-black/40 p-4 rounded-xl mb-6 border border-white/10">
+            <div className="bg-black/40 p-4 rounded-xl mb-5 border border-white/10">
               <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">{t.distance}</p>
               <p className="text-3xl font-mono font-bold text-[#e11d48]">
                 {distance ? (distance / 1000).toFixed(1) : '?'} km
               </p>
             </div>
 
-            <Button
-              className="w-full bg-white text-slate-900 hover:bg-slate-200 font-bold mb-4"
-              onClick={() =>
-                window.open(`https://www.google.com/maps/dir/?api=1&destination=${BRIDGE_LAT},${BRIDGE_LNG}`)
-              }
-            >
-              <Navigation className="mr-2 h-4 w-4" /> {t.directions}
-            </Button>
+            <div className="space-y-3">
+              <Button
+                className="w-full bg-white text-slate-900 hover:bg-slate-200 font-bold"
+                onClick={() =>
+                  window.open(`https://www.google.com/maps/dir/?api=1&destination=${BRIDGE_LAT},${BRIDGE_LNG}`)
+                }
+              >
+                <Navigation className="mr-2 h-4 w-4" /> {t.directions}
+              </Button>
 
-            <button
-              onClick={() => setDebugMode(true)}
-              className="text-xs text-slate-500 underline hover:text-white transition-colors"
-            >
-              {t.simulate}
-            </button>
+              {/* NEW: “Nice” simulation button */}
+              <Button
+                className="w-full bg-[#e11d48] hover:bg-[#be123c] font-bold"
+                onClick={() => setDebugMode(true)}
+              >
+                <Camera className="mr-2 h-4 w-4" /> {t.tryDemo}
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => router.back()}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> {t.back}
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -670,7 +744,6 @@ export default function ARViewPage() {
               <directionalLight position={[0, 10, 5]} intensity={2} />
               <DeviceOrientationControls />
 
-              {/* Dynamic locks */}
               {locks.map((lock, i) => (
                 <group
                   key={lock.id}
@@ -683,7 +756,7 @@ export default function ARViewPage() {
                     position={[
                       (i % 6 - 2.5) * 1.7,
                       (i % 3 - 1) * 1.1,
-                      -5 - (i % 5) * 1.2
+                      -5 - (i % 5) * 1.2,
                     ]}
                     color={lockColor(lock.skin)}
                     text={`#${lock.id}`}
@@ -694,17 +767,19 @@ export default function ARViewPage() {
           </div>
 
           {/* Hint */}
-          <div className="absolute bottom-28 left-0 right-0 text-center z-20 pointer-events-none">
-            <div className="inline-block bg-black/40 backdrop-blur-md px-6 py-3 rounded-full text-white text-sm font-bold border border-white/20">
-              <Lock className="inline h-4 w-4 mr-2" />
-              {t.hint}
+          {!previewPhotoUrl && !previewVideoUrl && (
+            <div className="absolute bottom-28 left-0 right-0 text-center z-20 pointer-events-none">
+              <div className="inline-block bg-black/40 backdrop-blur-md px-6 py-3 rounded-full text-white text-sm font-bold border border-white/20">
+                <Lock className="inline h-4 w-4 mr-2" />
+                {t.hint}
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
 
-      {/* ZOOM INDICATOR (only if supported) */}
-      {maxZoom > 1 && !previewPhotoUrl && !previewVideoUrl && (
+      {/* ZOOM INDICATOR */}
+      {maxZoom > 1 && !previewPhotoUrl && !previewVideoUrl && !showTooFarOverlay && (
         <div className="absolute bottom-44 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
           <div className="bg-black/40 backdrop-blur px-3 py-1 rounded-full text-xs border border-white/20">
             {zoom.toFixed(1)}x
@@ -712,19 +787,23 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* BOTTOM CAMERA UI (Instagram style) */}
-      {!previewPhotoUrl && !previewVideoUrl && (
+      {/* BOTTOM CAMERA UI (hidden when too-far overlay) */}
+      {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
         <div className="absolute bottom-0 left-0 right-0 z-50 pb-6 pt-3 pointer-events-auto">
           {/* Mode toggle */}
           <div className="flex justify-center gap-8 mb-4 text-sm font-bold">
             <button
-              onClick={() => { if (!isRecording) setMode('photo'); }}
+              onClick={() => {
+                if (!isRecording) setMode('photo');
+              }}
               className={`${mode === 'photo' ? 'text-white' : 'text-white/50'} transition-colors`}
             >
               {t.photo}
             </button>
             <button
-              onClick={() => { if (!isRecording) setMode('video'); }}
+              onClick={() => {
+                if (!isRecording) setMode('video');
+              }}
               className={`${mode === 'video' ? 'text-white' : 'text-white/50'} transition-colors`}
             >
               {t.video}
@@ -735,7 +814,6 @@ export default function ARViewPage() {
           <div className="flex items-center justify-center gap-10">
             <div className="w-12" />
 
-            {/* Shutter */}
             <button
               onClick={() => {
                 if (mode === 'photo') takePhoto();
@@ -758,11 +836,10 @@ export default function ARViewPage() {
               )}
             </button>
 
-            {/* Small placeholder */}
             <div className="w-12" />
           </div>
 
-          {/* Recording indicator */}
+          {/* REC indicator */}
           {isRecording && (
             <div className="mt-4 flex justify-center">
               <div className="bg-black/40 backdrop-blur px-4 py-2 rounded-full text-xs border border-white/20 flex items-center gap-2">
@@ -774,11 +851,10 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* PREVIEW (Instagram: stays on screen, X to retake) */}
+      {/* PREVIEW SCREEN: Share + Download + X */}
       {(previewPhotoUrl || previewVideoUrl) && (
-        <div className="absolute inset-0 z-[70] bg-black pointer-events-auto">
-          {/* Close / retake */}
-          <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-[80]">
+        <div className="absolute inset-0 z-[90] bg-black pointer-events-auto">
+          <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-[95]">
             <button
               onClick={handleRetake}
               className="w-11 h-11 rounded-full bg-black/40 backdrop-blur border border-white/20 flex items-center justify-center"
@@ -788,25 +864,31 @@ export default function ARViewPage() {
               <X className="h-5 w-5" />
             </button>
 
-            <Button
-              onClick={handleSave}
-              className="bg-white text-black hover:bg-slate-200 font-bold"
-            >
-              {t.save}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleShare}
+                className="bg-white/90 text-black hover:bg-white font-bold"
+              >
+                <Share2 className="mr-2 h-4 w-4" /> {t.share}
+              </Button>
+
+              <Button
+                onClick={handleDownload}
+                className="bg-white text-black hover:bg-slate-200 font-bold"
+              >
+                <Download className="mr-2 h-4 w-4" /> {t.download}
+              </Button>
+            </div>
           </div>
 
-          {/* Media */}
           <div className="absolute inset-0 flex items-center justify-center">
             {previewPhotoUrl && (
-              // pinch zoom on preview: native browser zoom/pinch will work; image is full screen
               <img
                 src={previewPhotoUrl}
                 alt="preview"
                 className="w-full h-full object-contain"
               />
             )}
-
             {previewVideoUrl && (
               <video
                 src={previewVideoUrl}
@@ -817,18 +899,11 @@ export default function ARViewPage() {
               />
             )}
           </div>
-
-          {/* Bottom retake hint */}
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
-            <div className="bg-black/40 backdrop-blur px-5 py-2 rounded-full text-xs border border-white/20">
-              {t.retake}: X
-            </div>
-          </div>
         </div>
       )}
 
       {/* LOCK DETAILS OVERLAY */}
-      {selectedLock && (
+      {selectedLock && !previewPhotoUrl && !previewVideoUrl && !showTooFarOverlay && (
         <div className="absolute inset-x-0 bottom-32 z-[65] flex justify-center pointer-events-auto">
           <div className="bg-black/80 backdrop-blur p-4 rounded-xl border border-white/20 w-80 text-center">
             <div className="font-bold mb-2">Lock #{selectedLock.id}</div>
