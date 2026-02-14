@@ -58,18 +58,26 @@ export async function POST(request: NextRequest) {
           await supabase.from('locks').update({ media_type: metadata.media_type }).eq('id', lockId);
         }
 
-        // UNLOCK (Visiteur)
-        else if (type === 'media_unlock') {
-           const { data: lock } = await supabase.from('locks').select('owner_id, media_views, media_earnings').eq('id', lockId).single();
-           if (lock && lock.owner_id) {
-               // On crédite le solde du user (il faudra une fonction RPC ou update direct si RLS admin le permet)
-               // Ici on update juste les stats du cadenas pour l'exemple
-               await supabase.from('locks').update({ 
-                   media_views: (lock.media_views || 0) + 1,
-                   media_earnings: (lock.media_earnings || 0) + 2.99
-               }).eq('id', lockId);
-           }
-        }
+       // UNLOCK (Visiteur)
+else if (type === 'media_unlock') {
+
+   const OWNER_SHARE = 2.99; // ✅ part reversée au propriétaire
+
+   const { data: lock } = await supabase
+     .from('locks')
+     .select('owner_id, media_views, media_earnings')
+     .eq('id', lockId)
+     .single();
+
+   if (lock && lock.owner_id) {
+       await supabase.from('locks').update({ 
+           media_views: (lock.media_views || 0) + 1,
+           media_earnings: (lock.media_earnings || 0) + OWNER_SHARE,
+           media_unlocked: true
+       }).eq('id', lockId);
+   }
+}
+
 
         // LOG
         await supabase.from('transactions').insert({
