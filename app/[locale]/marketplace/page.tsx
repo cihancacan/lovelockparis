@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -92,6 +92,9 @@ const UsersIcon = ({className, size}: any) => (<svg xmlns="http://www.w3.org/200
 // --- MAIN COMPONENT ---
 function MarketplaceContent() {
   const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) || 'en';
+
   const { user } = useAuth();
   
   const [locks, setLocks] = useState<MarketLock[]>([]);
@@ -142,13 +145,26 @@ function MarketplaceContent() {
     setCurrentPage(1);
   }, [search, sortBy, locks, mounted]);
 
+  // ✅ ✅ ✅ ICI LA CORRECTION (NE SUPPRIME RIEN, JUSTE MODIFIE)
   const handleQuickBuy = (lockId: number, price: number) => {
+    const targetCheckout = `/${locale}/checkout?lock_id=${lockId}&price=${price}&type=marketplace`;
+
     if (!user) {
-      if (typeof window !== 'undefined') sessionStorage.setItem('pendingBuy', JSON.stringify({ lockId, price }));
-      router.push('/purchase');
+      // on garde ton ancienne clé (au cas où)
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('pendingBuy', JSON.stringify({ lockId, price }));
+
+        // ✅ NOUVELLE clé utilisée par AuthDialog pour rediriger après inscription/login
+        sessionStorage.setItem('post_auth_redirect', targetCheckout);
+      }
+
+      // on envoie vers purchase (qui ouvre la connexion/inscription)
+      router.push(`/${locale}/purchase`);
       return;
     }
-    router.push(`/checkout?lock_id=${lockId}&price=${price}&type=marketplace`);
+
+    // connecté -> checkout marketplace direct
+    router.push(targetCheckout);
   };
 
   const getBoostBadge = (level: string) => {
@@ -361,7 +377,7 @@ function MarketplaceContent() {
                     <Zap className="mr-3 h-8 w-8"/> BOOST VISIBILITY
                  </Button>
               </div>
-              <p className="text-slate-400 text-xs mt-4">Join 85,000+ traders • Instant Payouts • Secure Escrow</p>
+              <p className="text-slate-400 text-xs mt-4">Join 92,000+ traders • Instant Payouts • Secure Escrow</p>
            </div>
         </section>
 
