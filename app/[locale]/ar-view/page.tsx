@@ -75,7 +75,7 @@ type LockRow = {
   skin?: string | null;
   content_media_url?: string | null;
   is_media_enabled_?: boolean | null;
-  owner_id?: string | null; // ✅ ajout (ne casse rien)
+  owner_id?: string | null;
 };
 
 export default function ARViewPage() {
@@ -98,42 +98,65 @@ export default function ARViewPage() {
       directions: fr ? 'Itinéraire' : zh ? '导航' : 'Get Directions',
       locating: fr ? 'Localisation...' : zh ? '定位中...' : 'Locating Bridge...',
       tryDemo: fr ? 'Essayer la Démo AR' : zh ? '试用 AR 演示' : 'Try AR Demo',
+
       photo: fr ? 'Photo' : zh ? '照片' : 'Photo',
       video: fr ? 'Vidéo' : zh ? '视频' : 'Video',
+
       unlock: fr ? 'Débloquer le média — 4.99$' : zh ? '解锁媒体 — $4.99' : 'Unlock Media — $4.99',
       close: fr ? 'Fermer' : zh ? '关闭' : 'Close',
       noMedia: fr ? 'Aucun média' : zh ? '无媒体' : 'No media attached',
       checking: fr ? 'Vérification...' : zh ? '检查中...' : 'Checking...',
       loginNeeded: fr ? 'Connectez-vous pour débloquer' : zh ? '登录后解锁' : 'Login to unlock',
+
       timerOff: fr ? 'OFF' : zh ? '关闭' : 'OFF',
       timer5: fr ? '5s' : zh ? '5秒' : '5s',
       timer10: fr ? '10s' : zh ? '10秒' : '10s',
+
       share: fr ? 'Partager' : zh ? '分享' : 'Share',
       save: fr ? 'Enregistrer' : zh ? '保存' : 'Save',
+
       flash: fr ? 'Flash' : zh ? '闪光' : 'Flash',
       flip: fr ? 'Selfie' : zh ? '切换' : 'Flip',
-      hintAll: fr ? 'Tous les cadenas' : zh ? '所有锁' : 'All locks',
-      hintMine: fr ? 'Mon cadenas' : zh ? '我的锁' : 'My lock',
-      hintMic: fr ? 'Vidéo : micro demandé au démarrage' : zh ? '视频：开始录制时请求麦克风' : 'Video: mic requested on REC',
+
+      hintTitle: fr ? 'Astuce' : zh ? '提示' : 'Tip',
+      hintText: fr
+        ? '1 cadenas = ton cadenas • 2 cadenas = tous les cadenas. Touche un cadenas pour voir/ouvrir.'
+        : zh
+          ? '1把锁=你的锁 • 2把锁=所有锁。点击锁查看/打开。'
+          : '1 lock = your lock • 2 locks = all locks. Tap a lock to view/open.',
+
+      enableCamTitle: fr ? 'Activer la caméra' : zh ? '启用相机' : 'Enable Camera',
+      enableCamText: fr
+        ? 'Appuie une fois pour autoriser la caméra (sinon iPhone peut bloquer).'
+        : zh
+          ? '点击一次允许相机（iPhone 可能会阻止自动启动）。'
+          : 'Tap once to allow the camera (iPhone may block auto-start).',
+      enableCamBtn: fr ? 'Autoriser la caméra' : zh ? '允许相机' : 'Allow Camera',
     };
   }, [locale]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  const [mounted, setMounted] = useState(false);
+
+  // camera status
+  const [camReady, setCamReady] = useState(false);
+  const [camError, setCamError] = useState<string | null>(null);
+  const [needsTapToStart, setNeedsTapToStart] = useState(false);
+
   const [gpsLoading, setGpsLoading] = useState(true);
   const [distance, setDistance] = useState<number | null>(null);
   const [isAtBridge, setIsAtBridge] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
-  // ✅ NEW: toggles "mine" vs "all"
+  // toggles locks
   const [lockScope, setLockScope] = useState<'all' | 'mine'>('all');
 
-  // ✅ NEW: 3s hint overlay (demo)
+  // 3s hint overlay
   const [showHint, setShowHint] = useState(false);
 
-  // Camera / capture UI
+  // camera/capture UI
   const [mode, setMode] = useState<'photo' | 'video'>('photo');
   const [timer, setTimer] = useState<0 | 5 | 10>(0);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -143,17 +166,15 @@ export default function ARViewPage() {
   const [flashOn, setFlashOn] = useState(false);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
 
-  // Preview
+  // preview
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
 
-  // Video record
+  // video record
   const [isRecording, setIsRecording] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<BlobPart[]>([]);
   const rafRef = useRef<number | null>(null);
-
-  // ✅ NEW: video timer (seconds)
   const [videoSeconds, setVideoSeconds] = useState(0);
   const videoTimerRef = useRef<number | null>(null);
 
@@ -199,32 +220,6 @@ export default function ARViewPage() {
     videoRef.current.style.transformOrigin = 'center center';
   };
 
-  // ✅ MODIF: demande 4K (best effort)
-  const startCamera = async (fm: 'environment' | 'user') => {
-    // stop old
-    const old = videoRef.current?.srcObject as MediaStream | null;
-    old?.getTracks?.()?.forEach((t) => t.stop());
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: fm,
-        width: { ideal: 3840 },
-        height: { ideal: 2160 },
-        frameRate: { ideal: 30, max: 60 },
-      },
-      audio: false,
-    });
-
-    if (videoRef.current) videoRef.current.srcObject = stream;
-
-    // Mirror preview like Instagram (ONLY preview), capture remains normal
-    setTimeout(async () => {
-      if (flashOn && fm === 'environment') await setTorch(true);
-      await applyZoom(zoomPreset);
-      applyMirrorAndZoomCSS(1);
-    }, 250);
-  };
-
   const applyZoom = async (value: number) => {
     try {
       const track: any = getVideoTrack();
@@ -250,7 +245,49 @@ export default function ARViewPage() {
     }
   };
 
-  // ✅ NEW: load locks depending on scope (all vs mine)
+  const startCamera = async (fm: 'environment' | 'user') => {
+    setCamError(null);
+    setNeedsTapToStart(false);
+
+    // stop old
+    const old = videoRef.current?.srcObject as MediaStream | null;
+    old?.getTracks?.()?.forEach((t) => t.stop());
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: fm,
+          width: { ideal: 3840 },
+          height: { ideal: 2160 },
+          frameRate: { ideal: 30, max: 60 },
+        },
+        audio: false,
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        // iOS sometimes needs explicit play()
+        try {
+          await videoRef.current.play();
+        } catch {}
+      }
+
+      setCamReady(true);
+
+      setTimeout(async () => {
+        if (flashOn && fm === 'environment') await setTorch(true);
+        await applyZoom(zoomPreset);
+        applyMirrorAndZoomCSS(1);
+      }, 250);
+    } catch (e: any) {
+      setCamReady(false);
+      const msg = e?.message || 'Camera error';
+      setCamError(msg);
+      // iPhone often blocks auto-start without user gesture
+      setNeedsTapToStart(true);
+    }
+  };
+
   const loadLocks = async (scope: 'all' | 'mine') => {
     try {
       let q = supabase
@@ -273,11 +310,17 @@ export default function ARViewPage() {
     }
   };
 
+  const showHint3s = () => {
+    setShowHint(true);
+    window.setTimeout(() => setShowHint(false), 3000);
+  };
+
   useEffect(() => {
     setMounted(true);
 
     const init = async () => {
       try {
+        // try auto-start camera; if blocked, we show "Enable camera" overlay
         await startCamera(facingMode);
 
         navigator.geolocation.watchPosition(
@@ -410,7 +453,7 @@ export default function ARViewPage() {
     setPreviewPhotoUrl(URL.createObjectURL(blob));
   };
 
-  // ✅ MODIF: micro demandé uniquement au démarrage REC + intégration audio dans l’enregistrement
+  // video: mic requested only on REC
   const startRecordingNow = async () => {
     if (isRecording) return;
 
@@ -434,13 +477,11 @@ export default function ARViewPage() {
     const stream = (comp as any).captureStream?.(30) as MediaStream | undefined;
     if (!stream) return;
 
-    // ✅ micro demandé ici seulement
     try {
       const mic = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       const at = mic.getAudioTracks?.()?.[0];
       if (at) stream.addTrack(at);
     } catch (e) {
-      // pas bloquant: vidéo sans son si refus
       console.warn('Mic not available/denied', e);
     }
 
@@ -458,12 +499,10 @@ export default function ARViewPage() {
       setPreviewVideoUrl(URL.createObjectURL(blob));
       setIsRecording(false);
 
-      // stop audio track if any (avoid mic staying on)
       try {
         stream.getAudioTracks()?.forEach((t) => t.stop());
       } catch {}
 
-      // stop timer
       if (videoTimerRef.current) window.clearInterval(videoTimerRef.current);
       videoTimerRef.current = null;
       setVideoSeconds(0);
@@ -478,7 +517,6 @@ export default function ARViewPage() {
     setIsRecording(true);
     recorder.start(250);
 
-    // ✅ video timer start
     setVideoSeconds(0);
     if (videoTimerRef.current) window.clearInterval(videoTimerRef.current);
     videoTimerRef.current = window.setInterval(() => setVideoSeconds((s) => s + 1), 1000);
@@ -512,6 +550,15 @@ export default function ARViewPage() {
     }
     setCountdown(null);
     await action();
+  };
+
+  const onShutter = async () => {
+    if (mode === 'photo') {
+      await runWithTimer(takePhotoNow);
+    } else {
+      if (isRecording) stopRecording();
+      else await runWithTimer(startRecordingNow);
+    }
   };
 
   const handleRetake = () => {
@@ -664,26 +711,10 @@ export default function ARViewPage() {
     }
   };
 
-  const onShutter = async () => {
-    if (mode === 'photo') {
-      await runWithTimer(takePhotoNow);
-    } else {
-      if (isRecording) stopRecording();
-      else await runWithTimer(startRecordingNow);
-    }
-  };
-
-  // ✅ format video timer mm:ss
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const r = s % 60;
     return `${m.toString().padStart(2, '0')}:${r.toString().padStart(2, '0')}`;
-  };
-
-  // ✅ 3s hint helper
-  const showHint3s = () => {
-    setShowHint(true);
-    window.setTimeout(() => setShowHint(false), 3000);
   };
 
   if (!mounted) return <div className="min-h-screen bg-black" />;
@@ -699,64 +730,42 @@ export default function ARViewPage() {
         className="absolute inset-0 w-full h-full object-cover z-0"
       />
 
-      {/* ✅ NEW: Right-middle buttons (Mon cadenas / Tous) */}
-      {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-[60] flex flex-col gap-2">
-          <button
-            onClick={async () => {
-              setLockScope('mine');
-              await loadLocks('mine');
-            }}
-            className={`w-12 h-12 rounded-full backdrop-blur border border-white/20 flex items-center justify-center transition-colors ${
-              lockScope === 'mine' ? 'bg-white text-black' : 'bg-black/55 text-white'
-            }`}
-            aria-label={t.hintMine}
-            title={t.hintMine}
-          >
-            {/* 1 cadenas */}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M8 11V8a4 4 0 118 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M7 11h10a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7a2 2 0 012-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-
-          <button
-            onClick={async () => {
-              setLockScope('all');
-              await loadLocks('all');
-            }}
-            className={`w-12 h-12 rounded-full backdrop-blur border border-white/20 flex items-center justify-center transition-colors ${
-              lockScope === 'all' ? 'bg-white text-black' : 'bg-black/55 text-white'
-            }`}
-            aria-label={t.hintAll}
-            title={t.hintAll}
-          >
-            {/* 2 cadenas */}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M6.5 12.5v-1.5a2.5 2.5 0 115 0v1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M5.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5H5.8A1.5 1.5 0 014.3 19.2V14a1.5 1.5 0 011.5-1.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M12.5 12.5v-2a3 3 0 116 0v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M11.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5h-6.4a1.5 1.5 0 01-1.5-1.5V14a1.5 1.5 0 011.5-1.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {/* ✅ NEW: 3s hint overlay (demo + mic info for video) */}
-      {showHint && !previewPhotoUrl && !previewVideoUrl && (
-        <div className="absolute inset-0 z-[85] pointer-events-none flex items-center justify-center">
-          <div className="bg-black/70 backdrop-blur border border-white/20 rounded-2xl px-5 py-4 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/10 border border-white/15 flex items-center justify-center">
-                <Video className="h-5 w-5" />
-              </div>
-              <div className="text-sm font-bold">{t.hintMic}</div>
+      {/* ✅ camera enable overlay if blocked */}
+      {needsTapToStart && !previewPhotoUrl && !previewVideoUrl && !showTooFarOverlay && (
+        <div className="absolute inset-0 z-[120] bg-black/70 backdrop-blur flex items-center justify-center p-6">
+          <div className="w-full max-w-sm bg-white/10 border border-white/20 rounded-3xl p-6 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/10 border border-white/15 flex items-center justify-center">
+              <Camera className="h-7 w-7" />
             </div>
+            <div className="text-xl font-bold mb-2">{t.enableCamTitle}</div>
+            <div className="text-sm text-white/70 mb-5">{t.enableCamText}</div>
+
+            <Button
+              className="w-full bg-white text-black hover:bg-white/90 font-bold"
+              onClick={async () => {
+                setNeedsTapToStart(false);
+                await startCamera(facingMode);
+              }}
+            >
+              {t.enableCamBtn}
+            </Button>
+
+            {camError && <div className="mt-3 text-xs text-red-200">{camError}</div>}
           </div>
         </div>
       )}
 
-      {/* TOP BAR */}
+      {/* ✅ 3s hint about locks */}
+      {showHint && !previewPhotoUrl && !previewVideoUrl && (
+        <div className="absolute inset-0 z-[85] pointer-events-none flex items-center justify-center">
+          <div className="bg-black/70 backdrop-blur border border-white/20 rounded-2xl px-5 py-4 shadow-2xl max-w-[320px]">
+            <div className="text-xs text-white/60 font-bold mb-1">{t.hintTitle}</div>
+            <div className="text-sm font-bold leading-snug">{t.hintText}</div>
+          </div>
+        </div>
+      )}
+
+      {/* TOP BAR: back left, flash+logo right */}
       {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
         <div className="absolute top-0 left-0 right-0 z-50 p-4 flex items-center justify-between">
           <button
@@ -769,15 +778,12 @@ export default function ARViewPage() {
           </button>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setTimer((p) => (p === 0 ? 5 : p === 5 ? 10 : 0))}
-              className="flex items-center gap-2 bg-black/55 hover:bg-black/70 border border-white/20 px-3 py-2 rounded-full text-xs font-black"
-              title="Timer"
-            >
-              <TimerIcon className="h-4 w-4" />
-              {timer === 0 ? t.timerOff : timer === 5 ? t.timer5 : t.timer10}
-            </button>
+            {/* mini logo */}
+            <div className="px-3 py-2 rounded-full bg-black/55 backdrop-blur border border-white/20 text-[11px] font-black tracking-wide">
+              LoveLockParis
+            </div>
 
+            {/* flash */}
             <button
               onClick={toggleFlash}
               className={`w-11 h-11 rounded-full backdrop-blur border border-white/20 flex items-center justify-center ${
@@ -788,20 +794,56 @@ export default function ARViewPage() {
             >
               <Zap className="h-5 w-5" />
             </button>
-
-            <button
-              onClick={handleFlipCamera}
-              className="w-11 h-11 rounded-full bg-black/55 backdrop-blur border border-white/20 flex items-center justify-center"
-              aria-label={t.flip}
-              title={t.flip}
-            >
-              <RefreshCcw className="h-5 w-5" />
-            </button>
           </div>
         </div>
       )}
 
-      {/* GEOFENCE */}
+      {/* ✅ Right-middle lock scope buttons (unchanged) */}
+      {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-[60] flex flex-col gap-2">
+          <button
+            onClick={async () => {
+              setLockScope('mine');
+              await loadLocks('mine');
+              showHint3s();
+            }}
+            className={`w-12 h-12 rounded-full backdrop-blur border border-white/20 flex items-center justify-center transition-colors ${
+              lockScope === 'mine' ? 'bg-white text-black' : 'bg-black/55 text-white'
+            }`}
+            aria-label="My lock"
+            title="My lock"
+          >
+            {/* 1 cadenas */}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M8 11V8a4 4 0 118 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M7 11h10a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7a2 2 0 012-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+
+          <button
+            onClick={async () => {
+              setLockScope('all');
+              await loadLocks('all');
+              showHint3s();
+            }}
+            className={`w-12 h-12 rounded-full backdrop-blur border border-white/20 flex items-center justify-center transition-colors ${
+              lockScope === 'all' ? 'bg-white text-black' : 'bg-black/55 text-white'
+            }`}
+            aria-label="All locks"
+            title="All locks"
+          >
+            {/* 2 cadenas */}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M6.5 12.5v-1.5a2.5 2.5 0 115 0v1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M5.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5H5.8A1.5 1.5 0 014.3 19.2V14a1.5 1.5 0 011.5-1.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M12.5 12.5v-2a3 3 0 116 0v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M11.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5h-6.4a1.5 1.5 0 01-1.5-1.5V14a1.5 1.5 0 011.5-1.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* GEOFENCE (unchanged) */}
       {showTooFarOverlay && (
         <div className="absolute inset-0 z-[80] bg-black/85 backdrop-blur-md flex items-center justify-center p-6">
           <div className="w-full max-w-sm bg-white/10 p-6 rounded-3xl border border-white/20 shadow-2xl text-center">
@@ -833,7 +875,7 @@ export default function ARViewPage() {
                 className="w-full bg-[#e11d48] hover:bg-[#be123c] font-bold"
                 onClick={() => {
                   setDebugMode(true);
-                  showHint3s(); // ✅ 3s hint here
+                  showHint3s(); // ✅ locks hint
                 }}
               >
                 <Camera className="mr-2 h-4 w-4" /> {t.tryDemo}
@@ -898,7 +940,7 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* ZOOM PRESETS (✅ fixe, ne bouge jamais) */}
+      {/* ZOOM PRESETS (unchanged position/space) */}
       {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
         <div className="absolute left-1/2 -translate-x-1/2 z-50" style={{ bottom: 190 }}>
           <div className="flex items-center gap-2 bg-black/55 backdrop-blur border border-white/20 rounded-full p-1">
@@ -920,22 +962,59 @@ export default function ARViewPage() {
         </div>
       )}
 
+      {/* ✅ bottom left selfie button + bottom center iPhone-like mode selector */}
+      {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
+        <>
+          {/* selfie bottom-left */}
+          <div className="absolute bottom-[118px] left-4 z-50">
+            <button
+              onClick={handleFlipCamera}
+              disabled={isRecording}
+              className="w-12 h-12 rounded-full bg-black/55 backdrop-blur border border-white/20 flex items-center justify-center disabled:opacity-40"
+              aria-label={t.flip}
+              title={t.flip}
+            >
+              <RefreshCcw className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* timer button (small) bottom-right (kept useful but no text clutter) */}
+          <div className="absolute bottom-[118px] right-4 z-50">
+            <button
+              onClick={() => setTimer((p) => (p === 0 ? 5 : p === 5 ? 10 : 0))}
+              className="w-12 h-12 rounded-full bg-black/55 backdrop-blur border border-white/20 flex items-center justify-center"
+              title="Timer"
+              aria-label="Timer"
+            >
+              <TimerIcon className="h-5 w-5" />
+            </button>
+          </div>
+        </>
+      )}
+
       {/* BOTTOM CAMERA UI */}
       {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
-        <div className="absolute bottom-0 left-0 right-0 z-50 pb-6 pt-3">
-          <div className="flex justify-center gap-8 mb-4 text-sm font-bold">
-            <button
-              onClick={() => !isRecording && setMode('photo')}
-              className={`${mode === 'photo' ? 'text-white' : 'text-white/50'} transition-colors`}
-            >
-              {t.photo}
-            </button>
-            <button
-              onClick={() => !isRecording && setMode('video')}
-              className={`${mode === 'video' ? 'text-white' : 'text-white/50'} transition-colors`}
-            >
-              {t.video}
-            </button>
+        <div className="absolute bottom-0 left-0 right-0 z-50 pb-6 pt-2">
+          {/* iPhone-like selector */}
+          <div className="flex justify-center mb-4">
+            <div className="bg-black/55 backdrop-blur border border-white/20 rounded-full p-1 flex items-center gap-1">
+              <button
+                onClick={() => !isRecording && setMode('photo')}
+                className={`px-5 py-2 rounded-full text-xs font-black ${
+                  mode === 'photo' ? 'bg-white text-black' : 'text-white/80'
+                }`}
+              >
+                {t.photo}
+              </button>
+              <button
+                onClick={() => !isRecording && setMode('video')}
+                className={`px-5 py-2 rounded-full text-xs font-black ${
+                  mode === 'video' ? 'bg-white text-black' : 'text-white/80'
+                }`}
+              >
+                {t.video}
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center justify-center">
@@ -958,7 +1037,7 @@ export default function ARViewPage() {
             </button>
           </div>
 
-          {/* ✅ IMPORTANT: reserve space so nothing moves */}
+          {/* reserve space so nothing moves */}
           <div className="mt-4 flex justify-center">
             <div
               className={`bg-black/55 backdrop-blur px-4 py-2 rounded-full text-xs border border-white/20 flex items-center gap-2 transition-opacity ${
