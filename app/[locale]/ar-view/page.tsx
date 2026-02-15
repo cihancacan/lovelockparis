@@ -1,17 +1,31 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Navigation, Loader2, Camera, Video, Zap, ZapOff, Timer, RotateCw, X, Download, Share2 } from 'lucide-react';
-
+import {
+  ArrowLeft,
+  MapPin,
+  Navigation,
+  Loader2,
+  Camera,
+  Video,
+  X,
+  Timer as TimerIcon,
+  Zap,
+  RefreshCcw,
+  Share2,
+  Download,
+} from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
-import { DeviceOrientationControls, Float } from '@react-three/drei';
+import { DeviceOrientationControls, Float, Text, Billboard } from '@react-three/drei';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 
-// --- COORDONNÉES PONT DES ARTS ---
+// --- PONT DES ARTS ---
 const BRIDGE_LAT = 48.8583;
 const BRIDGE_LNG = 2.3375;
-const MAX_DISTANCE_METERS = 120;
+const MAX_DISTANCE_METERS = 100;
 
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3;
@@ -23,248 +37,267 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const a =
     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
     Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
-// --- icônes cadenas (1 et 3) ---
-function OneLockIcon({ active }: { active?: boolean }) {
-  return (
-    <div className={active ? 'opacity-100' : 'opacity-80'}>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M8 11V8a4 4 0 118 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        <path d="M7 11h10a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7a2 2 0 012-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-    </div>
-  );
-}
-function ThreeLocksIcon({ active }: { active?: boolean }) {
-  return (
-    <div className={active ? 'opacity-100' : 'opacity-80'}>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        {/* left */}
-        <path d="M4.5 12.5v-1.5a2.5 2.5 0 115 0v1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        <path d="M3.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5H3.8a1.5 1.5 0 01-1.5-1.5V14a1.5 1.5 0 011.5-1.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        {/* center */}
-        <path d="M9.5 11V8a3 3 0 116 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        <path d="M8.8 11h6.4a1.8 1.8 0 011.8 1.8v6.2a1.8 1.8 0 01-1.8 1.8H8.8A1.8 1.8 0 017 19V12.8A1.8 1.8 0 018.8 11z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        {/* right */}
-        <path d="M14.5 12.5v-1.5a2.5 2.5 0 115 0v1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        <path d="M13.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5h-6.4a1.5 1.5 0 01-1.5-1.5V14a1.5 1.5 0 011.5-1.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-    </div>
-  );
-}
-
-// --- AR LOCK placeholder ---
-function ARLock({ position, color }: { position: [number, number, number]; color: string }) {
+// --- CADENAS AR ---
+function ARLock({ position, color, text }: any) {
   return (
     <Float speed={2} rotationIntensity={0.35} floatIntensity={0.35}>
       <group position={position}>
-        <mesh>
+        <mesh position={[0, 1.1, 0]}>
+          <sphereGeometry args={[0.25, 32, 32]} />
+          <meshStandardMaterial color="#e11d48" toneMapped={false} />
+        </mesh>
+        <mesh position={[0, -0.2, 0]}>
+          <cylinderGeometry args={[0.01, 0.01, 1.4]} />
+          <meshBasicMaterial color="white" opacity={0.5} transparent />
+        </mesh>
+
+        <mesh position={[0, -1.05, 0]}>
           <boxGeometry args={[0.55, 0.65, 0.12]} />
-          <meshStandardMaterial color={color} metalness={0.85} roughness={0.2} />
+          <meshStandardMaterial color={color} metalness={0.9} roughness={0.2} />
         </mesh>
-        <mesh position={[0, 0.45, 0]}>
-          <torusGeometry args={[0.22, 0.06, 16, 48, Math.PI]} />
-          <meshStandardMaterial color="#d9d9d9" metalness={0.95} roughness={0.15} />
-        </mesh>
+
+        <Billboard position={[0, -1.8, 0]}>
+          <Text fontSize={0.17} color="white" outlineWidth={0.02} outlineColor="black">
+            {text}
+          </Text>
+        </Billboard>
       </group>
     </Float>
   );
 }
 
+type LockRow = {
+  id: number;
+  skin?: string | null;
+  content_media_url?: string | null;
+  is_media_enabled_?: boolean | null;
+};
+
 export default function ARViewPage() {
   const router = useRouter();
   const params = useParams();
   const locale = (params?.locale as string) || 'en';
+  const { user } = useAuth();
 
   const t = useMemo(() => {
     const fr = locale === 'fr';
     const zh = locale === 'zh-CN';
     return {
       tooFarTitle: fr ? 'Vous êtes trop loin' : zh ? '距离太远' : 'You are too far',
-      tooFarText: fr ? "AR visible uniquement sur le Pont des Arts." : zh ? 'AR 仅在艺术桥可见。' : 'AR is visible only on Pont des Arts.',
-      distance: fr ? 'Distance' : zh ? '距离' : 'Distance',
+      tooFarText: fr
+        ? 'La vue AR est visible uniquement au Pont des Arts à Paris. Vous pouvez tester la démo quand même.'
+        : zh
+          ? 'AR 仅在巴黎艺术桥可见。你也可以试用演示。'
+          : 'AR is visible only at Pont des Arts in Paris. You can still try the demo.',
+      distance: fr ? 'Distance au pont' : zh ? '距离' : 'Distance to bridge',
       directions: fr ? 'Itinéraire' : zh ? '导航' : 'Get Directions',
-      demo: fr ? 'Démo' : zh ? '演示' : 'Demo',
-      locating: fr ? 'Localisation…' : zh ? '定位中…' : 'Locating…',
-      videoUnsupported: fr ? 'Vidéo non supportée sur ce navigateur' : zh ? '此浏览器不支持视频' : 'Video not supported',
-      hintMine: fr ? 'Mon cadenas' : zh ? '我的锁' : 'My lock',
-      hintAll: fr ? 'Tous les cadenas' : zh ? '所有锁' : 'All locks',
+      locating: fr ? 'Localisation...' : zh ? '定位中...' : 'Locating Bridge...',
+      tryDemo: fr ? 'Essayer la Démo AR' : zh ? '试用 AR 演示' : 'Try AR Demo',
+      photo: fr ? 'Photo' : zh ? '照片' : 'Photo',
+      video: fr ? 'Vidéo' : zh ? '视频' : 'Video',
+      unlock: fr ? 'Débloquer le média — 4.99$' : zh ? '解锁媒体 — $4.99' : 'Unlock Media — $4.99',
+      close: fr ? 'Fermer' : zh ? '关闭' : 'Close',
+      noMedia: fr ? 'Aucun média' : zh ? '无媒体' : 'No media attached',
+      checking: fr ? 'Vérification...' : zh ? '检查中...' : 'Checking...',
+      loginNeeded: fr ? 'Connectez-vous pour débloquer' : zh ? '登录后解锁' : 'Login to unlock',
+      timerOff: fr ? 'OFF' : zh ? '关闭' : 'OFF',
+      timer5: fr ? '5s' : zh ? '5秒' : '5s',
+      timer10: fr ? '10s' : zh ? '10秒' : '10s',
+      share: fr ? 'Partager' : zh ? '分享' : 'Share',
+      save: fr ? 'Enregistrer' : zh ? '保存' : 'Save',
+      flash: fr ? 'Flash' : zh ? '闪光' : 'Flash',
+      flip: fr ? 'Selfie' : zh ? '切换' : 'Flip',
     };
   }, [locale]);
 
-  // camera
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamVideoRef = useRef<MediaStream | null>(null);
-  const streamAudioRef = useRef<MediaStream | null>(null);
-  const trackVideoRef = useRef<MediaStreamTrack | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
-  const [cameraReady, setCameraReady] = useState(false);
-  const [camFacing, setCamFacing] = useState<'environment' | 'user'>('environment');
-  const [flashOn, setFlashOn] = useState(false);
-  const [timerSec, setTimerSec] = useState<0 | 5 | 10>(0);
-  const [zoomPreset, setZoomPreset] = useState<0.5 | 1 | 2>(1);
-
-  // ar/gps
   const [gpsLoading, setGpsLoading] = useState(true);
   const [distance, setDistance] = useState<number | null>(null);
   const [isAtBridge, setIsAtBridge] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // my/all
-  const [viewMode, setViewMode] = useState<'mine' | 'all'>('all');
+  // Camera / capture UI
+  const [mode, setMode] = useState<'photo' | 'video'>('photo');
+  const [timer, setTimer] = useState<0 | 5 | 10>(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
-  // demo hint 2s
-  const [showDemoHint, setShowDemoHint] = useState(false);
+  const [zoomPreset, setZoomPreset] = useState<0.5 | 1 | 2>(1);
 
-  // capture mode
-  const [captureMode, setCaptureMode] = useState<'photo' | 'video'>('photo');
-  const [isBusy, setIsBusy] = useState(false);
+  const [flashOn, setFlashOn] = useState(false);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
 
-  // captured
-  const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
-  const [capturedUrl, setCapturedUrl] = useState<string>('');
-  const [capturedType, setCapturedType] = useState<'image' | 'video' | null>(null);
+  // Preview
+  const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
+  const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
 
-  // selfie flash overlay
-  const [selfieFlash, setSelfieFlash] = useState(false);
-
-  // mediarecorder
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
+  // Video record
   const [isRecording, setIsRecording] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<BlobPart[]>([]);
+  const rafRef = useRef<number | null>(null);
 
-  const videoSupported = typeof window !== 'undefined' && 'MediaRecorder' in window;
+  // AR + unlock
+  const [locks, setLocks] = useState<LockRow[]>([]);
+  const [selectedLock, setSelectedLock] = useState<LockRow | null>(null);
+  const [hasUnlock, setHasUnlock] = useState(false);
+  const [checkingUnlock, setCheckingUnlock] = useState(false);
+  const [unlockLoading, setUnlockLoading] = useState(false);
 
-  // ---------- helpers ----------
-  const stopStreams = () => {
+  const showTooFarOverlay = !isAtBridge && !debugMode && !gpsLoading;
+  const showARScene = (isAtBridge || debugMode) && !gpsLoading;
+
+  const isIOS = () => {
+    if (typeof navigator === 'undefined') return false;
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  };
+
+  const getVideoTrack = () => {
+    const stream = videoRef.current?.srcObject as MediaStream | null;
+    return stream?.getVideoTracks?.()?.[0] || null;
+  };
+
+  const hasTorchSupport = () => {
     try {
-      if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
+      const track: any = getVideoTrack();
+      const caps = track?.getCapabilities?.();
+      return !!caps?.torch;
+    } catch {
+      return false;
+    }
+  };
+
+  const setTorch = async (on: boolean) => {
+    try {
+      const track: any = getVideoTrack();
+      if (!track) return;
+      const caps = track.getCapabilities?.();
+      if (!caps?.torch) return;
+      await track.applyConstraints({ advanced: [{ torch: on }] });
     } catch {}
-    recorderRef.current = null;
-    setIsRecording(false);
-
-    if (streamVideoRef.current) {
-      streamVideoRef.current.getTracks().forEach((t) => t.stop());
-      streamVideoRef.current = null;
-    }
-    if (streamAudioRef.current) {
-      streamAudioRef.current.getTracks().forEach((t) => t.stop());
-      streamAudioRef.current = null;
-    }
-    trackVideoRef.current = null;
-    setCameraReady(false);
   };
 
-  const applyTorchIfPossible = async (torch: boolean) => {
-    const track = trackVideoRef.current;
-    if (!track) return false;
-    // @ts-ignore
-    const caps = track.getCapabilities ? track.getCapabilities() : null;
-    // @ts-ignore
-    if (caps && caps.torch) {
-      try {
-        // @ts-ignore
-        await track.applyConstraints({ advanced: [{ torch }] });
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    return false;
+  const applyMirrorAndZoomCSS = (zoom: number) => {
+    if (!videoRef.current) return;
+    const mirror = facingMode === 'user' ? -1 : 1;
+    videoRef.current.style.transform = `scale(${zoom * mirror}, ${zoom})`;
+    videoRef.current.style.transformOrigin = 'center center';
   };
 
-  const applyZoomIfPossible = async (preset: number) => {
-    const track = trackVideoRef.current;
-    if (!track) return;
-    // @ts-ignore
-    const caps = track.getCapabilities ? track.getCapabilities() : null;
-    // @ts-ignore
-    if (caps && typeof caps.zoom === 'object') {
-      const min = caps.zoom.min ?? 1;
-      const max = caps.zoom.max ?? 1;
-      const clamped = Math.max(min, Math.min(max, preset));
-      try {
-        // @ts-ignore
-        await track.applyConstraints({ advanced: [{ zoom: clamped }] });
-      } catch {}
-    }
-  };
+  const startCamera = async (fm: 'environment' | 'user') => {
+    // stop old
+    const old = videoRef.current?.srcObject as MediaStream | null;
+    old?.getTracks?.()?.forEach((t) => t.stop());
 
-  const waitVideoReady = async () => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.readyState >= 2 && v.videoWidth > 0 && v.videoHeight > 0) return;
-
-    await new Promise<void>((resolve) => {
-      const onReady = () => {
-        if (v.videoWidth > 0 && v.videoHeight > 0) {
-          v.removeEventListener('loadedmetadata', onReady);
-          v.removeEventListener('canplay', onReady);
-          resolve();
-        }
-      };
-      v.addEventListener('loadedmetadata', onReady);
-      v.addEventListener('canplay', onReady);
-      setTimeout(() => resolve(), 1800);
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: fm },
+      audio: false,
     });
+
+    if (videoRef.current) videoRef.current.srcObject = stream;
+
+    // Mirror preview like Instagram (ONLY preview), capture remains normal
+    setTimeout(async () => {
+      // re-apply torch if requested and available AND back camera
+      if (flashOn && fm === 'environment') await setTorch(true);
+      await applyZoom(zoomPreset);
+      applyMirrorAndZoomCSS(1); // ensure mirror is applied even if zoom handled by constraints
+    }, 250);
   };
 
-  const startCamera = async (facing: 'environment' | 'user') => {
-    stopStreams();
-
-    // reset capture preview
-    setCapturedBlob(null);
-    if (capturedUrl) URL.revokeObjectURL(capturedUrl);
-    setCapturedUrl('');
-    setCapturedType(null);
-
+  const applyZoom = async (value: number) => {
     try {
-      // 👉 demande 4K (ideal). Le navigateur “tombe” sur une résolution supportée si besoin.
-      const streamVideo = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: facing,
-          width: { ideal: 3840 },
-          height: { ideal: 2160 },
-          frameRate: { ideal: 30, max: 60 },
-        },
-        audio: false, // ✅ audio OFF ici (important pour éviter micro bizarre)
-      });
-
-      streamVideoRef.current = streamVideo;
-      const track = streamVideo.getVideoTracks()[0] || null;
-      trackVideoRef.current = track;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = streamVideo;
-        await videoRef.current.play();
+      const track: any = getVideoTrack();
+      if (!track) {
+        applyMirrorAndZoomCSS(value);
+        return;
       }
 
-      await waitVideoReady();
-      setCameraReady(true);
-
-      await applyZoomIfPossible(zoomPreset);
-
-      if (facing === 'environment') {
-        await applyTorchIfPossible(!!flashOn);
+      const caps = track.getCapabilities?.();
+      if (!caps?.zoom) {
+        applyMirrorAndZoomCSS(value);
+        return;
       }
-    } catch (e) {
-      console.error('Camera error', e);
-      setCameraReady(false);
+
+      const zMin = caps.zoom.min ?? 1;
+      const zMax = caps.zoom.max ?? 1;
+      const clamped = Math.max(zMin, Math.min(zMax, value));
+      await track.applyConstraints({ advanced: [{ zoom: clamped }] });
+
+      // Mirror preview still needed
+      applyMirrorAndZoomCSS(1);
+    } catch {
+      applyMirrorAndZoomCSS(value);
     }
   };
 
-  const clickSound = () => {
+  useEffect(() => {
+    setMounted(true);
+
+    const init = async () => {
+      try {
+        await startCamera(facingMode);
+
+        navigator.geolocation.watchPosition(
+          (position) => {
+            const dist = getDistance(
+              position.coords.latitude,
+              position.coords.longitude,
+              BRIDGE_LAT,
+              BRIDGE_LNG
+            );
+            setDistance(Math.round(dist));
+            setIsAtBridge(dist < MAX_DISTANCE_METERS);
+            setGpsLoading(false);
+          },
+          (err) => {
+            console.error('GPS Error', err);
+            setGpsLoading(false);
+          },
+          { enableHighAccuracy: true }
+        );
+
+        const { data } = await supabase
+          .from('locks')
+          .select('id, skin, content_media_url, is_media_enabled_')
+          .eq('status', 'Active')
+          .limit(60);
+
+        if (data) setLocks(data as any);
+      } catch (e) {
+        console.error('Init AR error:', e);
+        setGpsLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      const stream = videoRef.current?.srcObject as MediaStream | null;
+      stream?.getTracks?.()?.forEach((t) => t.stop());
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      try {
+        recorderRef.current?.stop();
+      } catch {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // shutter sound
+  const playShutterSound = () => {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.type = 'square';
-      o.frequency.value = 900;
-      g.gain.value = 0.05;
+      o.frequency.value = 1800;
+      g.gain.value = 0.04;
       o.connect(g);
       g.connect(ctx.destination);
       o.start();
@@ -275,410 +308,429 @@ export default function ARViewPage() {
     } catch {}
   };
 
-  const triggerSelfieFlash = async () => {
-    setSelfieFlash(true);
-    setTimeout(() => setSelfieFlash(false), 120);
+  const triggerScreenFlash = () => {
+    const el = document.createElement('div');
+    el.className = 'fixed inset-0 bg-white/85 z-[100] pointer-events-none';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 120);
   };
 
-  const countdownWait = async () => {
-    if (timerSec === 0) return;
-    await new Promise<void>((resolve) => {
-      let left = timerSec;
-      const i = setInterval(() => {
-        left -= 1;
-        if (left <= 0) {
-          clearInterval(i);
-          resolve();
-        }
-      }, 1000);
-    });
+  const lockColor = (skin?: string | null) => {
+    const s = (skin || 'gold').toLowerCase();
+    if (s.includes('diamond')) return '#c7f9ff';
+    if (s.includes('ruby')) return '#ff3b5c';
+    if (s.includes('iron')) return '#b6b6b6';
+    return '#FFD700';
   };
 
-  const takePhoto = async () => {
-    if (!videoRef.current) return;
-    setIsBusy(true);
+  const getThreeCanvas = () => rootRef.current?.querySelector('canvas') as HTMLCanvasElement | null;
 
-    await countdownWait();
-    await waitVideoReady();
+  const drawCompositeFrame = (ctx: CanvasRenderingContext2D, outW: number, outH: number) => {
+    const video = videoRef.current;
+    if (!video) return;
 
-    // flash
-    if (flashOn) {
-      if (camFacing === 'environment') {
-        await applyTorchIfPossible(true);
-      } else {
-        await triggerSelfieFlash();
-      }
-    }
+    // IMPORTANT:
+    // - preview is mirrored with CSS for selfie
+    // - BUT drawImage(video) uses the raw stream (not mirrored) => photo will be non-inverted ✅
+    try {
+      ctx.drawImage(video, 0, 0, outW, outH);
+    } catch {}
 
-    clickSound();
-
-    const v = videoRef.current;
-
-    // ✅ Photo = max possible : si ImageCapture existe -> meilleure qualité
-    const track = trackVideoRef.current as any;
-    if (track && 'ImageCapture' in window) {
+    const three = getThreeCanvas();
+    if (three) {
       try {
-        // @ts-ignore
-        const imageCapture = new ImageCapture(track);
-        const blob = await imageCapture.takePhoto();
-        const url = URL.createObjectURL(blob);
-        setCapturedBlob(blob);
-        setCapturedUrl(url);
-        setCapturedType('image');
-        setIsBusy(false);
-        return;
-      } catch {
-        // fallback canvas
-      }
+        ctx.drawImage(three, 0, 0, outW, outH);
+      } catch {}
+    }
+  };
+
+  const takePhotoNow = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Flash behaviour:
+    // - back camera + torch supported => torch
+    // - selfie OR no torch => screen flash
+    const canTorch = hasTorchSupport() && facingMode === 'environment';
+
+    if (flashOn && canTorch) {
+      await setTorch(true);
+      await new Promise((r) => setTimeout(r, 120));
+    } else if (flashOn) {
+      triggerScreenFlash();
     }
 
-    // fallback canvas
-    const canvas = document.createElement('canvas');
-    canvas.width = v.videoWidth || 1920;
-    canvas.height = v.videoHeight || 1080;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      setIsBusy(false);
-      return;
-    }
-    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    playShutterSound();
+
+    const vw = video.videoWidth || 1280;
+    const vh = video.videoHeight || 720;
+
+    const out = document.createElement('canvas');
+    out.width = vw;
+    out.height = vh;
+    const ctx = out.getContext('2d');
+    if (!ctx) return;
+
+    drawCompositeFrame(ctx, out.width, out.height);
 
     const blob: Blob | null = await new Promise((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', 0.95)
+      out.toBlob((b) => resolve(b), 'image/jpeg', 0.95)
     );
+    if (!blob) return;
 
-    if (!blob) {
-      setIsBusy(false);
+    if (previewPhotoUrl) URL.revokeObjectURL(previewPhotoUrl);
+    if (previewVideoUrl) URL.revokeObjectURL(previewVideoUrl);
+
+    setPreviewVideoUrl(null);
+    setPreviewPhotoUrl(URL.createObjectURL(blob));
+  };
+
+  const startRecordingNow = async () => {
+    if (isRecording) return;
+
+    if (previewPhotoUrl) URL.revokeObjectURL(previewPhotoUrl);
+    if (previewVideoUrl) URL.revokeObjectURL(previewVideoUrl);
+    setPreviewPhotoUrl(null);
+    setPreviewVideoUrl(null);
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    const vw = video.videoWidth || 1280;
+    const vh = video.videoHeight || 720;
+
+    const comp = document.createElement('canvas');
+    comp.width = vw;
+    comp.height = vh;
+    const ctx = comp.getContext('2d');
+    if (!ctx) return;
+
+    const stream = (comp as any).captureStream?.(30) as MediaStream | undefined;
+    if (!stream) return;
+
+    recordedChunksRef.current = [];
+
+    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8' });
+    recorderRef.current = recorder;
+
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+      setPreviewVideoUrl(URL.createObjectURL(blob));
+      setIsRecording(false);
+    };
+
+    const loop = () => {
+      drawCompositeFrame(ctx, comp.width, comp.height);
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    loop();
+
+    setIsRecording(true);
+    recorder.start(250);
+  };
+
+  const stopRecording = () => {
+    if (!isRecording) return;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+
+    try {
+      recorderRef.current?.stop();
+    } catch {
+      setIsRecording(false);
+    }
+  };
+
+  const runWithTimer = async (action: () => Promise<void> | void) => {
+    if (!timer) {
+      await action();
       return;
     }
-
-    const url = URL.createObjectURL(blob);
-    setCapturedBlob(blob);
-    setCapturedUrl(url);
-    setCapturedType('image');
-    setIsBusy(false);
-  };
-
-  const startVideo = async () => {
-    if (!videoSupported || !streamVideoRef.current) return;
-
-    setIsBusy(true);
-    await countdownWait();
-
-    // ✅ demande micro seulement au moment d’enregistrer
-    let audioStream: MediaStream | null = null;
-    try {
-      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      streamAudioRef.current = audioStream;
-    } catch (e) {
-      console.warn('Audio not available', e);
-      audioStream = null;
+    setCountdown(timer);
+    for (let i = timer; i >= 1; i--) {
+      setCountdown(i);
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, 1000));
     }
-
-    const combined = new MediaStream();
-    streamVideoRef.current.getVideoTracks().forEach((t) => combined.addTrack(t));
-    if (audioStream) audioStream.getAudioTracks().forEach((t) => combined.addTrack(t));
-
-    chunksRef.current = [];
-
-    try {
-      const mimeCandidates = [
-        'video/webm;codecs=vp9,opus',
-        'video/webm;codecs=vp8,opus',
-        'video/webm',
-      ];
-      const mimeType = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m));
-
-      const recorder = mimeType
-        ? new MediaRecorder(combined, {
-            mimeType,
-            videoBitsPerSecond: 25_000_000, // ✅ bitrate élevé (best effort)
-          })
-        : new MediaRecorder(combined);
-
-      recorderRef.current = recorder;
-
-      recorder.ondataavailable = (ev) => {
-        if (ev.data && ev.data.size > 0) chunksRef.current.push(ev.data);
-      };
-
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        setCapturedBlob(blob);
-        setCapturedUrl(url);
-        setCapturedType('video');
-        setIsRecording(false);
-
-        // stop mic after recording
-        if (streamAudioRef.current) {
-          streamAudioRef.current.getTracks().forEach((t) => t.stop());
-          streamAudioRef.current = null;
-        }
-      };
-
-      recorder.start();
-      setIsRecording(true);
-    } catch (e) {
-      console.error('MediaRecorder error', e);
-      setIsRecording(false);
-      // stop mic if started
-      if (streamAudioRef.current) {
-        streamAudioRef.current.getTracks().forEach((t) => t.stop());
-        streamAudioRef.current = null;
-      }
-    }
-
-    setIsBusy(false);
+    setCountdown(null);
+    await action();
   };
 
-  const stopVideo = () => {
-    try {
-      if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
-    } catch {}
+  const handleRetake = () => {
+    if (previewPhotoUrl) URL.revokeObjectURL(previewPhotoUrl);
+    if (previewVideoUrl) URL.revokeObjectURL(previewVideoUrl);
+    setPreviewPhotoUrl(null);
+    setPreviewVideoUrl(null);
   };
 
-  const retake = () => {
-    setCapturedBlob(null);
-    if (capturedUrl) URL.revokeObjectURL(capturedUrl);
-    setCapturedUrl('');
-    setCapturedType(null);
-  };
-
-  const downloadCaptured = () => {
-    if (!capturedBlob || !capturedType) return;
+  const downloadUrl = (url: string, filename: string) => {
     const a = document.createElement('a');
-    const ext = capturedType === 'image' ? 'jpg' : 'webm';
-    a.href = capturedUrl;
-    a.download = `lovelockparis-${Date.now()}.${ext}`;
+    a.href = url;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
   };
 
-  const shareCaptured = async () => {
-    if (!capturedBlob || !capturedType) return;
-    const ext = capturedType === 'image' ? 'jpg' : 'webm';
-    const file = new File([capturedBlob], `lovelockparis.${ext}`, {
-      type: capturedType === 'image' ? 'image/jpeg' : 'video/webm',
-    });
-
-    // @ts-ignore
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        // @ts-ignore
-        await navigator.share({ files: [file], title: 'LoveLockParis', text: 'LoveLockParis AR ✨' });
-        return;
-      } catch {}
-    }
-    downloadCaptured();
+  const urlToFile = async (url: string, filename: string, mime: string) => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new File([blob], filename, { type: mime });
   };
 
-  // ---------- GPS ----------
-  useEffect(() => {
-    const watch = navigator.geolocation.watchPosition(
-      (pos) => {
-        const dist = getDistance(pos.coords.latitude, pos.coords.longitude, BRIDGE_LAT, BRIDGE_LNG);
-        setDistance(Math.round(dist));
-        setIsAtBridge(dist < MAX_DISTANCE_METERS);
-        setGpsLoading(false);
-      },
-      (err) => {
-        console.error('GPS error', err);
-        setGpsLoading(false);
-      },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-    );
+  // ✅ "Enregistrer" (iPhone) = ouvre la feuille partage avec le fichier
+  // -> l'utilisateur choisit "Enregistrer l'image/vidéo" => Photos
+  // Fallback: download
+  const handleSave = async () => {
+    try {
+      const navAny: any = navigator;
 
-    return () => {
-      try {
-        navigator.geolocation.clearWatch(watch);
-      } catch {}
+      if ('share' in navigator && 'canShare' in navigator) {
+        if (previewPhotoUrl) {
+          const file = await urlToFile(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`, 'image/jpeg');
+          if (navAny.canShare?.({ files: [file] })) {
+            await navAny.share({ files: [file], title: 'LoveLockParis' });
+            return;
+          }
+        }
+        if (previewVideoUrl) {
+          const file = await urlToFile(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`, 'video/webm');
+          if (navAny.canShare?.({ files: [file] })) {
+            await navAny.share({ files: [file], title: 'LoveLockParis' });
+            return;
+          }
+        }
+      }
+
+      // fallback
+      if (previewPhotoUrl) downloadUrl(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`);
+      if (previewVideoUrl) downloadUrl(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`);
+    } catch {
+      if (previewPhotoUrl) downloadUrl(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`);
+      if (previewVideoUrl) downloadUrl(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const navAny: any = navigator;
+
+      if ('share' in navigator && 'canShare' in navigator) {
+        if (previewPhotoUrl) {
+          const file = await urlToFile(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`, 'image/jpeg');
+          if (navAny.canShare?.({ files: [file] })) {
+            await navAny.share({ files: [file], title: 'LoveLockParis AR' });
+            return;
+          }
+        }
+        if (previewVideoUrl) {
+          const file = await urlToFile(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`, 'video/webm');
+          if (navAny.canShare?.({ files: [file] })) {
+            await navAny.share({ files: [file], title: 'LoveLockParis AR' });
+            return;
+          }
+        }
+      }
+
+      await navAny.share?.({ title: 'LoveLockParis', url: window.location.href });
+    } catch {}
+  };
+
+  const handleFlipCamera = async () => {
+    if (isRecording) return;
+    const next = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(next);
+    await startCamera(next);
+
+    // Re-apply mirror immediately
+    setTimeout(() => applyMirrorAndZoomCSS(1), 50);
+  };
+
+  const toggleFlash = async () => {
+    const next = !flashOn;
+    setFlashOn(next);
+
+    // only torch on back camera
+    if (next && facingMode === 'environment') await setTorch(true);
+    if (!next && facingMode === 'environment') await setTorch(false);
+  };
+
+  // unlock checks
+  useEffect(() => {
+    if (!selectedLock) return;
+
+    const run = async () => {
+      if (!user) {
+        setHasUnlock(false);
+        return;
+      }
+      setCheckingUnlock(true);
+
+      const { data } = await supabase
+        .from('media_unlocks')
+        .select('id')
+        .eq('lock_id', selectedLock.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      setHasUnlock(!!data);
+      setCheckingUnlock(false);
     };
-  }, []);
 
-  // ---------- CAMERA init ----------
-  useEffect(() => {
-    startCamera(camFacing);
-    return () => stopStreams();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camFacing]);
+    run();
+  }, [selectedLock, user]);
 
-  useEffect(() => {
-    if (camFacing === 'environment') applyTorchIfPossible(!!flashOn);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flashOn, camFacing]);
+  const handleUnlock = async () => {
+    if (!selectedLock) return;
+    if (!user) {
+      alert(t.loginNeeded);
+      return;
+    }
 
-  useEffect(() => {
-    applyZoomIfPossible(zoomPreset);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoomPreset]);
+    setUnlockLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          type: 'media_unlock',
+          lockId: selectedLock.id,
+          price: 4.99,
+          userId: user.id,
+          userEmail: user.email,
+        }),
+      });
 
-  const showAR = (isAtBridge || demoMode) && !gpsLoading;
+      const j = await res.json();
+      if (j.url) window.location.href = j.url;
+      else alert(j.error || 'Payment error');
+    } finally {
+      setUnlockLoading(false);
+    }
+  };
 
-  const demoLocks = useMemo(() => {
-    const count = viewMode === 'mine' ? 6 : 16;
-    return Array.from({ length: count }).map((_, i) => {
-      const col = i % 4;
-      const row = Math.floor(i / 4);
-      const x = (col - 1.5) * 1.6;
-      const y = (row % 3) * 1.2 - 1.2;
-      const z = -4 - Math.floor(row / 3) * 2.2;
-      const color = i % 3 === 0 ? '#FFD700' : i % 3 === 1 ? '#fb7185' : '#cbd5e1';
-      return { position: [x, y, z] as [number, number, number], color };
-    });
-  }, [viewMode]);
+  const onShutter = async () => {
+    if (mode === 'photo') {
+      await runWithTimer(takePhotoNow);
+    } else {
+      if (isRecording) stopRecording();
+      else await runWithTimer(startRecordingNow);
+    }
+  };
+
+  if (!mounted) return <div className="min-h-screen bg-black" />;
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden font-sans text-white">
-      {/* camera feed */}
+    <div ref={rootRef} className="fixed inset-0 bg-black overflow-hidden font-sans text-white">
+      {/* CAMERA */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
-        muted={captureMode === 'photo'}
-        className={[
-          'absolute inset-0 w-full h-full object-cover z-0',
-          camFacing === 'user' ? 'scale-x-[-1]' : '',
-        ].join(' ')}
+        muted
+        className="absolute inset-0 w-full h-full object-cover z-0"
       />
 
-      {selfieFlash && <div className="absolute inset-0 z-[60] bg-white/90" />}
-
-      {/* back button (just arrow) */}
-      <div className="absolute top-4 left-4 z-50">
-        <button
-          onClick={() => router.back()}
-          className="h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95"
-          type="button"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* right floating controls */}
-      <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
-        <button
-          onClick={() => setViewMode('mine')}
-          className={[
-            'h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95',
-            viewMode === 'mine' ? 'ring-2 ring-white/60' : '',
-          ].join(' ')}
-          type="button"
-          aria-label="My lock"
-        >
-          <OneLockIcon active={viewMode === 'mine'} />
-        </button>
-
-        <button
-          onClick={() => setViewMode('all')}
-          className={[
-            'h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95',
-            viewMode === 'all' ? 'ring-2 ring-white/60' : '',
-          ].join(' ')}
-          type="button"
-          aria-label="All locks"
-        >
-          <ThreeLocksIcon active={viewMode === 'all'} />
-        </button>
-
-        <button
-          onClick={() => setFlashOn((v) => !v)}
-          className="h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95"
-          type="button"
-          aria-label="Flash"
-        >
-          {flashOn ? <Zap className="h-5 w-5" /> : <ZapOff className="h-5 w-5 text-white/70" />}
-        </button>
-
-        <button
-          onClick={() => setTimerSec((v) => (v === 0 ? 5 : v === 5 ? 10 : 0))}
-          className="h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95"
-          type="button"
-          aria-label="Timer"
-        >
-          <div className="relative">
-            <Timer className="h-5 w-5" />
-            {timerSec !== 0 && (
-              <span className="absolute -bottom-2 -right-2 text-[10px] font-black bg-white text-black rounded-full px-1.5">
-                {timerSec}
-              </span>
-            )}
-          </div>
-        </button>
-
-        <button
-          onClick={() => setCamFacing((v) => (v === 'environment' ? 'user' : 'environment'))}
-          className="h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95"
-          type="button"
-          aria-label="Switch camera"
-        >
-          <RotateCw className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* zoom chips bottom-right */}
-      <div className="absolute bottom-28 right-4 z-50 flex flex-col gap-2">
-        {[0.5, 1, 2].map((z) => (
+      {/* TOP BAR */}
+      {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
+        <div className="absolute top-0 left-0 right-0 z-50 p-4 flex items-center justify-between">
           <button
-            key={z}
-            onClick={() => setZoomPreset(z as 0.5 | 1 | 2)}
-            className={[
-              'px-3 py-2 rounded-full text-xs font-black bg-black/55 border border-white/20 backdrop-blur active:scale-95',
-              zoomPreset === z ? 'bg-white text-black' : 'text-white/85',
-            ].join(' ')}
-            type="button"
-            aria-label={`Zoom ${z}x`}
+            onClick={() => router.back()}
+            className="w-11 h-11 rounded-full bg-black/55 backdrop-blur border border-white/20 flex items-center justify-center"
+            aria-label="Back"
+            title="Back"
           >
-            {z}x
+            <ArrowLeft className="h-5 w-5 text-white" />
           </button>
-        ))}
-      </div>
 
-      {/* full-screen "too far" overlay (ancienne version), remonté pour ne PAS toucher photo/video */}
-      {!gpsLoading && !showAR && (
-        <div className="absolute inset-0 z-40 bg-black/80 backdrop-blur-md flex items-center justify-center p-6 text-center pb-44">
-          <div className="bg-white/10 p-8 rounded-3xl border border-white/20 max-w-sm shadow-2xl">
-            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTimer((p) => (p === 0 ? 5 : p === 5 ? 10 : 0))}
+              className="flex items-center gap-2 bg-black/55 hover:bg-black/70 border border-white/20 px-3 py-2 rounded-full text-xs font-black"
+              title="Timer"
+            >
+              <TimerIcon className="h-4 w-4" />
+              {timer === 0 ? t.timerOff : timer === 5 ? t.timer5 : t.timer10}
+            </button>
+
+            <button
+              onClick={toggleFlash}
+              className={`w-11 h-11 rounded-full backdrop-blur border border-white/20 flex items-center justify-center ${
+                flashOn ? 'bg-white text-black' : 'bg-black/55 text-white'
+              }`}
+              aria-label={t.flash}
+              title={t.flash}
+            >
+              <Zap className="h-5 w-5" />
+            </button>
+
+            <button
+              onClick={handleFlipCamera}
+              className="w-11 h-11 rounded-full bg-black/55 backdrop-blur border border-white/20 flex items-center justify-center"
+              aria-label={t.flip}
+              title={t.flip}
+            >
+              <RefreshCcw className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* GEOFENCE */}
+      {showTooFarOverlay && (
+        <div className="absolute inset-0 z-[80] bg-black/85 backdrop-blur-md flex items-center justify-center p-6">
+          <div className="w-full max-w-sm bg-white/10 p-6 rounded-3xl border border-white/20 shadow-2xl text-center">
+            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-5">
               <MapPin className="h-8 w-8 text-[#e11d48]" />
             </div>
 
             <h2 className="text-2xl font-serif font-bold mb-2">{t.tooFarTitle}</h2>
-            <p className="text-slate-300 mb-6 text-sm leading-relaxed">{t.tooFarText}</p>
+            <p className="text-slate-300 mb-5 text-sm leading-relaxed">{t.tooFarText}</p>
 
-            <div className="bg-black/40 p-4 rounded-xl mb-6 border border-white/10">
+            <div className="bg-black/40 p-4 rounded-xl mb-5 border border-white/10">
               <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">{t.distance}</p>
               <p className="text-3xl font-mono font-bold text-[#e11d48]">
                 {distance ? (distance / 1000).toFixed(1) : '?'} km
               </p>
             </div>
 
-            <Button
-              className="w-full bg-white text-slate-900 hover:bg-slate-200 font-bold mb-3"
-              onClick={() =>
-                window.open(`https://www.google.com/maps/dir/?api=1&destination=${BRIDGE_LAT},${BRIDGE_LNG}`, '_blank')
-              }
-            >
-              <Navigation className="mr-2 h-4 w-4" /> {t.directions}
-            </Button>
+            <div className="space-y-3">
+              <Button
+                className="w-full bg-white text-slate-900 hover:bg-slate-200 font-bold"
+                onClick={() =>
+                  window.open(`https://www.google.com/maps/dir/?api=1&destination=${BRIDGE_LAT},${BRIDGE_LNG}`)
+                }
+              >
+                <Navigation className="mr-2 h-4 w-4" /> {t.directions}
+              </Button>
 
-            <Button
-              variant="outline"
-              className="w-full border-white/20 bg-black/30 hover:bg-black/45 font-bold text-white"
-              onClick={() => {
-                setDemoMode(true);
-                setShowDemoHint(true);
-                setTimeout(() => setShowDemoHint(false), 2000); // ✅ 2 secondes
-              }}
-            >
-              {t.demo}
-            </Button>
+              <Button
+                className="w-full bg-[#e11d48] hover:bg-[#be123c] font-bold"
+                onClick={() => setDebugMode(true)}
+              >
+                <Camera className="mr-2 h-4 w-4" /> {t.tryDemo}
+              </Button>
+
+              <button
+                onClick={() => router.back()}
+                className="w-full py-3 rounded-xl border border-white/20 text-white/90 hover:bg-white/10 font-bold"
+              >
+                ←
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* GPS loading */}
+      {/* LOADING */}
       {gpsLoading && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90">
           <Loader2 className="animate-spin h-10 w-10 text-[#e11d48] mb-4" />
@@ -686,151 +738,199 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* DEMO hint overlay (2 seconds) */}
-      {showDemoHint && (
-        <div className="absolute inset-0 z-[65] pointer-events-none flex items-center justify-center pb-40">
-          <div className="bg-black/70 border border-white/15 backdrop-blur rounded-2xl px-5 py-4 shadow-2xl">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-white">
-                <span className="inline-flex h-10 w-10 rounded-full bg-white/10 items-center justify-center border border-white/15">
-                  <OneLockIcon active />
-                </span>
-                <span className="text-sm font-bold">{t.hintMine}</span>
-              </div>
-              <div className="w-px h-10 bg-white/15" />
-              <div className="flex items-center gap-2 text-white">
-                <span className="inline-flex h-10 w-10 rounded-full bg-white/10 items-center justify-center border border-white/15">
-                  <ThreeLocksIcon active />
-                </span>
-                <span className="text-sm font-bold">{t.hintAll}</span>
-              </div>
-            </div>
+      {/* COUNTDOWN */}
+      {countdown !== null && (
+        <div className="absolute inset-0 z-[95] flex items-center justify-center pointer-events-none">
+          <div className="bg-black/60 backdrop-blur px-10 py-6 rounded-3xl border border-white/20 text-6xl font-black">
+            {countdown}
           </div>
         </div>
       )}
 
-      {/* AR canvas */}
-      {showAR && (
-        <div className="absolute inset-0 z-10 pointer-events-none">
+      {/* AR */}
+      {showARScene && !previewPhotoUrl && !previewVideoUrl && (
+        <div className="absolute inset-0 z-10 pointer-events-auto">
           <Canvas>
             <ambientLight intensity={1} />
             <directionalLight position={[0, 10, 5]} intensity={2} />
             <DeviceOrientationControls />
-            {demoLocks.map((l, idx) => (
-              <ARLock key={idx} position={l.position} color={l.color} />
+
+            {locks.map((lock, i) => (
+              <group
+                key={lock.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedLock(lock);
+                }}
+              >
+                <ARLock
+                  position={[
+                    (i % 6 - 2.5) * 1.7,
+                    (i % 3 - 1) * 1.1,
+                    -5 - (i % 5) * 1.2,
+                  ]}
+                  color={lockColor(lock.skin)}
+                  text={`#${lock.id}`}
+                />
+              </group>
             ))}
           </Canvas>
         </div>
       )}
 
-      {/* CAPTURE PREVIEW */}
-      {capturedUrl && capturedType && (
-        <div className="absolute inset-0 z-[70] bg-black flex flex-col">
-          <div className="p-4 flex items-center justify-between">
-            <button
-              onClick={retake}
-              className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center"
-              type="button"
-              aria-label="Retake"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <div className="w-10" />
-          </div>
-
-          <div className="flex-1 flex items-center justify-center px-4">
-            {capturedType === 'image' ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={capturedUrl} alt="captured" className="max-h-[72vh] w-auto rounded-2xl shadow-2xl" />
-            ) : (
-              <video src={capturedUrl} controls playsInline className="max-h-[72vh] w-auto rounded-2xl shadow-2xl" />
-            )}
-          </div>
-
-          <div className="p-4 grid grid-cols-2 gap-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <Button onClick={downloadCaptured} className="bg-white text-black hover:bg-white/90 font-bold rounded-2xl h-12">
-              <Download className="mr-2 h-5 w-5" /> Download
-            </Button>
-            <Button
-              onClick={shareCaptured}
-              variant="outline"
-              className="border-white/20 bg-black/30 hover:bg-black/45 font-bold rounded-2xl h-12 text-white"
-            >
-              <Share2 className="mr-2 h-5 w-5" /> Share
-            </Button>
+      {/* ZOOM PRESETS */}
+      {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
+        <div className="absolute bottom-44 left-1/2 -translate-x-1/2 z-50">
+          <div className="flex items-center gap-2 bg-black/55 backdrop-blur border border-white/20 rounded-full p-1">
+            {[0.5, 1, 2].map((z) => (
+              <button
+                key={z}
+                onClick={() => {
+                  setZoomPreset(z as 0.5 | 1 | 2);
+                  applyZoom(z);
+                }}
+                className={`px-4 py-2 rounded-full text-xs font-black transition-colors ${
+                  zoomPreset === z ? 'bg-white text-black' : 'text-white/80 hover:text-white'
+                }`}
+              >
+                {z}x
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* bottom camera bar */}
-      {!capturedUrl && (
-        <div className="absolute inset-x-0 bottom-0 z-50 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5">
-          <div className="flex items-center justify-center gap-3 mb-4">
+      {/* BOTTOM CAMERA UI */}
+      {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
+        <div className="absolute bottom-0 left-0 right-0 z-50 pb-6 pt-3">
+          <div className="flex justify-center gap-8 mb-4 text-sm font-bold">
             <button
-              onClick={() => setCaptureMode('photo')}
-              className={[
-                'h-10 w-10 rounded-full border backdrop-blur flex items-center justify-center active:scale-95',
-                captureMode === 'photo' ? 'bg-white text-black border-white/30' : 'bg-black/55 text-white border-white/20',
-              ].join(' ')}
-              type="button"
-              aria-label="Photo mode"
+              onClick={() => !isRecording && setMode('photo')}
+              className={`${mode === 'photo' ? 'text-white' : 'text-white/50'} transition-colors`}
             >
-              <Camera className="h-5 w-5" />
+              {t.photo}
             </button>
-
             <button
-              onClick={() => setCaptureMode('video')}
-              className={[
-                'h-10 w-10 rounded-full border backdrop-blur flex items-center justify-center active:scale-95',
-                captureMode === 'video' ? 'bg-white text-black border-white/30' : 'bg-black/55 text-white border-white/20',
-              ].join(' ')}
-              type="button"
-              aria-label="Video mode"
-              disabled={!videoSupported}
+              onClick={() => !isRecording && setMode('video')}
+              className={`${mode === 'video' ? 'text-white' : 'text-white/50'} transition-colors`}
             >
-              <Video className="h-5 w-5" />
+              {t.video}
             </button>
           </div>
 
           <div className="flex items-center justify-center">
             <button
-              type="button"
-              onClick={async () => {
-                if (!cameraReady || isBusy) return;
-
-                if (captureMode === 'photo') {
-                  await takePhoto();
-                  return;
-                }
-
-                if (!videoSupported) return;
-
-                if (isRecording) {
-                  stopVideo();
-                } else {
-                  await startVideo();
-                }
-              }}
-              className={[
-                'h-20 w-20 rounded-full border-4 flex items-center justify-center shadow-2xl active:scale-95 transition-transform',
-                captureMode === 'video' && isRecording ? 'border-red-500 bg-red-500/25' : 'border-white bg-white/10',
-              ].join(' ')}
+              onClick={onShutter}
+              className={`w-20 h-20 rounded-full flex items-center justify-center shadow-2xl active:scale-95 transition-transform ${
+                mode === 'video' && isRecording ? 'bg-red-600' : 'bg-white/90'
+              }`}
               aria-label="Shutter"
-              disabled={isBusy || (captureMode === 'video' && !videoSupported)}
+              title="Shutter"
+              disabled={countdown !== null}
             >
-              {isBusy ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
-              ) : captureMode === 'video' && isRecording ? (
-                <div className="h-10 w-10 rounded-xl bg-red-500" />
+              {mode === 'photo' ? (
+                <Camera className="h-8 w-8 text-black" />
+              ) : isRecording ? (
+                <div className="w-7 h-7 bg-white rounded-sm" />
               ) : (
-                <div className="h-14 w-14 rounded-full bg-white" />
+                <Video className="h-8 w-8 text-black" />
               )}
             </button>
           </div>
 
-          {captureMode === 'video' && !videoSupported && (
-            <div className="text-center text-xs text-white/60 mt-3 px-6">{t.videoUnsupported}</div>
+          {isRecording && (
+            <div className="mt-4 flex justify-center">
+              <div className="bg-black/55 backdrop-blur px-4 py-2 rounded-full text-xs border border-white/20 flex items-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                REC
+              </div>
+            </div>
           )}
+        </div>
+      )}
+
+      {/* PREVIEW */}
+      {(previewPhotoUrl || previewVideoUrl) && (
+        <div className="absolute inset-0 z-[90] bg-black">
+          <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-[95]">
+            <button
+              onClick={handleRetake}
+              className="w-11 h-11 rounded-full bg-black/55 backdrop-blur border border-white/20 flex items-center justify-center"
+              aria-label="Retake"
+              title="Retake"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleShare}
+                className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center"
+                aria-label={t.share}
+                title={t.share}
+              >
+                <Share2 className="h-5 w-5" />
+              </button>
+
+              <button
+                onClick={handleSave}
+                className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center"
+                aria-label={t.save}
+                title={t.save}
+              >
+                <Download className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="absolute inset-0 flex items-center justify-center">
+            {previewPhotoUrl && (
+              <img src={previewPhotoUrl} alt="preview" className="w-full h-full object-contain" />
+            )}
+            {previewVideoUrl && (
+              <video src={previewVideoUrl} controls autoPlay playsInline className="w-full h-full object-contain" />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* LOCK DETAILS */}
+      {selectedLock && !previewPhotoUrl && !previewVideoUrl && !showTooFarOverlay && (
+        <div className="absolute inset-x-0 bottom-28 z-[65] flex justify-center">
+          <div className="bg-black/80 backdrop-blur p-4 rounded-xl border border-white/20 w-80 text-center">
+            <div className="font-bold mb-2">Lock #{selectedLock.id}</div>
+
+            {!selectedLock.is_media_enabled_ && <div className="text-sm text-slate-400">{t.noMedia}</div>}
+
+            {selectedLock.is_media_enabled_ && checkingUnlock && (
+              <div className="flex items-center justify-center gap-2 text-sm text-slate-300">
+                <Loader2 className="animate-spin h-4 w-4" /> {t.checking}
+              </div>
+            )}
+
+            {selectedLock.is_media_enabled_ && !checkingUnlock && hasUnlock && selectedLock.content_media_url && (
+              <video src={selectedLock.content_media_url} controls playsInline className="w-full rounded" />
+            )}
+
+            {selectedLock.is_media_enabled_ && !checkingUnlock && !hasUnlock && (
+              <Button
+                onClick={handleUnlock}
+                disabled={unlockLoading}
+                className="w-full bg-[#e11d48] hover:bg-[#be123c] font-bold"
+              >
+                {unlockLoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                {t.unlock}
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              className="w-full mt-2 border-white/20 text-white hover:bg-white/10"
+              onClick={() => setSelectedLock(null)}
+            >
+              {t.close}
+            </Button>
+          </div>
         </div>
       )}
     </div>
