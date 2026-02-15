@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import {
   ArrowLeft,
@@ -19,29 +18,18 @@ import {
   X,
   Download,
   Share2,
+  User,
+  Users,
 } from 'lucide-react';
 
 import { Canvas } from '@react-three/fiber';
 import { DeviceOrientationControls, Float } from '@react-three/drei';
 
-// --- COORDONNÉES DU PONT DES ARTS (PARIS) ---
+// --- COORDONNÉES PONT DES ARTS ---
 const BRIDGE_LAT = 48.8583;
 const BRIDGE_LNG = 2.3375;
-const MAX_DISTANCE_METERS = 120; // un peu plus permissif
+const MAX_DISTANCE_METERS = 120;
 
-type LockRow = {
-  id: number;
-  owner_id: string | null;
-  zone?: string | null;
-  skin?: string | null;
-  content_text?: string | null;
-  content_media_url?: string | null;
-  is_media_enabled_?: boolean | null;
-  media_type?: string | null;
-  status?: string | null;
-};
-
-// Distance GPS
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3;
   const φ1 = (lat1 * Math.PI) / 180;
@@ -52,29 +40,26 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const a =
     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
     Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
-// --- AR LOCK (simple placeholder 3D) ---
+// --- AR LOCK simple (placeholder) ---
 function ARLock({
   position,
   color,
-  onClick,
 }: {
   position: [number, number, number];
   color: string;
-  onClick: () => void;
 }) {
   return (
     <Float speed={2} rotationIntensity={0.35} floatIntensity={0.35}>
-      <group position={position} onClick={onClick}>
-        {/* body */}
+      <group position={position}>
         <mesh>
           <boxGeometry args={[0.55, 0.65, 0.12]} />
           <meshStandardMaterial color={color} metalness={0.85} roughness={0.2} />
         </mesh>
-        {/* shackle */}
         <mesh position={[0, 0.45, 0]}>
           <torusGeometry args={[0.22, 0.06, 16, 48, Math.PI]} />
           <meshStandardMaterial color="#d9d9d9" metalness={0.95} roughness={0.15} />
@@ -94,77 +79,68 @@ export default function ARViewPage() {
     const fr = locale === 'fr';
     const zh = locale === 'zh-CN';
     return {
-      back: fr ? 'Retour' : zh ? '返回' : 'Back',
-      tooFarTitle: fr ? 'Vous êtes trop loin' : zh ? '距离太远' : 'You are too far',
+      tooFarTitle: fr ? 'Vous êtes trop loin' : zh ? '距离太远' : 'Too far',
       tooFarText: fr
-        ? "Les cadenas AR sont visibles uniquement sur le Pont des Arts à Paris."
+        ? "AR visible uniquement sur le Pont des Arts."
         : zh
-        ? 'AR 锁仅在巴黎艺术桥可见。'
-        : 'AR Love Locks are only visible on the Pont des Arts in Paris.',
-      distance: fr ? 'Distance au pont' : zh ? '到桥的距离' : 'Distance to bridge',
-      directions: fr ? 'Itinéraire' : zh ? '导航' : 'Get Directions',
-      tryDemo: fr ? 'Essayer la démo AR' : zh ? '试用 AR 演示' : 'Try AR Demo',
+        ? 'AR 仅在艺术桥可见。'
+        : 'AR visible only on Pont des Arts.',
+      distance: fr ? 'Distance' : zh ? '距离' : 'Distance',
+      directions: fr ? 'Itinéraire' : zh ? '导航' : 'Directions',
+      demo: fr ? 'Démo' : zh ? '演示' : 'Demo',
       locating: fr ? 'Localisation…' : zh ? '定位中…' : 'Locating…',
-      mine: fr ? 'Mon cadenas' : zh ? '我的锁' : 'My lock',
-      all: fr ? 'Tous les cadenas' : zh ? '全部锁' : 'All locks',
-      loginHint: fr ? 'Connectez-vous pour voir votre cadenas' : zh ? '登录后查看你的锁' : 'Login to see your lock',
-      photo: fr ? 'Photo' : zh ? '照片' : 'Photo',
-      video: fr ? 'Vidéo' : zh ? '视频' : 'Video',
-      flash: fr ? 'Flash' : zh ? '闪光灯' : 'Flash',
-      timer: fr ? 'Minuteur' : zh ? '定时' : 'Timer',
-      zoom: fr ? 'Zoom' : zh ? '变焦' : 'Zoom',
-      retake: fr ? 'Refaire' : zh ? '重拍' : 'Retake',
-      save: fr ? 'Enregistrer' : zh ? '保存' : 'Save',
-      share: fr ? 'Partager' : zh ? '分享' : 'Share',
-      recording: fr ? 'Enregistrement…' : zh ? '录制中…' : 'Recording…',
+      videoUnsupported: fr ? 'Vidéo non supportée sur ce navigateur' : zh ? '此浏览器不支持视频' : 'Video not supported',
     };
   }, [locale]);
 
-  // Camera refs/state
+  // camera
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
 
-  // AR / GPS
-  const [gpsLoading, setGpsLoading] = useState(true);
-  const [distance, setDistance] = useState<number | null>(null);
-  const [isAtBridge, setIsAtBridge] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
-
-  // Locks
-  const [viewMode, setViewMode] = useState<'all' | 'mine'>('all');
-  const [locks, setLocks] = useState<LockRow[]>([]);
-  const [locksLoading, setLocksLoading] = useState(false);
-  const [selectedLock, setSelectedLock] = useState<LockRow | null>(null);
-
-  // Camera UX
   const [cameraReady, setCameraReady] = useState(false);
   const [camFacing, setCamFacing] = useState<'environment' | 'user'>('environment');
   const [flashOn, setFlashOn] = useState(false);
   const [timerSec, setTimerSec] = useState<0 | 5 | 10>(0);
   const [zoomPreset, setZoomPreset] = useState<0.5 | 1 | 2>(1);
 
-  const [captureMode, setCaptureMode] = useState<'photo' | 'video'>('photo');
-  const [isCapturing, setIsCapturing] = useState(false);
+  // ar/gps
+  const [gpsLoading, setGpsLoading] = useState(true);
+  const [distance, setDistance] = useState<number | null>(null);
+  const [isAtBridge, setIsAtBridge] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
 
-  // Result
+  // view mode: my locks / all locks (UI only)
+  const [viewMode, setViewMode] = useState<'mine' | 'all'>('all');
+
+  // capture mode
+  const [captureMode, setCaptureMode] = useState<'photo' | 'video'>('photo');
+  const [isBusy, setIsBusy] = useState(false);
+
+  // captured
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [capturedUrl, setCapturedUrl] = useState<string>('');
   const [capturedType, setCapturedType] = useState<'image' | 'video' | null>(null);
 
-  // Selfie flash overlay
+  // selfie flash overlay
   const [selfieFlash, setSelfieFlash] = useState(false);
 
-  // MediaRecorder
+  // mediarecorder
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
 
-  // ====== Helpers ======
+  const videoSupported = typeof window !== 'undefined' && 'MediaRecorder' in window;
+
+  // ---------- helpers ----------
   const stopStream = () => {
     try {
-      recorderRef.current?.stop();
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+        recorderRef.current.stop();
+      }
     } catch {}
     recorderRef.current = null;
+    setIsRecording(false);
 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -198,8 +174,6 @@ export default function ARViewPage() {
     // @ts-ignore
     const caps = track.getCapabilities ? track.getCapabilities() : null;
     // @ts-ignore
-    const settings = track.getSettings ? track.getSettings() : null;
-    // @ts-ignore
     if (caps && typeof caps.zoom === 'object') {
       const min = caps.zoom.min ?? 1;
       const max = caps.zoom.max ?? 1;
@@ -208,10 +182,26 @@ export default function ARViewPage() {
         // @ts-ignore
         await track.applyConstraints({ advanced: [{ zoom: clamped }] });
       } catch {}
-    } else {
-      // fallback: nothing (some iOS browsers don't support)
-      // keep UI but do nothing
     }
+  };
+
+  const waitVideoReady = async () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.readyState >= 2 && v.videoWidth > 0 && v.videoHeight > 0) return;
+
+    await new Promise<void>((resolve) => {
+      const onReady = () => {
+        if (v.videoWidth > 0 && v.videoHeight > 0) {
+          v.removeEventListener('loadedmetadata', onReady);
+          v.removeEventListener('canplay', onReady);
+          resolve();
+        }
+      };
+      v.addEventListener('loadedmetadata', onReady);
+      v.addEventListener('canplay', onReady);
+      setTimeout(() => resolve(), 1500); // fallback
+    });
   };
 
   const startCamera = async (facing: 'environment' | 'user') => {
@@ -240,12 +230,12 @@ export default function ARViewPage() {
         await videoRef.current.play();
       }
 
+      await waitVideoReady();
+
       setCameraReady(true);
 
-      // Apply zoom preset if possible
       await applyZoomIfPossible(zoomPreset);
 
-      // Apply torch if env camera + flashOn
       if (facing === 'environment') {
         await applyTorchIfPossible(!!flashOn);
       }
@@ -256,7 +246,6 @@ export default function ARViewPage() {
   };
 
   const clickSound = () => {
-    // simple click using AudioContext (works without extra files)
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const o = ctx.createOscillator();
@@ -279,34 +268,35 @@ export default function ARViewPage() {
     setTimeout(() => setSelfieFlash(false), 120);
   };
 
+  const countdownWait = async () => {
+    if (timerSec === 0) return;
+    await new Promise<void>((resolve) => {
+      let left = timerSec;
+      const i = setInterval(() => {
+        left -= 1;
+        if (left <= 0) {
+          clearInterval(i);
+          resolve();
+        }
+      }, 1000);
+    });
+  };
+
   const takePhoto = async () => {
     if (!videoRef.current) return;
-    setIsCapturing(true);
+    setIsBusy(true);
 
-    // Timer
-    if (timerSec > 0) {
-      await new Promise<void>((resolve) => {
-        let left = timerSec;
-        const interval = setInterval(() => {
-          left -= 1;
-          if (left <= 0) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 1000);
-      });
-    }
+    await countdownWait();
+    await waitVideoReady();
 
-    // Flash behaviour
-    if (camFacing === 'environment') {
-      // Try torch briefly as a flash (some devices)
-      if (flashOn) {
-        const ok = await applyTorchIfPossible(true);
-        if (ok) setTimeout(() => applyTorchIfPossible(true), 10);
+    // flash
+    if (flashOn) {
+      if (camFacing === 'environment') {
+        await applyTorchIfPossible(true);
+        setTimeout(() => applyTorchIfPossible(true), 10);
+      } else {
+        await triggerSelfieFlash();
       }
-    } else {
-      // Selfie flash (screen)
-      if (flashOn) await triggerSelfieFlash();
     }
 
     clickSound();
@@ -318,17 +308,19 @@ export default function ARViewPage() {
     const ctx = canvas.getContext('2d');
 
     if (!ctx) {
-      setIsCapturing(false);
+      setIsBusy(false);
       return;
     }
 
-    // For selfie we DO NOT mirror the saved photo (avoid inverted)
+    // IMPORTANT: pas de miroir dans le fichier final (même si l’affichage selfie est miroir)
     ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
 
-    const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', 0.92)
+    );
 
     if (!blob) {
-      setIsCapturing(false);
+      setIsBusy(false);
       return;
     }
 
@@ -336,32 +328,31 @@ export default function ARViewPage() {
     setCapturedBlob(blob);
     setCapturedUrl(url);
     setCapturedType('image');
-    setIsCapturing(false);
+
+    setIsBusy(false);
   };
 
   const startVideo = async () => {
-    if (!streamRef.current) return;
-    setIsCapturing(true);
+    if (!videoSupported || !streamRef.current) return;
 
-    // Timer
-    if (timerSec > 0) {
-      await new Promise<void>((resolve) => {
-        let left = timerSec;
-        const interval = setInterval(() => {
-          left -= 1;
-          if (left <= 0) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 1000);
-      });
-    }
+    setIsBusy(true);
+    await countdownWait();
 
     chunksRef.current = [];
+
+    let recorder: MediaRecorder;
     try {
-      const recorder = new MediaRecorder(streamRef.current, {
-        mimeType: 'video/webm;codecs=vp8,opus',
-      });
+      // mime fallback
+      const mimeCandidates = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+      ];
+      const mimeType = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m));
+      recorder = mimeType
+        ? new MediaRecorder(streamRef.current, { mimeType })
+        : new MediaRecorder(streamRef.current);
+
       recorderRef.current = recorder;
 
       recorder.ondataavailable = (ev) => {
@@ -369,28 +360,33 @@ export default function ARViewPage() {
       };
 
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'video/webm' });
         const url = URL.createObjectURL(blob);
         setCapturedBlob(blob);
         setCapturedUrl(url);
         setCapturedType('video');
-        setIsCapturing(false);
+        setIsRecording(false);
       };
 
       recorder.start();
+      setIsRecording(true);
     } catch (e) {
       console.error('MediaRecorder error', e);
-      setIsCapturing(false);
+      setIsRecording(false);
     }
+
+    setIsBusy(false);
   };
 
   const stopVideo = () => {
     try {
-      recorderRef.current?.stop();
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+        recorderRef.current.stop();
+      }
     } catch {}
   };
 
-  const retake = async () => {
+  const retake = () => {
     setCapturedBlob(null);
     if (capturedUrl) URL.revokeObjectURL(capturedUrl);
     setCapturedUrl('');
@@ -399,7 +395,6 @@ export default function ARViewPage() {
 
   const downloadCaptured = () => {
     if (!capturedBlob || !capturedType) return;
-
     const a = document.createElement('a');
     const ext = capturedType === 'image' ? 'jpg' : 'webm';
     a.href = capturedUrl;
@@ -407,18 +402,15 @@ export default function ARViewPage() {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    // iPhone: téléchargement = “Enregistrer dans Photos” possible
   };
 
   const shareCaptured = async () => {
     if (!capturedBlob || !capturedType) return;
-
     const ext = capturedType === 'image' ? 'jpg' : 'webm';
     const file = new File([capturedBlob], `lovelockparis.${ext}`, {
       type: capturedType === 'image' ? 'image/jpeg' : 'video/webm',
     });
 
-    // Web Share API
     // @ts-ignore
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
@@ -426,17 +418,15 @@ export default function ARViewPage() {
         await navigator.share({
           files: [file],
           title: 'LoveLockParis',
-          text: 'My Love Lock in AR on Pont des Arts ✨',
+          text: 'LoveLockParis AR ✨',
         });
+        return;
       } catch {}
-      return;
     }
-
-    // fallback: download
     downloadCaptured();
   };
 
-  // ====== GPS & init ======
+  // ---------- GPS ----------
   useEffect(() => {
     const watch = navigator.geolocation.watchPosition(
       (pos) => {
@@ -459,110 +449,51 @@ export default function ARViewPage() {
     };
   }, []);
 
-  // Start camera on mount + when facing/mode change
+  // ---------- CAMERA init ----------
   useEffect(() => {
-    const run = async () => {
-      await startCamera(camFacing);
-    };
-    run();
-
-    return () => {
-      stopStream();
-    };
+    startCamera(camFacing);
+    return () => stopStream();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camFacing]);
 
-  // Recreate stream audio if switching photo/video (for video audio)
+  // re-init when photo/video changes (audio needed)
   useEffect(() => {
-    // If video mode selected, re-init camera with audio
-    const reinit = async () => {
-      await startCamera(camFacing);
-    };
-    reinit();
+    startCamera(camFacing);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [captureMode]);
 
-  // Flash torch update when toggled
   useEffect(() => {
-    if (camFacing === 'environment') {
-      applyTorchIfPossible(!!flashOn);
-    }
+    if (camFacing === 'environment') applyTorchIfPossible(!!flashOn);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flashOn, camFacing]);
 
-  // Zoom update
   useEffect(() => {
     applyZoomIfPossible(zoomPreset);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoomPreset]);
 
-  // ====== Locks loading ======
-  useEffect(() => {
-    const loadLocks = async () => {
-      setLocksLoading(true);
-      try {
-        let q = supabase
-          .from('locks')
-          .select('id, owner_id, zone, skin, content_text, content_media_url, is_media_enabled_, media_type, status')
-          .eq('status', 'Active')
-          .limit(250);
-
-        if (viewMode === 'mine') {
-          if (!user) {
-            setLocks([]);
-            setLocksLoading(false);
-            return;
-          }
-          q = q.eq('owner_id', user.id);
-        }
-
-        const { data, error } = await q;
-        if (error) throw error;
-        setLocks((data || []) as LockRow[]);
-      } catch (e) {
-        console.error(e);
-        setLocks([]);
-      } finally {
-        setLocksLoading(false);
-      }
-    };
-
-    loadLocks();
-  }, [viewMode, user]);
-
-  // ====== Positioning locks in AR scene ======
-  const arLocks = useMemo(() => {
-    // positions stables (pas “random” à chaque render)
-    const list = locks.slice(0, 60);
-    return list.map((l, i) => {
-      const col = i % 6;
-      const row = Math.floor(i / 6);
-      const x = (col - 2.5) * 1.3;
-      const y = (row % 4) * 1.1 - 1.2;
-      const z = -4 - Math.floor(row / 4) * 2.2;
-
-      const skin = (l.skin || 'Gold').toLowerCase();
-      const color =
-        skin.includes('diamond') ? '#a7f3d0' :
-        skin.includes('ruby') ? '#fb7185' :
-        skin.includes('iron') ? '#cbd5e1' :
-        '#FFD700';
-
-      return {
-        id: l.id,
-        lock: l,
-        position: [x, y, z] as [number, number, number],
-        color,
-      };
-    });
-  }, [locks]);
-
   const showAR = (isAtBridge || demoMode) && !gpsLoading;
 
-  // ====== UI ======
+  // positions demo
+  const demoLocks = useMemo(() => {
+    const base =
+      viewMode === 'mine'
+        ? 6
+        : 16;
+    return Array.from({ length: base }).map((_, i) => {
+      const col = i % 4;
+      const row = Math.floor(i / 4);
+      const x = (col - 1.5) * 1.6;
+      const y = (row % 3) * 1.2 - 1.2;
+      const z = -4 - Math.floor(row / 3) * 2.2;
+      const color = i % 3 === 0 ? '#FFD700' : i % 3 === 1 ? '#fb7185' : '#cbd5e1';
+      return { position: [x, y, z] as [number, number, number], color };
+    });
+  }, [viewMode]);
+
   return (
     <div className="fixed inset-0 bg-black overflow-hidden font-sans text-white">
-      {/* VIDEO FEED */}
+      {/* camera feed */}
       <video
         ref={videoRef}
         autoPlay
@@ -570,190 +501,158 @@ export default function ARViewPage() {
         muted={captureMode === 'photo'}
         className={[
           'absolute inset-0 w-full h-full object-cover z-0',
-          // mirror only on screen for selfie (instagram style)
           camFacing === 'user' ? 'scale-x-[-1]' : '',
         ].join(' ')}
       />
 
-      {/* SELFIE FLASH OVERLAY */}
-      {selfieFlash && (
-        <div className="absolute inset-0 z-[60] bg-white/90" />
-      )}
+      {selfieFlash && <div className="absolute inset-0 z-[60] bg-white/90" />}
 
-      {/* TOP LEFT: BACK */}
+      {/* back (petit, visible) */}
       <div className="absolute top-4 left-4 z-50">
-        <Button
-          variant="outline"
+        <button
           onClick={() => router.back()}
-          className="bg-black/45 backdrop-blur border-white/20 text-white hover:bg-black/65 h-10 w-10 p-0 rounded-full"
+          className="h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95"
+          type="button"
         >
           <ArrowLeft className="h-5 w-5" />
-        </Button>
+        </button>
       </div>
 
-      {/* TOP RIGHT: MY / ALL */}
-      <div className="absolute top-4 right-4 z-50 flex gap-2">
-        <Button
-          variant="outline"
+      {/* small floating controls right (NO TEXT) */}
+      <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
+        {/* my / all */}
+        <button
           onClick={() => setViewMode('mine')}
           className={[
-            'bg-black/45 backdrop-blur border-white/20 text-white hover:bg-black/65 h-10 px-3 rounded-full',
+            'h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95',
             viewMode === 'mine' ? 'ring-2 ring-white/60' : '',
           ].join(' ')}
+          type="button"
+          title="My lock"
         >
-          {t.mine}
-        </Button>
-        <Button
-          variant="outline"
+          <User className="h-5 w-5" />
+        </button>
+
+        <button
           onClick={() => setViewMode('all')}
           className={[
-            'bg-black/45 backdrop-blur border-white/20 text-white hover:bg-black/65 h-10 px-3 rounded-full',
+            'h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95',
             viewMode === 'all' ? 'ring-2 ring-white/60' : '',
           ].join(' ')}
+          type="button"
+          title="All locks"
         >
-          {t.all}
-        </Button>
-      </div>
+          <Users className="h-5 w-5" />
+        </button>
 
-      {/* TOP CENTER: CAMERA CONTROLS (mode / flash / timer / zoom / selfie) */}
-      <div className="absolute top-16 left-0 right-0 z-50 flex justify-center">
-        <div className="flex items-center gap-2 bg-black/45 backdrop-blur border border-white/15 rounded-full px-3 py-2">
-          {/* Photo/Video */}
-          <button
-            onClick={() => setCaptureMode('photo')}
-            className={[
-              'px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2',
-              captureMode === 'photo' ? 'bg-white text-black' : 'text-white/80 hover:text-white',
-            ].join(' ')}
-            type="button"
-          >
-            <Camera className="h-4 w-4" /> {t.photo}
-          </button>
-          <button
-            onClick={() => setCaptureMode('video')}
-            className={[
-              'px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2',
-              captureMode === 'video' ? 'bg-white text-black' : 'text-white/80 hover:text-white',
-            ].join(' ')}
-            type="button"
-          >
-            <Video className="h-4 w-4" /> {t.video}
-          </button>
+        {/* flash */}
+        <button
+          onClick={() => setFlashOn((v) => !v)}
+          className="h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95"
+          type="button"
+          title="Flash"
+        >
+          {flashOn ? <Zap className="h-5 w-5" /> : <ZapOff className="h-5 w-5 text-white/70" />}
+        </button>
 
-          <div className="w-px h-6 bg-white/15 mx-1" />
-
-          {/* Flash */}
-          <button
-            onClick={() => setFlashOn((v) => !v)}
-            className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-white/10"
-            type="button"
-            title={t.flash}
-          >
-            {flashOn ? <Zap className="h-4 w-4" /> : <ZapOff className="h-4 w-4 text-white/70" />}
-          </button>
-
-          {/* Timer */}
-          <button
-            onClick={() => setTimerSec((v) => (v === 0 ? 5 : v === 5 ? 10 : 0))}
-            className="h-9 rounded-full px-3 flex items-center gap-2 hover:bg-white/10"
-            type="button"
-            title={t.timer}
-          >
-            <Timer className="h-4 w-4" />
-            <span className="text-xs font-bold">{timerSec === 0 ? '0s' : `${timerSec}s`}</span>
-          </button>
-
-          {/* Zoom presets */}
-          <div className="flex items-center gap-1">
-            {([0.5, 1, 2] as const).map((z) => (
-              <button
-                key={z}
-                onClick={() => setZoomPreset(z)}
-                className={[
-                  'h-9 rounded-full px-3 text-xs font-black hover:bg-white/10',
-                  zoomPreset === z ? 'bg-white text-black' : 'text-white/80',
-                ].join(' ')}
-                type="button"
-                title={t.zoom}
-              >
-                {z}x
-              </button>
-            ))}
+        {/* timer */}
+        <button
+          onClick={() => setTimerSec((v) => (v === 0 ? 5 : v === 5 ? 10 : 0))}
+          className="h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95"
+          type="button"
+          title="Timer"
+        >
+          <div className="relative">
+            <Timer className="h-5 w-5" />
+            {timerSec !== 0 && (
+              <span className="absolute -bottom-2 -right-2 text-[10px] font-black bg-white text-black rounded-full px-1.5">
+                {timerSec}
+              </span>
+            )}
           </div>
+        </button>
 
-          {/* Selfie toggle */}
-          <button
-            onClick={() => setCamFacing((v) => (v === 'environment' ? 'user' : 'environment'))}
-            className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-white/10"
-            type="button"
-            title="Selfie"
-          >
-            <RotateCw className="h-4 w-4" />
-          </button>
-        </div>
+        {/* selfie */}
+        <button
+          onClick={() => setCamFacing((v) => (v === 'environment' ? 'user' : 'environment'))}
+          className="h-10 w-10 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center active:scale-95"
+          type="button"
+          title="Switch camera"
+        >
+          <RotateCw className="h-5 w-5" />
+        </button>
       </div>
 
-      {/* TOO FAR OVERLAY */}
-      {!gpsLoading && !showAR && (
-        <div className="absolute inset-0 z-40 bg-black/70 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white/10 border border-white/15 rounded-3xl p-5 shadow-2xl">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center">
-                <MapPin className="h-5 w-5 text-[#e11d48]" />
-              </div>
-              <div>
-                <div className="text-lg font-black">{t.tooFarTitle}</div>
-                <div className="text-xs text-white/70">{t.tooFarText}</div>
-              </div>
-            </div>
+      {/* zoom chips bottom-right (compact) */}
+      <div className="absolute bottom-28 right-4 z-50 flex flex-col gap-2">
+        {[0.5, 1, 2].map((z) => (
+          <button
+            key={z}
+            onClick={() => setZoomPreset(z as 0.5 | 1 | 2)}
+            className={[
+              'px-3 py-2 rounded-full text-xs font-black bg-black/55 border border-white/20 backdrop-blur active:scale-95',
+              zoomPreset === z ? 'bg-white text-black' : 'text-white/85',
+            ].join(' ')}
+            type="button"
+            title="Zoom"
+          >
+            {z}x
+          </button>
+        ))}
+      </div>
 
-            <div className="bg-black/40 rounded-2xl p-4 border border-white/10 mb-4">
-              <div className="text-[10px] text-white/50 uppercase tracking-widest">{t.distance}</div>
-              <div className="text-3xl font-mono font-black text-[#e11d48]">
+      {/* TOO FAR overlay (ne bloque pas les boutons) */}
+      {!gpsLoading && !showAR && (
+        <div className="absolute inset-x-0 bottom-24 z-40 px-4">
+          <div className="mx-auto max-w-sm bg-black/65 backdrop-blur border border-white/15 rounded-2xl p-4">
+            <div className="flex items-center gap-3">
+              <MapPin className="h-5 w-5 text-[#e11d48]" />
+              <div className="text-sm font-bold">{t.tooFarTitle}</div>
+            </div>
+            <div className="text-xs text-white/75 mt-1">{t.tooFarText}</div>
+
+            <div className="mt-3 flex items-center justify-between">
+              <div className="text-sm font-mono font-black text-[#e11d48]">
                 {distance ? (distance / 1000).toFixed(1) : '?'} km
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                className="bg-white text-black hover:bg-white/90 font-bold rounded-2xl"
-                onClick={() =>
-                  window.open(
-                    `https://www.google.com/maps/dir/?api=1&destination=${BRIDGE_LAT},${BRIDGE_LNG}`,
-                    '_blank'
-                  )
-                }
-              >
-                <Navigation className="mr-2 h-4 w-4" /> {t.directions}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  className="bg-white text-black hover:bg-white/90 font-bold"
+                  onClick={() =>
+                    window.open(
+                      `https://www.google.com/maps/dir/?api=1&destination=${BRIDGE_LAT},${BRIDGE_LNG}`,
+                      '_blank'
+                    )
+                  }
+                >
+                  <Navigation className="h-4 w-4" />
+                </Button>
 
-              <Button
-                variant="outline"
-                className="bg-black/30 border-white/20 text-white hover:bg-black/45 font-bold rounded-2xl"
-                onClick={() => setDemoMode(true)}
-              >
-                {t.tryDemo}
-              </Button>
-            </div>
-
-            {viewMode === 'mine' && !user && (
-              <div className="mt-3 text-xs text-white/70">
-                {t.loginHint}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-white/20 bg-black/30 hover:bg-black/45 font-bold text-white"
+                  onClick={() => setDemoMode(true)}
+                >
+                  {t.demo}
+                </Button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* GPS LOADING */}
+      {/* GPS loading */}
       {gpsLoading && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80">
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/85">
           <Loader2 className="animate-spin h-10 w-10 text-[#e11d48] mb-4" />
           <p className="text-sm font-bold tracking-widest uppercase">{t.locating}</p>
         </div>
       )}
 
-      {/* AR CANVAS OVERLAY */}
+      {/* AR canvas */}
       {showAR && (
         <div className="absolute inset-0 z-10 pointer-events-none">
           <Canvas>
@@ -761,197 +660,133 @@ export default function ARViewPage() {
             <directionalLight position={[0, 10, 5]} intensity={2} />
             <DeviceOrientationControls />
 
-            {arLocks.map((it) => (
-              <ARLock
-                key={it.id}
-                position={it.position}
-                color={it.color}
-                onClick={() => setSelectedLock(it.lock)}
-              />
+            {demoLocks.map((l, idx) => (
+              <ARLock key={idx} position={l.position} color={l.color} />
             ))}
           </Canvas>
         </div>
       )}
 
-      {/* Small lock loading indicator */}
-      {showAR && locksLoading && (
-        <div className="absolute top-28 left-1/2 -translate-x-1/2 z-50 bg-black/45 border border-white/15 rounded-full px-4 py-2 text-xs font-bold flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading locks…
-        </div>
-      )}
-
-      {/* LOCK MODAL (simple) */}
-      {selectedLock && (
-        <div className="absolute inset-0 z-[70] bg-black/55 backdrop-blur-sm flex items-end justify-center p-4">
-          <div className="w-full max-w-md bg-[#0b0b0b] border border-white/15 rounded-3xl p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <div className="font-black text-lg">Lock #{selectedLock.id}</div>
-              <button
-                onClick={() => setSelectedLock(null)}
-                className="h-9 w-9 rounded-full hover:bg-white/10 flex items-center justify-center"
-                type="button"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="text-sm text-white/70">
-              {selectedLock.content_text ? selectedLock.content_text : '—'}
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <Button
-                className="bg-emerald-600 hover:bg-emerald-700 font-bold rounded-2xl"
-                onClick={() => router.push(`/checkout?lock_id=${selectedLock.id}&type=marketplace`)}
-              >
-                Buy this lock
-              </Button>
-
-              <Button
-                variant="outline"
-                className="border-white/20 bg-black/30 hover:bg-black/45 font-bold rounded-2xl"
-                onClick={() => {
-                  // Ici tu mettras l’UX “unlock media” si media activé
-                  router.push(`/checkout?lock_id=${selectedLock.id}&price=4.99&type=media_unlock`);
-                }}
-              >
-                Unlock media $4.99
-              </Button>
-            </div>
-
-            <div className="mt-3 text-[11px] text-white/50">
-              (AR positions are demo-style — next step is matching real bridge coordinates.)
-            </div>
+      {/* CAPTURE PREVIEW overlay */}
+      {capturedUrl && capturedType && (
+        <div className="absolute inset-0 z-[70] bg-black flex flex-col">
+          <div className="p-4 flex items-center justify-between">
+            <button
+              onClick={retake}
+              className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center"
+              type="button"
+              title="Retake"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="w-10" />
           </div>
-        </div>
-      )}
 
-      {/* BOTTOM CAMERA UI */}
-      <div className="absolute bottom-0 left-0 right-0 z-50 pb-8 pt-6">
-        {/* preview overlay */}
-        {capturedUrl && capturedType && (
-          <div className="absolute inset-0 z-[55] bg-black flex flex-col">
-            <div className="p-4 flex items-center justify-between">
-              <button
-                onClick={retake}
-                className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center"
-                type="button"
-                title={t.retake}
-              >
-                <X className="h-5 w-5" />
-              </button>
-              <div className="text-xs font-bold text-white/70">
-                {capturedType === 'image' ? t.photo : t.video}
-              </div>
-              <div className="w-10" />
-            </div>
-
-            <div className="flex-1 flex items-center justify-center px-4">
-              {capturedType === 'image' ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={capturedUrl}
-                  alt="captured"
-                  className="max-h-[70vh] w-auto rounded-2xl shadow-2xl"
-                />
-              ) : (
-                <video
-                  src={capturedUrl}
-                  controls
-                  playsInline
-                  className="max-h-[70vh] w-auto rounded-2xl shadow-2xl"
-                />
-              )}
-            </div>
-
-            <div className="p-4 grid grid-cols-2 gap-3">
-              <Button
-                onClick={downloadCaptured}
-                className="bg-white text-black hover:bg-white/90 font-bold rounded-2xl h-12"
-              >
-                <Download className="mr-2 h-5 w-5" /> {t.save}
-              </Button>
-              <Button
-                onClick={shareCaptured}
-                variant="outline"
-                className="border-white/20 bg-black/30 hover:bg-black/45 font-bold rounded-2xl h-12 text-white"
-              >
-                <Share2 className="mr-2 h-5 w-5" /> {t.share}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* shutter */}
-        {!capturedUrl && (
-          <div className="flex flex-col items-center gap-4">
-            {/* recording badge */}
-            {captureMode === 'video' && recorderRef.current && isCapturing && (
-              <div className="bg-black/45 border border-white/15 rounded-full px-4 py-2 text-xs font-bold flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                {t.recording}
-              </div>
+          <div className="flex-1 flex items-center justify-center px-4">
+            {capturedType === 'image' ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={capturedUrl} alt="captured" className="max-h-[72vh] w-auto rounded-2xl shadow-2xl" />
+            ) : (
+              <video src={capturedUrl} controls playsInline className="max-h-[72vh] w-auto rounded-2xl shadow-2xl" />
             )}
-
-            <div className="flex items-center justify-center gap-10">
-              {/* left placeholder */}
-              <div className="w-12 h-12" />
-
-              {/* shutter button */}
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!cameraReady) return;
-
-                  if (captureMode === 'photo') {
-                    await takePhoto();
-                    return;
-                  }
-
-                  // video
-                  if (recorderRef.current) {
-                    stopVideo();
-                  } else {
-                    await startVideo();
-                  }
-                }}
-                className={[
-                  'h-20 w-20 rounded-full border-4 flex items-center justify-center shadow-2xl active:scale-95 transition-transform',
-                  captureMode === 'photo'
-                    ? 'border-white bg-white/10'
-                    : recorderRef.current
-                    ? 'border-red-500 bg-red-500/30'
-                    : 'border-white bg-white/10',
-                ].join(' ')}
-                disabled={isCapturing}
-                aria-label="shutter"
-              >
-                {isCapturing ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : captureMode === 'photo' ? (
-                  <div className="h-14 w-14 rounded-full bg-white" />
-                ) : recorderRef.current ? (
-                  <div className="h-10 w-10 rounded-xl bg-red-500" />
-                ) : (
-                  <div className="h-14 w-14 rounded-full bg-white" />
-                )}
-              </button>
-
-              {/* right placeholder */}
-              <div className="w-12 h-12" />
-            </div>
-
-            <div className="text-[11px] text-white/60">
-              {captureMode === 'photo'
-                ? 'Tap to take a photo'
-                : recorderRef.current
-                ? 'Tap to stop'
-                : 'Tap to start video'}
-            </div>
           </div>
-        )}
-      </div>
+
+          <div className="p-4 grid grid-cols-2 gap-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <Button onClick={downloadCaptured} className="bg-white text-black hover:bg-white/90 font-bold rounded-2xl h-12">
+              <Download className="mr-2 h-5 w-5" />
+            </Button>
+            <Button
+              onClick={shareCaptured}
+              variant="outline"
+              className="border-white/20 bg-black/30 hover:bg-black/45 font-bold rounded-2xl h-12 text-white"
+            >
+              <Share2 className="mr-2 h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* bottom camera bar (simple, instagram-like) */}
+      {!capturedUrl && (
+        <div className="absolute inset-x-0 bottom-0 z-50 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5">
+          {/* mode toggle icons */}
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <button
+              onClick={() => setCaptureMode('photo')}
+              className={[
+                'h-10 w-10 rounded-full border backdrop-blur flex items-center justify-center active:scale-95',
+                captureMode === 'photo'
+                  ? 'bg-white text-black border-white/30'
+                  : 'bg-black/55 text-white border-white/20',
+              ].join(' ')}
+              type="button"
+              title="Photo"
+            >
+              <Camera className="h-5 w-5" />
+            </button>
+
+            <button
+              onClick={() => setCaptureMode('video')}
+              className={[
+                'h-10 w-10 rounded-full border backdrop-blur flex items-center justify-center active:scale-95',
+                captureMode === 'video'
+                  ? 'bg-white text-black border-white/30'
+                  : 'bg-black/55 text-white border-white/20',
+              ].join(' ')}
+              type="button"
+              title="Video"
+              disabled={!videoSupported}
+            >
+              <Video className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* shutter */}
+          <div className="flex items-center justify-center">
+            <button
+              type="button"
+              onClick={async () => {
+                if (!cameraReady || isBusy) return;
+
+                if (captureMode === 'photo') {
+                  await takePhoto();
+                  return;
+                }
+
+                // video
+                if (!videoSupported) return;
+
+                if (isRecording) {
+                  stopVideo();
+                } else {
+                  await startVideo();
+                }
+              }}
+              className={[
+                'h-20 w-20 rounded-full border-4 flex items-center justify-center shadow-2xl active:scale-95 transition-transform',
+                captureMode === 'video' && isRecording ? 'border-red-500 bg-red-500/25' : 'border-white bg-white/10',
+              ].join(' ')}
+              aria-label="shutter"
+              disabled={isBusy || (captureMode === 'video' && !videoSupported)}
+            >
+              {isBusy ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : captureMode === 'video' && isRecording ? (
+                <div className="h-10 w-10 rounded-xl bg-red-500" />
+              ) : (
+                <div className="h-14 w-14 rounded-full bg-white" />
+              )}
+            </button>
+          </div>
+
+          {/* hint for unsupported video */}
+          {captureMode === 'video' && !videoSupported && (
+            <div className="text-center text-xs text-white/60 mt-3 px-6">
+              {t.videoUnsupported}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
