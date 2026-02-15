@@ -108,22 +108,11 @@ export default function ARViewPage() {
       checking: fr ? 'Vérification...' : zh ? '检查中...' : 'Checking...',
       loginNeeded: fr ? 'Connectez-vous pour débloquer' : zh ? '登录后解锁' : 'Login to unlock',
 
-      timerOff: fr ? 'OFF' : zh ? '关闭' : 'OFF',
-      timer5: fr ? '5s' : zh ? '5秒' : '5s',
-      timer10: fr ? '10s' : zh ? '10秒' : '10s',
-
       share: fr ? 'Partager' : zh ? '分享' : 'Share',
       save: fr ? 'Enregistrer' : zh ? '保存' : 'Save',
 
       flash: fr ? 'Flash' : zh ? '闪光' : 'Flash',
       flip: fr ? 'Selfie' : zh ? '切换' : 'Flip',
-
-      hintTitle: fr ? 'Astuce' : zh ? '提示' : 'Tip',
-      hintText: fr
-        ? '1 cadenas = ton cadenas • 2 cadenas = tous les cadenas. Touche un cadenas pour voir/ouvrir.'
-        : zh
-          ? '1把锁=你的锁 • 2把锁=所有锁。点击锁查看/打开。'
-          : '1 lock = your lock • 2 locks = all locks. Tap a lock to view/open.',
 
       enableCamTitle: fr ? 'Activer la caméra' : zh ? '启用相机' : 'Enable Camera',
       enableCamText: fr
@@ -133,9 +122,8 @@ export default function ARViewPage() {
           : 'Tap once to allow the camera (iPhone may block auto-start).',
       enableCamBtn: fr ? 'Autoriser la caméra' : zh ? '允许相机' : 'Allow Camera',
 
-      // small helper: no text on UI, but keep aria titles stable
-      myLock: fr ? 'Mon cadenas' : zh ? '我的锁' : 'My lock',
-      allLocks: fr ? 'Tous les cadenas' : zh ? '所有锁' : 'All locks',
+      myLockLabel: fr ? 'Voir mon cadenas' : zh ? '查看我的锁' : 'See my lock',
+      allLocksLabel: fr ? 'Voir tous les cadenas' : zh ? '查看所有锁' : 'See all locks',
     };
   }, [locale]);
 
@@ -145,7 +133,6 @@ export default function ARViewPage() {
   const [mounted, setMounted] = useState(false);
 
   // camera status
-  const [camReady, setCamReady] = useState(false);
   const [camError, setCamError] = useState<string | null>(null);
   const [needsTapToStart, setNeedsTapToStart] = useState(false);
 
@@ -157,13 +144,14 @@ export default function ARViewPage() {
   // toggles locks
   const [lockScope, setLockScope] = useState<'all' | 'mine'>('all');
 
-  // hint overlay (2s requested)
-  const [showHint, setShowHint] = useState(false);
+  // hint near lock buttons (3s on open, 2s on click)
+  const [showLockHints, setShowLockHints] = useState(false);
   const hintTimeoutRef = useRef<number | null>(null);
 
   // camera/capture UI
   const [mode, setMode] = useState<'photo' | 'video'>('photo');
   const [timer, setTimer] = useState<0 | 5 | 10>(0);
+  const [timerMenuOpen, setTimerMenuOpen] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
 
   const [zoomPreset, setZoomPreset] = useState<0.5 | 1 | 2>(1);
@@ -244,7 +232,6 @@ export default function ARViewPage() {
       const zMax = caps.zoom.max ?? 1;
       const clamped = Math.max(zMin, Math.min(zMax, value));
       await track.applyConstraints({ advanced: [{ zoom: clamped }] });
-
       applyMirrorAndZoomCSS(1);
     } catch {
       applyMirrorAndZoomCSS(value);
@@ -255,7 +242,6 @@ export default function ARViewPage() {
     setCamError(null);
     setNeedsTapToStart(false);
 
-    // stop old
     const old = videoRef.current?.srcObject as MediaStream | null;
     old?.getTracks?.()?.forEach((t) => t.stop());
 
@@ -277,9 +263,6 @@ export default function ARViewPage() {
         } catch {}
       }
 
-      setCamReady(true);
-
-      // IMPORTANT: apply mirror for current camera immediately (fix selfie not mirroring)
       applyMirrorAndZoomCSS(1, fm);
 
       setTimeout(async () => {
@@ -288,7 +271,6 @@ export default function ARViewPage() {
         applyMirrorAndZoomCSS(1, fm);
       }, 250);
     } catch (e: any) {
-      setCamReady(false);
       const msg = e?.message || 'Camera error';
       setCamError(msg);
       setNeedsTapToStart(true);
@@ -317,10 +299,10 @@ export default function ARViewPage() {
     }
   };
 
-  const showHint2s = () => {
-    setShowHint(true);
+  const showHintsFor = (ms: number) => {
+    setShowLockHints(true);
     if (hintTimeoutRef.current) window.clearTimeout(hintTimeoutRef.current);
-    hintTimeoutRef.current = window.setTimeout(() => setShowHint(false), 2000);
+    hintTimeoutRef.current = window.setTimeout(() => setShowLockHints(false), ms);
   };
 
   useEffect(() => {
@@ -350,7 +332,7 @@ export default function ARViewPage() {
         );
 
         await loadLocks('all');
-        showHint2s(); // ✅ hint at start (2s)
+        showHintsFor(3000); // ✅ 3s à l'ouverture
       } catch (e) {
         console.error('Init AR error:', e);
         setGpsLoading(false);
@@ -372,7 +354,6 @@ export default function ARViewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // shutter sound
   const playShutterSound = () => {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -462,7 +443,7 @@ export default function ARViewPage() {
     setPreviewPhotoUrl(URL.createObjectURL(blob));
   };
 
-  // video: mic requested only on REC
+  // ✅ FIX RALENTI: captureStream(60) + rAF drawing + timeslice small + higher bitrate
   const startRecordingNow = async () => {
     if (isRecording) return;
 
@@ -483,7 +464,7 @@ export default function ARViewPage() {
     const ctx = comp.getContext('2d');
     if (!ctx) return;
 
-    const stream = (comp as any).captureStream?.(30) as MediaStream | undefined;
+    const stream = (comp as any).captureStream?.(60) as MediaStream | undefined;
     if (!stream) return;
 
     try {
@@ -496,11 +477,15 @@ export default function ARViewPage() {
 
     recordedChunksRef.current = [];
 
-    // ✅ smoother playback: use vp9 if available, and keep timeslice smaller
     const mimeCandidates = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
-    const mimeType = mimeCandidates.find((m) => (window as any).MediaRecorder?.isTypeSupported?.(m)) || 'video/webm';
+    const mimeType =
+      mimeCandidates.find((m) => (window as any).MediaRecorder?.isTypeSupported?.(m)) || 'video/webm';
 
-    const recorder = new MediaRecorder(stream, { mimeType });
+    const recorder = new MediaRecorder(stream, {
+      mimeType,
+      videoBitsPerSecond: 8_000_000,
+      audioBitsPerSecond: 128_000,
+    });
     recorderRef.current = recorder;
 
     recorder.ondataavailable = (e) => {
@@ -528,7 +513,7 @@ export default function ARViewPage() {
     loop();
 
     setIsRecording(true);
-    recorder.start(100); // ✅ smaller timeslice => better realtime
+    recorder.start(50); // plus fluide
 
     setVideoSeconds(0);
     if (videoTimerRef.current) window.clearInterval(videoTimerRef.current);
@@ -646,7 +631,7 @@ export default function ARViewPage() {
         }
       }
 
-      await navAny.share?.({ title: 'LoveLockParis', url: window.location.href });
+      await (navAny.share?.({ title: 'LoveLockParis', url: window.location.href }) as any);
     } catch {}
   };
 
@@ -655,7 +640,6 @@ export default function ARViewPage() {
     const next = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(next);
     await startCamera(next);
-    // mirror already applied in startCamera, but keep for safety
     setTimeout(() => applyMirrorAndZoomCSS(1, next), 50);
   };
 
@@ -738,13 +722,7 @@ export default function ARViewPage() {
   return (
     <div ref={rootRef} className="fixed inset-0 bg-black overflow-hidden font-sans text-white">
       {/* CAMERA */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="absolute inset-0 w-full h-full object-cover z-0"
-      />
+      <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover z-0" />
 
       {/* ✅ camera enable overlay if blocked */}
       {needsTapToStart && !previewPhotoUrl && !previewVideoUrl && !showTooFarOverlay && (
@@ -771,17 +749,7 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* ✅ 2s hint about locks */}
-      {showHint && !previewPhotoUrl && !previewVideoUrl && (
-        <div className="absolute inset-0 z-[85] pointer-events-none flex items-center justify-center">
-          <div className="bg-black/70 backdrop-blur border border-white/20 rounded-2xl px-5 py-4 shadow-2xl max-w-[320px]">
-            <div className="text-xs text-white/60 font-bold mb-1">{t.hintTitle}</div>
-            <div className="text-sm font-bold leading-snug">{t.hintText}</div>
-          </div>
-        </div>
-      )}
-
-      {/* TOP BAR: back left, flash+timer right */}
+      {/* TOP BAR: back left, flash + timer right */}
       {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
         <div className="absolute top-0 left-0 right-0 z-50 p-4 flex items-center justify-between">
           <button
@@ -793,10 +761,10 @@ export default function ARViewPage() {
             <ArrowLeft className="h-5 w-5 text-white" />
           </button>
 
-          <div className="flex items-center gap-2">
-            {/* timer (beside flash) */}
+          <div className="flex items-center gap-2 relative">
+            {/* timer */}
             <button
-              onClick={() => setTimer((p) => (p === 0 ? 5 : p === 5 ? 10 : 0))}
+              onClick={() => setTimerMenuOpen((v) => !v)}
               className={`w-11 h-11 rounded-full backdrop-blur border border-white/20 flex items-center justify-center ${
                 timer !== 0 ? 'bg-white text-black' : 'bg-black/55 text-white'
               }`}
@@ -805,6 +773,45 @@ export default function ARViewPage() {
             >
               <TimerIcon className="h-5 w-5" />
             </button>
+
+            {/* mini menu 5 / 10 */}
+            {timerMenuOpen && (
+              <div className="absolute right-0 top-[52px] z-[90] bg-black/70 backdrop-blur border border-white/20 rounded-2xl p-2 flex flex-col gap-1">
+                <button
+                  onClick={() => {
+                    setTimer(5);
+                    setTimerMenuOpen(false);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold text-left ${
+                    timer === 5 ? 'bg-white text-black' : 'text-white/90 hover:bg-white/10'
+                  }`}
+                >
+                  5s
+                </button>
+                <button
+                  onClick={() => {
+                    setTimer(10);
+                    setTimerMenuOpen(false);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold text-left ${
+                    timer === 10 ? 'bg-white text-black' : 'text-white/90 hover:bg-white/10'
+                  }`}
+                >
+                  10s
+                </button>
+                <button
+                  onClick={() => {
+                    setTimer(0);
+                    setTimerMenuOpen(false);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold text-left ${
+                    timer === 0 ? 'bg-white text-black' : 'text-white/90 hover:bg-white/10'
+                  }`}
+                >
+                  Off
+                </button>
+              </div>
+            )}
 
             {/* flash */}
             <button
@@ -821,73 +828,85 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* ✅ Right-middle lock scope buttons */}
+      {/* ✅ Right-middle lock scope buttons + labels next to each button (thin) */}
       {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-[60] flex flex-col gap-2">
-          <button
-            onClick={async () => {
-              setLockScope('mine');
-              await loadLocks('mine');
-              showHint2s();
-            }}
-            className={`w-12 h-12 rounded-full backdrop-blur border border-white/20 flex items-center justify-center transition-colors ${
-              lockScope === 'mine' ? 'bg-white text-black' : 'bg-black/55 text-white'
-            }`}
-            aria-label={t.myLock}
-            title={t.myLock}
-          >
-            {/* 1 cadenas */}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M8 11V8a4 4 0 118 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <path
-                d="M7 11h10a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7a2 2 0 012-2z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-[60] flex flex-col gap-3 items-end">
+          <div className="flex items-center gap-2">
+            {showLockHints && (
+              <div className="text-[12px] font-medium text-white/85 bg-black/45 backdrop-blur border border-white/15 rounded-full px-3 py-2">
+                {t.myLockLabel}
+              </div>
+            )}
+            <button
+              onClick={async () => {
+                setLockScope('mine');
+                await loadLocks('mine');
+                showHintsFor(2000); // ✅ 2s au clic
+              }}
+              className={`w-12 h-12 rounded-full backdrop-blur border border-white/20 flex items-center justify-center transition-colors ${
+                lockScope === 'mine' ? 'bg-white text-black' : 'bg-black/55 text-white'
+              }`}
+              aria-label={t.myLockLabel}
+              title={t.myLockLabel}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M8 11V8a4 4 0 118 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path
+                  d="M7 11h10a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7a2 2 0 012-2z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
 
-          <button
-            onClick={async () => {
-              setLockScope('all');
-              await loadLocks('all');
-              showHint2s();
-            }}
-            className={`w-12 h-12 rounded-full backdrop-blur border border-white/20 flex items-center justify-center transition-colors ${
-              lockScope === 'all' ? 'bg-white text-black' : 'bg-black/55 text-white'
-            }`}
-            aria-label={t.allLocks}
-            title={t.allLocks}
-          >
-            {/* 2 cadenas */}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M6.5 12.5v-1.5a2.5 2.5 0 115 0v1.5"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M5.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5H5.8A1.5 1.5 0 014.3 19.2V14a1.5 1.5 0 011.5-1.5z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M12.5 12.5v-2a3 3 0 116 0v2"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M11.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5h-6.4a1.5 1.5 0 01-1.5-1.5V14a1.5 1.5 0 011.5-1.5z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {showLockHints && (
+              <div className="text-[12px] font-medium text-white/85 bg-black/45 backdrop-blur border border-white/15 rounded-full px-3 py-2">
+                {t.allLocksLabel}
+              </div>
+            )}
+            <button
+              onClick={async () => {
+                setLockScope('all');
+                await loadLocks('all');
+                showHintsFor(2000); // ✅ 2s au clic
+              }}
+              className={`w-12 h-12 rounded-full backdrop-blur border border-white/20 flex items-center justify-center transition-colors ${
+                lockScope === 'all' ? 'bg-white text-black' : 'bg-black/55 text-white'
+              }`}
+              aria-label={t.allLocksLabel}
+              title={t.allLocksLabel}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M6.5 12.5v-1.5a2.5 2.5 0 115 0v1.5"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M5.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5H5.8A1.5 1.5 0 014.3 19.2V14a1.5 1.5 0 011.5-1.5z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M12.5 12.5v-2a3 3 0 116 0v2"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M11.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5h-6.4a1.5 1.5 0 01-1.5-1.5V14a1.5 1.5 0 011.5-1.5z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 
@@ -933,7 +952,7 @@ export default function ARViewPage() {
                 className="w-full bg-[#e11d48] hover:bg-[#be123c] font-bold"
                 onClick={() => {
                   setDebugMode(true);
-                  showHint2s();
+                  showHintsFor(3000);
                 }}
               >
                 <Camera className="mr-2 h-4 w-4" /> {t.tryDemo}
@@ -998,9 +1017,9 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* ZOOM PRESETS (unchanged position/space) */}
+      {/* ZOOM PRESETS */}
       {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
-        <div className="absolute left-1/2 -translate-x-1/2 z-50" style={{ bottom: 210 }}>
+        <div className="absolute left-1/2 -translate-x-1/2 z-50" style={{ bottom: 190 }}>
           <div className="flex items-center gap-2 bg-black/55 backdrop-blur border border-white/20 rounded-full p-1">
             {[0.5, 1, 2].map((z) => (
               <button
@@ -1020,11 +1039,11 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* BOTTOM CAMERA UI */}
+      {/* ✅ BOTTOM CAMERA UI (descendu + selfie sur la même ligne que Photo/Video, aligné à gauche comme la flèche) */}
       {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
-        <div className="absolute bottom-0 left-0 right-0 z-50 pb-6 pt-2">
-          {/* shutter row */}
-          <div className="flex items-center justify-center">
+        <div className="absolute bottom-0 left-0 right-0 z-50 pb-10 pt-2">
+          {/* shutter */}
+          <div className="flex items-center justify-center" style={{ marginTop: 8 }}>
             <button
               onClick={onShutter}
               className={`w-20 h-20 rounded-full flex items-center justify-center shadow-2xl active:scale-95 transition-transform ${
@@ -1044,9 +1063,9 @@ export default function ARViewPage() {
             </button>
           </div>
 
-          {/* ✅ selector UNDER shutter + selfie button on LEFT of selector */}
-          <div className="mt-4 flex items-center justify-center gap-3">
-            {/* selfie button */}
+          {/* row: selfie (left), selector (center) */}
+          <div className="mt-4 px-4 flex items-center justify-between">
+            {/* selfie bottom-left aligned with top back padding */}
             <button
               onClick={handleFlipCamera}
               disabled={isRecording}
@@ -1057,30 +1076,29 @@ export default function ARViewPage() {
               <RefreshCcw className="h-5 w-5" />
             </button>
 
-            {/* selector */}
-            <div className="bg-black/55 backdrop-blur border border-white/20 rounded-full p-1 flex items-center gap-1">
-              <button
-                onClick={() => !isRecording && setMode('photo')}
-                className={`px-5 py-2 rounded-full text-xs font-black ${
-                  mode === 'photo' ? 'bg-white text-black' : 'text-white/80'
-                }`}
-              >
-                {t.photo}
-              </button>
-              <button
-                onClick={() => !isRecording && setMode('video')}
-                className={`px-5 py-2 rounded-full text-xs font-black ${
-                  mode === 'video' ? 'bg-white text-black' : 'text-white/80'
-                }`}
-              >
-                {t.video}
-              </button>
+            <div className="flex-1 flex justify-center">
+              <div className="bg-black/55 backdrop-blur border border-white/20 rounded-full p-1 flex items-center gap-1">
+                <button
+                  onClick={() => !isRecording && setMode('photo')}
+                  className={`px-5 py-2 rounded-full text-xs font-black ${
+                    mode === 'photo' ? 'bg-white text-black' : 'text-white/80'
+                  }`}
+                >
+                  {t.photo}
+                </button>
+                <button
+                  onClick={() => !isRecording && setMode('video')}
+                  className={`px-5 py-2 rounded-full text-xs font-black ${
+                    mode === 'video' ? 'bg-white text-black' : 'text-white/80'
+                  }`}
+                >
+                  {t.video}
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* reserve space so nothing moves */}
-          <div className="mt-3 flex justify-center">
-            <div className="h-[26px]" />
+            {/* spacer right to keep center perfectly centered */}
+            <div className="w-12 h-12" />
           </div>
         </div>
       )}
