@@ -75,6 +75,7 @@ type LockRow = {
   skin?: string | null;
   content_media_url?: string | null;
   is_media_enabled_?: boolean | null;
+  owner_id?: string | null; // ✅ ajout (ne casse rien)
 };
 
 export default function ARViewPage() {
@@ -111,6 +112,9 @@ export default function ARViewPage() {
       save: fr ? 'Enregistrer' : zh ? '保存' : 'Save',
       flash: fr ? 'Flash' : zh ? '闪光' : 'Flash',
       flip: fr ? 'Selfie' : zh ? '切换' : 'Flip',
+      hintAll: fr ? 'Tous les cadenas' : zh ? '所有锁' : 'All locks',
+      hintMine: fr ? 'Mon cadenas' : zh ? '我的锁' : 'My lock',
+      hintMic: fr ? 'Vidéo : micro demandé au démarrage' : zh ? '视频：开始录制时请求麦克风' : 'Video: mic requested on REC',
     };
   }, [locale]);
 
@@ -122,6 +126,12 @@ export default function ARViewPage() {
   const [isAtBridge, setIsAtBridge] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // ✅ NEW: toggles "mine" vs "all"
+  const [lockScope, setLockScope] = useState<'all' | 'mine'>('all');
+
+  // ✅ NEW: 3s hint overlay (demo)
+  const [showHint, setShowHint] = useState(false);
 
   // Camera / capture UI
   const [mode, setMode] = useState<'photo' | 'video'>('photo');
@@ -143,6 +153,10 @@ export default function ARViewPage() {
   const recordedChunksRef = useRef<BlobPart[]>([]);
   const rafRef = useRef<number | null>(null);
 
+  // ✅ NEW: video timer (seconds)
+  const [videoSeconds, setVideoSeconds] = useState(0);
+  const videoTimerRef = useRef<number | null>(null);
+
   // AR + unlock
   const [locks, setLocks] = useState<LockRow[]>([]);
   const [selectedLock, setSelectedLock] = useState<LockRow | null>(null);
@@ -152,11 +166,6 @@ export default function ARViewPage() {
 
   const showTooFarOverlay = !isAtBridge && !debugMode && !gpsLoading;
   const showARScene = (isAtBridge || debugMode) && !gpsLoading;
-
-  const isIOS = () => {
-    if (typeof navigator === 'undefined') return false;
-    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  };
 
   const getVideoTrack = () => {
     const stream = videoRef.current?.srcObject as MediaStream | null;
@@ -190,13 +199,19 @@ export default function ARViewPage() {
     videoRef.current.style.transformOrigin = 'center center';
   };
 
+  // ✅ MODIF: demande 4K (best effort)
   const startCamera = async (fm: 'environment' | 'user') => {
     // stop old
     const old = videoRef.current?.srcObject as MediaStream | null;
     old?.getTracks?.()?.forEach((t) => t.stop());
 
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: fm },
+      video: {
+        facingMode: fm,
+        width: { ideal: 3840 },
+        height: { ideal: 2160 },
+        frameRate: { ideal: 30, max: 60 },
+      },
       audio: false,
     });
 
@@ -204,10 +219,9 @@ export default function ARViewPage() {
 
     // Mirror preview like Instagram (ONLY preview), capture remains normal
     setTimeout(async () => {
-      // re-apply torch if requested and available AND back camera
       if (flashOn && fm === 'environment') await setTorch(true);
       await applyZoom(zoomPreset);
-      applyMirrorAndZoomCSS(1); // ensure mirror is applied even if zoom handled by constraints
+      applyMirrorAndZoomCSS(1);
     }, 250);
   };
 
@@ -230,10 +244,32 @@ export default function ARViewPage() {
       const clamped = Math.max(zMin, Math.min(zMax, value));
       await track.applyConstraints({ advanced: [{ zoom: clamped }] });
 
-      // Mirror preview still needed
       applyMirrorAndZoomCSS(1);
     } catch {
       applyMirrorAndZoomCSS(value);
+    }
+  };
+
+  // ✅ NEW: load locks depending on scope (all vs mine)
+  const loadLocks = async (scope: 'all' | 'mine') => {
+    try {
+      let q = supabase
+        .from('locks')
+        .select('id, skin, content_media_url, is_media_enabled_, owner_id')
+        .eq('status', 'Active');
+
+      if (scope === 'mine') {
+        if (!user?.id) {
+          setLocks([]);
+          return;
+        }
+        q = q.eq('owner_id', user.id);
+      }
+
+      const { data } = await q.limit(60);
+      if (data) setLocks(data as any);
+    } catch (e) {
+      console.error('Load locks error:', e);
     }
   };
 
@@ -263,13 +299,7 @@ export default function ARViewPage() {
           { enableHighAccuracy: true }
         );
 
-        const { data } = await supabase
-          .from('locks')
-          .select('id, skin, content_media_url, is_media_enabled_')
-          .eq('status', 'Active')
-          .limit(60);
-
-        if (data) setLocks(data as any);
+        await loadLocks('all');
       } catch (e) {
         console.error('Init AR error:', e);
         setGpsLoading(false);
@@ -285,6 +315,7 @@ export default function ARViewPage() {
       try {
         recorderRef.current?.stop();
       } catch {}
+      if (videoTimerRef.current) window.clearInterval(videoTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -329,9 +360,6 @@ export default function ARViewPage() {
     const video = videoRef.current;
     if (!video) return;
 
-    // IMPORTANT:
-    // - preview is mirrored with CSS for selfie
-    // - BUT drawImage(video) uses the raw stream (not mirrored) => photo will be non-inverted ✅
     try {
       ctx.drawImage(video, 0, 0, outW, outH);
     } catch {}
@@ -348,9 +376,6 @@ export default function ARViewPage() {
     const video = videoRef.current;
     if (!video) return;
 
-    // Flash behaviour:
-    // - back camera + torch supported => torch
-    // - selfie OR no torch => screen flash
     const canTorch = hasTorchSupport() && facingMode === 'environment';
 
     if (flashOn && canTorch) {
@@ -385,6 +410,7 @@ export default function ARViewPage() {
     setPreviewPhotoUrl(URL.createObjectURL(blob));
   };
 
+  // ✅ MODIF: micro demandé uniquement au démarrage REC + intégration audio dans l’enregistrement
   const startRecordingNow = async () => {
     if (isRecording) return;
 
@@ -408,6 +434,16 @@ export default function ARViewPage() {
     const stream = (comp as any).captureStream?.(30) as MediaStream | undefined;
     if (!stream) return;
 
+    // ✅ micro demandé ici seulement
+    try {
+      const mic = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      const at = mic.getAudioTracks?.()?.[0];
+      if (at) stream.addTrack(at);
+    } catch (e) {
+      // pas bloquant: vidéo sans son si refus
+      console.warn('Mic not available/denied', e);
+    }
+
     recordedChunksRef.current = [];
 
     const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8' });
@@ -421,6 +457,16 @@ export default function ARViewPage() {
       const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
       setPreviewVideoUrl(URL.createObjectURL(blob));
       setIsRecording(false);
+
+      // stop audio track if any (avoid mic staying on)
+      try {
+        stream.getAudioTracks()?.forEach((t) => t.stop());
+      } catch {}
+
+      // stop timer
+      if (videoTimerRef.current) window.clearInterval(videoTimerRef.current);
+      videoTimerRef.current = null;
+      setVideoSeconds(0);
     };
 
     const loop = () => {
@@ -431,6 +477,11 @@ export default function ARViewPage() {
 
     setIsRecording(true);
     recorder.start(250);
+
+    // ✅ video timer start
+    setVideoSeconds(0);
+    if (videoTimerRef.current) window.clearInterval(videoTimerRef.current);
+    videoTimerRef.current = window.setInterval(() => setVideoSeconds((s) => s + 1), 1000);
   };
 
   const stopRecording = () => {
@@ -442,6 +493,9 @@ export default function ARViewPage() {
       recorderRef.current?.stop();
     } catch {
       setIsRecording(false);
+      if (videoTimerRef.current) window.clearInterval(videoTimerRef.current);
+      videoTimerRef.current = null;
+      setVideoSeconds(0);
     }
   };
 
@@ -482,9 +536,6 @@ export default function ARViewPage() {
     return new File([blob], filename, { type: mime });
   };
 
-  // ✅ "Enregistrer" (iPhone) = ouvre la feuille partage avec le fichier
-  // -> l'utilisateur choisit "Enregistrer l'image/vidéo" => Photos
-  // Fallback: download
   const handleSave = async () => {
     try {
       const navAny: any = navigator;
@@ -506,7 +557,6 @@ export default function ARViewPage() {
         }
       }
 
-      // fallback
       if (previewPhotoUrl) downloadUrl(previewPhotoUrl, `lovelock-ar-${Date.now()}.jpg`);
       if (previewVideoUrl) downloadUrl(previewVideoUrl, `lovelock-ar-${Date.now()}.webm`);
     } catch {
@@ -545,8 +595,6 @@ export default function ARViewPage() {
     const next = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(next);
     await startCamera(next);
-
-    // Re-apply mirror immediately
     setTimeout(() => applyMirrorAndZoomCSS(1), 50);
   };
 
@@ -554,7 +602,6 @@ export default function ARViewPage() {
     const next = !flashOn;
     setFlashOn(next);
 
-    // only torch on back camera
     if (next && facingMode === 'environment') await setTorch(true);
     if (!next && facingMode === 'environment') await setTorch(false);
   };
@@ -626,6 +673,19 @@ export default function ARViewPage() {
     }
   };
 
+  // ✅ format video timer mm:ss
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m.toString().padStart(2, '0')}:${r.toString().padStart(2, '0')}`;
+  };
+
+  // ✅ 3s hint helper
+  const showHint3s = () => {
+    setShowHint(true);
+    window.setTimeout(() => setShowHint(false), 3000);
+  };
+
   if (!mounted) return <div className="min-h-screen bg-black" />;
 
   return (
@@ -638,6 +698,63 @@ export default function ARViewPage() {
         muted
         className="absolute inset-0 w-full h-full object-cover z-0"
       />
+
+      {/* ✅ NEW: Right-middle buttons (Mon cadenas / Tous) */}
+      {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-[60] flex flex-col gap-2">
+          <button
+            onClick={async () => {
+              setLockScope('mine');
+              await loadLocks('mine');
+            }}
+            className={`w-12 h-12 rounded-full backdrop-blur border border-white/20 flex items-center justify-center transition-colors ${
+              lockScope === 'mine' ? 'bg-white text-black' : 'bg-black/55 text-white'
+            }`}
+            aria-label={t.hintMine}
+            title={t.hintMine}
+          >
+            {/* 1 cadenas */}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M8 11V8a4 4 0 118 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M7 11h10a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7a2 2 0 012-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+
+          <button
+            onClick={async () => {
+              setLockScope('all');
+              await loadLocks('all');
+            }}
+            className={`w-12 h-12 rounded-full backdrop-blur border border-white/20 flex items-center justify-center transition-colors ${
+              lockScope === 'all' ? 'bg-white text-black' : 'bg-black/55 text-white'
+            }`}
+            aria-label={t.hintAll}
+            title={t.hintAll}
+          >
+            {/* 2 cadenas */}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M6.5 12.5v-1.5a2.5 2.5 0 115 0v1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M5.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5H5.8A1.5 1.5 0 014.3 19.2V14a1.5 1.5 0 011.5-1.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M12.5 12.5v-2a3 3 0 116 0v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M11.8 12.5h6.4a1.5 1.5 0 011.5 1.5v5.2a1.5 1.5 0 01-1.5 1.5h-6.4a1.5 1.5 0 01-1.5-1.5V14a1.5 1.5 0 011.5-1.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* ✅ NEW: 3s hint overlay (demo + mic info for video) */}
+      {showHint && !previewPhotoUrl && !previewVideoUrl && (
+        <div className="absolute inset-0 z-[85] pointer-events-none flex items-center justify-center">
+          <div className="bg-black/70 backdrop-blur border border-white/20 rounded-2xl px-5 py-4 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white/10 border border-white/15 flex items-center justify-center">
+                <Video className="h-5 w-5" />
+              </div>
+              <div className="text-sm font-bold">{t.hintMic}</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TOP BAR */}
       {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
@@ -714,7 +831,10 @@ export default function ARViewPage() {
 
               <Button
                 className="w-full bg-[#e11d48] hover:bg-[#be123c] font-bold"
-                onClick={() => setDebugMode(true)}
+                onClick={() => {
+                  setDebugMode(true);
+                  showHint3s(); // ✅ 3s hint here
+                }}
               >
                 <Camera className="mr-2 h-4 w-4" /> {t.tryDemo}
               </Button>
@@ -778,9 +898,9 @@ export default function ARViewPage() {
         </div>
       )}
 
-      {/* ZOOM PRESETS */}
+      {/* ZOOM PRESETS (✅ fixe, ne bouge jamais) */}
       {!showTooFarOverlay && !previewPhotoUrl && !previewVideoUrl && (
-        <div className="absolute bottom-44 left-1/2 -translate-x-1/2 z-50">
+        <div className="absolute left-1/2 -translate-x-1/2 z-50" style={{ bottom: 190 }}>
           <div className="flex items-center gap-2 bg-black/55 backdrop-blur border border-white/20 rounded-full p-1">
             {[0.5, 1, 2].map((z) => (
               <button
@@ -838,14 +958,18 @@ export default function ARViewPage() {
             </button>
           </div>
 
-          {isRecording && (
-            <div className="mt-4 flex justify-center">
-              <div className="bg-black/55 backdrop-blur px-4 py-2 rounded-full text-xs border border-white/20 flex items-center gap-2">
-                <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                REC
-              </div>
+          {/* ✅ IMPORTANT: reserve space so nothing moves */}
+          <div className="mt-4 flex justify-center">
+            <div
+              className={`bg-black/55 backdrop-blur px-4 py-2 rounded-full text-xs border border-white/20 flex items-center gap-2 transition-opacity ${
+                isRecording ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{ height: 34 }}
+            >
+              <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              REC {formatTime(videoSeconds)}
             </div>
-          )}
+          </div>
         </div>
       )}
 
