@@ -139,14 +139,34 @@ export default async function Home({ params }: { params: { locale: string } }) {
       <section className="relative min-h-[85vh] flex flex-col justify-center items-center text-center px-4 overflow-hidden pt-0 pb-0 md:pt-8">
   
   <div className="absolute inset-0 z-0">
+
+  {/* 📱 MOBILE IMAGE (SANS FILTRE) */}
+  <div className="block md:hidden w-full h-full">
     <Image 
-  src="/images/pont-des-arts-paris.jpg"
-  alt="Pont des Arts Paris with digital LoveLockParis lock in augmented reality"
-  fill
-  className="object-contain md:object-cover object-center"
-  priority
-  sizes="100vw"
-/>
+      src="/images/pont-des-arts-paris-mobile.jpg"
+      alt="Pont des Arts Paris mobile view"
+      fill
+      className="object-cover object-center"
+      priority
+      sizes="100vw"
+    />
+  </div>
+
+  {/* 💻 DESKTOP IMAGE */}
+  <div className="hidden md:block w-full h-full">
+    <Image 
+      src="/images/pont-des-arts-paris.jpg"
+      alt="Pont des Arts Paris"
+      fill
+      className="object-cover object-center"
+      priority
+      sizes="100vw"
+    />
+    {/* léger voile uniquement desktop */}
+    <div className="absolute inset-0 bg-black/30"></div>
+  </div>
+
+</div>
     <div className="absolute inset-0 bg-black/30"></div>
   </div>
 
