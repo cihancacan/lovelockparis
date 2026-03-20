@@ -136,117 +136,119 @@ export default async function Home({ params }: { params: { locale: string } }) {
         {/* =====================================================================================
             HERO SECTION - Optimisé pour "lock of love bridge paris"
         ===================================================================================== */}
-        <section className="relative min-h-[85vh] flex flex-col justify-center items-center text-center px-4 overflow-hidden pt-0 pb-0 md:pt-8">
-          
-          <div className="absolute inset-0 z-0">
-            <Image 
-              src="/images/concept-value.jpg" 
-              alt="Couple placing digital love lock on Pont des Arts bridge Paris using augmented reality" 
-              fill 
-              className="object-cover object-center" 
-              priority
-              sizes="100vw"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
-          </div>
+      <section className="relative min-h-[85vh] flex flex-col justify-center items-center text-center px-4 overflow-hidden pt-0 pb-0 md:pt-8">
+  
+  <div className="absolute inset-0 z-0">
+    <Image 
+      src="/images/pont-des-arts-paris.jpg"
+      alt="Pont des Arts Paris with digital LoveLockParis lock in augmented reality"
+      fill
+      className="object-cover object-center"
+      priority
+      sizes="100vw"
+    />
+    <div className="absolute inset-0 bg-black/30"></div>
+  </div>
 
-         <div className="relative z-10 max-w-6xl mx-auto w-full space-y-8 pt-4 md:pt-20 px-2 sm:px-4">
-            
-            <div className="flex justify-center">
-              <div className="inline-flex items-center space-x-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-white/20 backdrop-blur-lg border-2 border-white/30 text-white shadow-2xl">
-                <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-[#e11d48]" />
-                <span className="text-[11px] sm:text-[12px] md:text-xs font-bold tracking-wider uppercase">
-                  {locale === 'fr' ? 'Le Registre Officiel • Paris 2026' : 
-                   locale === 'es' ? 'El Registro Oficial • París 2026' :
-                   locale === 'zh-CN' ? '官方注册处 • 巴黎 2026' :
-                   'The Official Registry • Paris 2026'}
-                </span>
-              </div>
-            </div>
+  <div className="relative z-10 max-w-6xl mx-auto w-full space-y-8 pt-4 md:pt-20 px-2 sm:px-4">
+    
+    <div className="flex justify-center">
+      <div className="inline-flex items-center space-x-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-white/20 backdrop-blur-lg border-2 border-white/30 text-white">
+        <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-[#e11d48]" />
+        <span className="text-[11px] sm:text-[12px] md:text-xs font-bold tracking-wider uppercase">
+          {locale === 'fr' ? 'Le Registre Officiel • Paris 2026' : 
+           locale === 'es' ? 'El Registro Oficial • París 2026' :
+           locale === 'zh-CN' ? '官方注册处 • 巴黎 2026' :
+           'The Official Registry • Paris 2026'}
+        </span>
+      </div>
+    </div>
 
-            {/* H1 Principal */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-serif font-bold leading-[1.1] sm:leading-[1.0] text-white drop-shadow-2xl px-2">
-              {locale === 'fr' ? (
-                <>
-                  Le Véritable<br/>
-                  <span className="text-[#e11d48]">Pont des Cadenas</span>
-                  <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl block mt-2">Paris • Pont des Arts</span>
-                </>
-              ) : locale === 'zh-CN' ? (
-                <>
-                  真正的<br/>
-                  <span className="text-[#e11d48]">巴黎爱情锁桥</span><br/>
-                  <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl block mt-2">艺术桥 • 巴黎</span>
-                </>
-              ) : (
-                <>
-                  The Original<br/>
-                  <span className="text-[#e11d48]">Lock of Love Bridge</span><br/>
-                  <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl block mt-2">Paris • Pont des Arts</span>
-                </>
-              )}
-            </h1>
+    <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-serif font-bold leading-[1.1] sm:leading-[1.0] text-white px-2">
+      {locale === 'fr' ? (
+        <>
+          Le Véritable<br/>
+          <span className="text-[#e11d48]">Pont des Cadenas</span>
+          <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl block mt-2">Paris • Pont des Arts</span>
+        </>
+      ) : locale === 'zh-CN' ? (
+        <>
+          真正的<br/>
+          <span className="text-[#e11d48]">巴黎爱情锁桥</span><br/>
+          <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl block mt-2">艺术桥 • 巴黎</span>
+        </>
+      ) : (
+        <>
+          The Original<br/>
+          <span className="text-[#e11d48]">Lock of Love Bridge</span><br/>
+          <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl block mt-2">Paris • Pont des Arts</span>
+        </>
+      )}
+    </h1>
 
-            {/* Sous-titre */}
-            <div className="max-w-4xl mx-auto">
-              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-100 leading-relaxed drop-shadow-lg font-medium px-4">
-                {locale === 'fr' ? (
-                  <>Recherchez le Pont des Cadenas d'Amour Paris France ? Les cadenas physiques sont interdits depuis 2015. Rejoignez le registre officiel Love Lock Paris. Votre amour, immortalisé sur le Pont des Arts.</>
-                ) : locale === 'zh-CN' ? (
-                  <>寻找巴黎爱情锁桥法国？实体锁自2015年起已被禁止。加入官方巴黎爱情锁数字注册处。通过增强现实将您的爱情永远铭刻在艺术桥上。</>
-                ) : (
-                  <>Looking for the Love Lock Bridge Paris France? Physical locks are illegal since 2015. Join the official Love Lock Paris digital registry. Your love, immortalized on the historic Pont des Arts via augmented reality.</>
-                )}
-              </p>
-            </div>
+    <div className="max-w-4xl mx-auto">
+      <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-100 leading-relaxed font-medium px-4">
+        {locale === 'fr' ? (
+          <>Recherchez le Pont des Cadenas d'Amour Paris France ? Les cadenas physiques sont interdits depuis 2015. Rejoignez le registre officiel Love Lock Paris. Votre amour, immortalisé sur le Pont des Arts.</>
+        ) : locale === 'zh-CN' ? (
+          <>寻找巴黎爱情锁桥法国？实体锁自2015年起已被禁止。加入官方巴黎爱情锁数字注册处。通过增强现实将您的爱情永远铭刻在艺术桥上。</>
+        ) : (
+          <>Looking for the Love Lock Bridge Paris France? Physical locks are illegal since 2015. Join the official Love Lock Paris digital registry. Your love, immortalized on the historic Pont des Arts via augmented reality.</>
+        )}
+      </p>
+    </div>
 
-            {/* CTA Principale */}
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center pt-0 w-full max-w-xl mx-auto sm:max-w-none px-2">
-              <Link href="/purchase" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full text-base sm:text-lg md:text-xl px-4 sm:px-8 md:px-10 py-4 sm:py-6 md:py-7 bg-gradient-to-r from-[#e11d48] to-rose-600 hover:from-rose-700 hover:to-[#be123c] text-white font-bold rounded-full shadow-2xl transition-all hover:scale-105 hover:shadow-[#e11d48]/50 border-none">
-                  <Lock className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
-                  {locale === 'fr' ? 'Sécuriser Mon Cadenas • 29,99€' :
-                   locale === 'zh-CN' ? '购买数字锁 • ￥29.99' :
-                   'Secure My Digital Lock • $29.99'}
-                </Button>
-              </Link>
-              <Link href="/bridge" className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="w-full text-base sm:text-lg md:text-xl px-4 sm:px-8 md:px-10 py-4 sm:py-6 md:py-7 bg-white/15 backdrop-blur-md border-2 sm:border-3 border-white/60 text-white hover:bg-white hover:text-slate-900 font-bold rounded-full">
-                  <Globe className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5" />
-                  {locale === 'fr' ? 'Explorer le Pont 3D' :
-                   locale === 'zh-CN' ? '探索3D桥梁' :
-                   'Explore 3D Bridge First'}
-                </Button>
-              </Link>
-            </div>
-            
-            <div className="pt-4 sm:pt-6">
-              <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 text-white/90 text-xs sm:text-sm">
-                <span className="flex items-center gap-1 sm:gap-2"><CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-400" /> 
-                  {locale === 'fr' ? 'Légal & Autorisé' :
-                   locale === 'zh-CN' ? '合法授权' :
-                   'Legal & Authorized'}
-                </span>
-                <span className="flex items-center gap-1 sm:gap-2"><Award className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400" /> 
-                  {locale === 'fr' ? 'Note 4.9/5' :
-                   locale === 'zh-CN' ? '评分4.9/5' :
-                   '4.9/5 Rating'}
-                </span>
-                <span className="flex items-center gap-1 sm:gap-2"><Clock className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400" /> 
-                  {locale === 'fr' ? 'Livraison Instantanée' :
-                   locale === 'zh-CN' ? '即时交付' :
-                   'Instant Delivery'}
-                </span>
-                <span className="flex items-center gap-1 sm:gap-2"><InfinityIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-400" /> 
-                  {locale === 'fr' ? 'Accès à Vie' :
-                   locale === 'zh-CN' ? '终身访问' :
-                   'Lifetime Access'}
-                </span>
-              </div>
-            </div>
+    <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center pt-0 w-full max-w-xl mx-auto sm:max-w-none px-2">
+      <Link href="/purchase" className="w-full sm:w-auto">
+        <Button size="lg" className="w-full text-base sm:text-lg md:text-xl px-4 sm:px-8 md:px-10 py-4 sm:py-6 md:py-7 bg-gradient-to-r from-[#e11d48] to-rose-600 hover:from-rose-700 hover:to-[#be123c] text-white font-bold rounded-full transition-all hover:scale-105 border-none">
+          <Lock className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+          {locale === 'fr' ? 'Sécuriser Mon Cadenas • 29,99€' :
+           locale === 'zh-CN' ? '购买数字锁 • ￥29.99' :
+           'Secure My Digital Lock • $29.99'}
+        </Button>
+      </Link>
 
-          </div>
-        </section>
+      <Link href="/bridge" className="w-full sm:w-auto">
+        <Button size="lg" variant="outline" className="w-full text-base sm:text-lg md:text-xl px-4 sm:px-8 md:px-10 py-4 sm:py-6 md:py-7 bg-white/15 backdrop-blur-md border-2 sm:border-3 border-white/60 text-white hover:bg-white hover:text-slate-900 font-bold rounded-full">
+          <Globe className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5" />
+          {locale === 'fr' ? 'Explorer le Pont 3D' :
+           locale === 'zh-CN' ? '探索3D桥梁' :
+           'Explore 3D Bridge First'}
+        </Button>
+      </Link>
+    </div>
+    
+    <div className="pt-4 sm:pt-6">
+      <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 text-white/90 text-xs sm:text-sm">
+        <span className="flex items-center gap-1 sm:gap-2">
+          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-400" /> 
+          {locale === 'fr' ? 'Légal & Autorisé' :
+           locale === 'zh-CN' ? '合法授权' :
+           'Legal & Authorized'}
+        </span>
+        <span className="flex items-center gap-1 sm:gap-2">
+          <Award className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400" /> 
+          {locale === 'fr' ? 'Note 4.9/5' :
+           locale === 'zh-CN' ? '评分4.9/5' :
+           '4.9/5 Rating'}
+        </span>
+        <span className="flex items-center gap-1 sm:gap-2">
+          <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400" /> 
+          {locale === 'fr' ? 'Livraison Instantanée' :
+           locale === 'zh-CN' ? '即时交付' :
+           'Instant Delivery'}
+        </span>
+        <span className="flex items-center gap-1 sm:gap-2">
+          <InfinityIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-400" /> 
+          {locale === 'fr' ? 'Accès à Vie' :
+           locale === 'zh-CN' ? '终身访问' :
+           'Lifetime Access'}
+        </span>
+      </div>
+    </div>
+
+  </div>
+</section>
 
         {/* STATISTICS BAR */}
         <section className="py-6 sm:py-8 md:py-10 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
