@@ -140,13 +140,13 @@ export default async function Home({ params }: { params: { locale: string } }) {
   
   <div className="absolute inset-0 z-0">
     <Image 
-      src="/images/pont-des-arts-paris.jpg"
-      alt="Pont des Arts Paris with digital LoveLockParis lock in augmented reality"
-      fill
-      className="object-cover object-center"
-      priority
-      sizes="100vw"
-    />
+  src="/images/pont-des-arts-paris.jpg"
+  alt="Pont des Arts Paris with digital LoveLockParis lock in augmented reality"
+  fill
+  className="object-contain md:object-cover object-center"
+  priority
+  sizes="100vw"
+/>
     <div className="absolute inset-0 bg-black/30"></div>
   </div>
 
