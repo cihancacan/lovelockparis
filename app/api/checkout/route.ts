@@ -12,15 +12,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+function generateLockId() {
+  return Math.floor(100000 + Math.random() * 900000);
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'https://lovelockparis.com';
-    const userId = body.userId;
-    const userEmail = body.userEmail;
+    const userId = body.userId || null;
+    const userEmail = body.userEmail || null;
     
     const type = body.type || 'new_lock'; 
-    const lockId = body.selectedNumber || body.lockId;
+    const lockId = body.selectedNumber || body.lockId || generateLockId();
     
     // CALCUL DU PRIX (GESTION MEDIA UPGRADE)
     let finalPrice = 29.99;
@@ -52,7 +56,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ['card'],
       line_items: [{
         price_data: {
@@ -66,17 +70,25 @@ export async function POST(req: Request) {
         quantity: 1,
       }],
       mode: 'payment',
-      success_url: `${origin}/dashboard?payment_success=true`,
+      success_url: `${origin}/dashboard?payment_success=true&lock_id=${lockId}`,
       cancel_url: `${origin}/purchase?canceled=true`,
-      customer_email: userEmail,
       metadata: {
         type: type,
         lock_id: lockId?.toString(),
-        user_id: userId,
+        user_id: userId || '',
+        user_email: userEmail || '',
         boost_package: body.package || '',
         media_type: body.media_type || '', // Pour le webhook (savoir quel type activer)
       }
-    });
+    };
+
+    // Si l'utilisateur est déjà connecté, on préremplit l'email.
+    // Sinon Stripe collecte l'email pendant le paiement, puis le webhook le récupère après paiement.
+    if (userEmail) {
+      sessionParams.customer_email = userEmail;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return NextResponse.json({ url: session.url });
 
