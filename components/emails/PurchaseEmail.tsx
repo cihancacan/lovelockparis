@@ -1,80 +1,155 @@
-import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
-import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
-import { PurchaseEmail } from '@/components/emails/PurchaseEmail';
+import * as React from 'react';
+import { Html, Head, Preview, Body, Container, Section, Text, Heading, Hr, Button } from '@react-email/components';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2023-10-16' });
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
-const resend = new Resend(process.env.RESEND_API_KEY);
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+type PurchaseEmailProps = {
+  lockId: number;
+  price: number;
+  date: string;
+};
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.text();
-    const signature = request.headers.get('stripe-signature');
+export function PurchaseEmail({ lockId, price, date }: PurchaseEmailProps) {
+  return (
+    <Html>
+      <Head />
+      <Preview>Your LoveLockParis order is confirmed</Preview>
+      <Body style={main}>
+        <Container style={container}>
+          <Section style={brandSection}>
+            <Text style={brand}>LoveLockParis</Text>
+            <Heading style={title}>Your love lock is confirmed</Heading>
+            <Text style={subtitle}>Thank you for creating a digital love lock in Paris.</Text>
+          </Section>
 
-    if (!signature || !webhookSecret) {
-      return NextResponse.json({ error: 'Missing signature/secret' }, { status: 400 });
-    }
+          <Section style={card}>
+            <Text style={label}>Lock number</Text>
+            <Text style={lockNumber}>#{lockId}</Text>
+            <Hr style={hr} />
+            <Text style={row}>Order date: <strong>{date}</strong></Text>
+            <Text style={row}>Amount paid: <strong>${price.toFixed(2)}</strong></Text>
+          </Section>
 
-    let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err: any) {
-      console.error(`Webhook Error: ${err.message}`);
-      return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
-    }
+          <Text style={paragraph}>
+            Your digital lock is being secured on the LoveLockParis registry. You can create or log into your account to manage your lock, add media, and access your dashboard.
+          </Text>
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+          <Button href="https://lovelockparis.com/dashboard" style={button}>
+            Open Dashboard
+          </Button>
 
-    // 1. PAIEMENT RÉUSSI
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const lockId = parseInt(session.metadata?.lock_id || '0');
-      const userId = session.metadata?.user_id;
-      const customerEmail = session.customer_email || session.metadata?.user_email;
-
-      if (lockId && userId) {
-        // A. Activer le cadenas
-        await supabase.from('locks').update({ 
-          status: 'Active', 
-          pending_until: null 
-        }).eq('id', lockId).eq('owner_id', userId);
-
-        // B. Créer la transaction
-        await supabase.from('transactions').insert({
-          lock_id: lockId,
-          buyer_id: userId,
-          transaction_type: 'purchase',
-          amount: session.amount_total ? session.amount_total / 100 : 0,
-        });
-
-        // C. Envoyer l'email via Resend
-        if (customerEmail) {
-          try {
-            await resend.emails.send({
-              from: 'Love Lock Paris <noreply@lovelockparis.com>',
-              to: customerEmail,
-              subject: `Love Lock #${lockId} Secured! 🔒`,
-              react: PurchaseEmail({
-                lockId: lockId,
-                price: session.amount_total ? session.amount_total / 100 : 0,
-                date: new Date().toLocaleDateString()
-              })
-            });
-            console.log("Email sent to:", customerEmail);
-          } catch (emailError) {
-            console.error("Email failed:", emailError);
-          }
-        }
-      }
-    }
-
-    return NextResponse.json({ received: true });
-
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+          <Text style={footer}>
+            Need help? Reply to this email or contact support@lovelockparis.com.
+          </Text>
+        </Container>
+      </Body>
+    </Html>
+  );
 }
+
+export default PurchaseEmail;
+
+const main = {
+  backgroundColor: '#f8fafc',
+  fontFamily: 'Arial, sans-serif',
+};
+
+const container = {
+  margin: '0 auto',
+  padding: '32px 16px',
+  maxWidth: '560px',
+};
+
+const brandSection = {
+  textAlign: 'center' as const,
+  backgroundColor: '#ffffff',
+  borderRadius: '24px 24px 0 0',
+  padding: '32px 28px 20px',
+};
+
+const brand = {
+  color: '#e11d48',
+  fontSize: '13px',
+  fontWeight: '700',
+  letterSpacing: '3px',
+  textTransform: 'uppercase' as const,
+  margin: '0 0 14px',
+};
+
+const title = {
+  color: '#0f172a',
+  fontSize: '30px',
+  lineHeight: '36px',
+  margin: '0',
+};
+
+const subtitle = {
+  color: '#64748b',
+  fontSize: '16px',
+  lineHeight: '24px',
+  margin: '16px 0 0',
+};
+
+const card = {
+  backgroundColor: '#ffffff',
+  padding: '24px 28px',
+  borderTop: '1px solid #e2e8f0',
+  borderBottom: '1px solid #e2e8f0',
+};
+
+const label = {
+  color: '#64748b',
+  fontSize: '13px',
+  fontWeight: '700',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '1px',
+  margin: '0',
+};
+
+const lockNumber = {
+  color: '#e11d48',
+  fontSize: '34px',
+  fontWeight: '800',
+  margin: '8px 0 0',
+};
+
+const hr = {
+  borderColor: '#e2e8f0',
+  margin: '22px 0',
+};
+
+const row = {
+  color: '#334155',
+  fontSize: '15px',
+  lineHeight: '22px',
+  margin: '8px 0',
+};
+
+const paragraph = {
+  backgroundColor: '#ffffff',
+  color: '#334155',
+  fontSize: '16px',
+  lineHeight: '25px',
+  margin: '0',
+  padding: '24px 28px',
+};
+
+const button = {
+  display: 'block',
+  backgroundColor: '#e11d48',
+  color: '#ffffff',
+  fontSize: '16px',
+  fontWeight: '700',
+  textDecoration: 'none',
+  textAlign: 'center' as const,
+  borderRadius: '999px',
+  padding: '14px 22px',
+  margin: '24px auto',
+  width: '220px',
+};
+
+const footer = {
+  color: '#64748b',
+  fontSize: '13px',
+  lineHeight: '20px',
+  textAlign: 'center' as const,
+  margin: '24px 0 0',
+};
