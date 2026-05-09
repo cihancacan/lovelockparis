@@ -37,6 +37,7 @@ function PurchasePageContent() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [pendingCheckoutAfterAuth, setPendingCheckoutAfterAuth] = useState(false);
 
   // --- Références pour le scroll ---
   const zoneRef = useRef<HTMLDivElement>(null);
@@ -169,9 +170,15 @@ function PurchasePageContent() {
 
   // --- FONCTION DE PAIEMENT COMPLETE ---
   const handlePurchase = async () => {
-    if (!user) { setShowAuthDialog(true); return; }
     if (!validateZone() || !validateSkin() || !validateContent()) {
       toast.error('Please complete all required fields');
+      return;
+    }
+
+    if (!user) {
+      setPendingCheckoutAfterAuth(true);
+      setShowAuthDialog(true);
+      toast.message('Your lock is ready. Login or register to save it and continue to payment.');
       return;
     }
 
@@ -245,6 +252,16 @@ function PurchasePageContent() {
     }
   };
 
+  useEffect(() => {
+    if (user && pendingCheckoutAfterAuth) {
+      setPendingCheckoutAfterAuth(false);
+      setShowAuthDialog(false);
+      setTimeout(() => {
+        handlePurchase();
+      }, 0);
+    }
+  }, [user, pendingCheckoutAfterAuth]);
+
   // --- Liste des étapes pour la navigation ---
   const steps = [
     { id: 'zone', label: 'Location', icon: <MapPin className="h-5 w-5" />, completed: validateZone() },
@@ -306,8 +323,8 @@ function PurchasePageContent() {
           </div>
         )}
 
-        {!user ? (
-          // ECRAN LOGIN (Si pas connecté)
+        {false ? (
+          // ECRAN LOGIN (conservé dans le fichier, mais on laisse maintenant configurer avant connexion)
           <div className="text-center py-24">
             <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-rose-50 mb-6 text-[#e11d48] shadow-sm border border-rose-100 animate-pulse">
               <Lock size={48} />
@@ -321,8 +338,19 @@ function PurchasePageContent() {
             </Button>
           </div>
         ) : (
-          // GRILLE DE COMMANDE (Si connecté)
+          // GRILLE DE COMMANDE (accessible avant connexion)
           <div className="max-w-7xl mx-auto">
+            {!user && (
+              <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-6xl mx-auto">
+                <div>
+                  <p className="font-bold text-rose-900">Design first, login after.</p>
+                  <p className="text-sm text-rose-700">Create your lock now. You will login or register only when you are ready to save it and pay.</p>
+                </div>
+                <Button onClick={() => setShowAuthDialog(true)} variant="outline" className="bg-white border-rose-200 text-rose-700 hover:bg-rose-50 font-bold shadow-sm">
+                  Login / Register
+                </Button>
+              </div>
+            )}
             {/* --- NAVIGATION SIMPLE --- */}
             <div className="mb-8">
               <div className="flex flex-wrap gap-4 justify-center">
@@ -497,7 +525,7 @@ function PurchasePageContent() {
                             Processing Payment...
                           </>
                         ) : (
-                          'Complete Purchase'
+                          user ? 'Complete Purchase' : 'Login / Register to Pay'
                         )}
                       </Button>
                     </div>
