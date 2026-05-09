@@ -32,12 +32,8 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // =====================================================
-    // CHECKOUT SUCCESS
-    // =====================================================
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
-
       const metadata = session.metadata || {};
       const type = metadata.type || 'new_lock';
       const lockId = parseInt(metadata.lock_id || '0');
@@ -45,160 +41,98 @@ export async function POST(request: NextRequest) {
       const amount = session.amount_total ? session.amount_total / 100 : 0;
 
       if (lockId) {
-
-        // =========================
-        // NEW LOCK
-        // =========================
         if (type === 'new_lock') {
           await supabase
             .from('locks')
-            .update({
-              status: 'Active',
-              pending_until: null,
-              locked_at: new Date().toISOString()
-            })
+            .update({ status: 'Active', pending_until: null, locked_at: new Date().toISOString() })
             .eq('id', lockId);
-        }
-
-        // =========================
-        // BOOST
-        // =========================
-        else if (type === 'boost') {
+        } else if (type === 'boost') {
           const pkg = metadata.boost_package || 'basic';
-          const daysToAdd =
-            pkg === 'vip' ? 30 :
-            pkg === 'premium' ? 14 : 7;
-
+          const daysToAdd = pkg === 'vip' ? 30 : pkg === 'premium' ? 14 : 7;
           const expiresAt = new Date();
           expiresAt.setDate(expiresAt.getDate() + daysToAdd);
-
           await supabase
             .from('locks')
-            .update({
-              boost_level: pkg,
-              boost_expires_at: expiresAt.toISOString()
-            })
+            .update({ boost_level: pkg, boost_expires_at: expiresAt.toISOString() })
             .eq('id', lockId);
-        }
-
-        // =========================
-        // MARKETPLACE BUY
-        // =========================
-        else if (type === 'marketplace') {
+        } else if (type === 'marketplace') {
           await supabase
             .from('locks')
-            .update({
-              owner_id: userId,
-              status: 'Active',
-              resale_price: null,
-              boost_level: 'none'
-            })
+            .update({ owner_id: userId, status: 'Active', resale_price: null, boost_level: 'none' })
             .eq('id', lockId);
-        }
-
-        // =========================
-        // MEDIA UPGRADE (owner adds media type)
-        // =========================
-        else if (type === 'media_upgrade') {
+        } else if (type === 'media_upgrade') {
           await supabase
             .from('locks')
-            .update({
-              media_type: metadata.media_type || null,
-              is_media_enabled_: true
-            })
+            .update({ media_type: metadata.media_type || null, is_media_enabled_: true })
             .eq('id', lockId);
-        }
+        } else if (type === 'media_unlock' && userId) {
+          const { data: existing } = await supabase
+            .from('media_unlocks')
+            .select('id')
+            .eq('lock_id', lockId)
+            .eq('user_id', userId)
+            .maybeSingle();
 
-        // =========================
-        // MEDIA UNLOCK (spectator pays 4.99)
-        // =========================
-        else if (type === 'media_unlock') {
+          if (!existing) {
+            await supabase.from('media_unlocks').insert({ lock_id: lockId, user_id: userId });
 
-          if (userId) {
+            const { data: lock } = await supabase
+              .from('locks')
+              .select('media_views, media_earnings')
+              .eq('id', lockId)
+              .single();
 
-            // 🔒 vérifier si déjà unlock → évite double paiement logique
-            const { data: existing } = await supabase
-              .from('media_unlocks')
-              .select('id')
-              .eq('lock_id', lockId)
-              .eq('user_id', userId)
-              .maybeSingle();
-
-            if (!existing) {
-              // 1️⃣ enregistrer unlock individuel
-              await supabase.from('media_unlocks').insert({
-                lock_id: lockId,
-                user_id: userId
-              });
-
-              // 2️⃣ créditer stats du cadenas
-              const { data: lock } = await supabase
-                .from('locks')
-                .select('media_views, media_earnings')
-                .eq('id', lockId)
-                .single();
-
-              await supabase
-                .from('locks')
-                .update({
-                  media_views: (lock?.media_views || 0) + 1,
-                  media_earnings: (lock?.media_earnings || 0) + 2.99
-                })
-                .eq('id', lockId);
-            }
+            await supabase
+              .from('locks')
+              .update({
+                media_views: (lock?.media_views || 0) + 1,
+                media_earnings: (lock?.media_earnings || 0) + 2.99
+              })
+              .eq('id', lockId);
           }
         }
 
-        // =========================
-        // TRANSACTION LOG
-        // =========================
         await supabase.from('transactions').insert({
           lock_id: lockId,
-          buyer_id: userId,
+          buyer_id: userId || null,
           transaction_type: type,
-          amount: amount
+          amount
         });
 
-        // =========================
-        // EMAIL CONFIRMATION
-        // =========================
-        const email = session.customer_email || metadata.user_email;
+        const email = session.customer_details?.email || session.customer_email || metadata.user_email;
 
         if (email && type !== 'media_unlock') {
           try {
-            await resend.emails.send({
-              from: 'Love Lock Paris <noreply@lovelockparis.com>',
+            const result = await resend.emails.send({
+              from: 'LoveLockParis <support@lovelockparis.com>',
               to: email,
-              subject: `Order Confirmed: ${type}`,
+              subject: `LoveLockParis order confirmed - Lock #${lockId}`,
               react: PurchaseEmail({
                 lockId,
                 price: amount,
                 date: new Date().toLocaleDateString()
               })
             });
-          } catch {}
+            console.log('Resend email sent', result);
+          } catch (emailError) {
+            console.error('Resend email failed', emailError);
+          }
+        } else {
+          console.log('Resend email skipped', { email, type });
         }
       }
     }
 
-    // =====================================================
-    // CHECKOUT EXPIRED
-    // =====================================================
     if (event.type === 'checkout.session.expired') {
       const lockId = parseInt(event.data.object.metadata?.lock_id || '0');
-
       if (lockId) {
-        await supabase
-          .from('locks')
-          .delete()
-          .eq('id', lockId)
-          .eq('status', 'Pending');
+        await supabase.from('locks').delete().eq('id', lockId).eq('status', 'Pending');
       }
     }
 
     return NextResponse.json({ received: true });
-
   } catch (error: any) {
+    console.error('Stripe webhook failed', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
