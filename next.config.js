@@ -5,14 +5,6 @@ const nextConfig = {
       { protocol: 'https', hostname: '**' },
     ],
   },
-  async rewrites() {
-    return [
-      { source: '/', destination: '/home-v2' },
-      { source: '/purchase', destination: '/purchase-v2' },
-      { source: '/:locale(en|fr|zh-CN|ja|ko|es|pt|ar)', destination: '/:locale/home-v2' },
-      { source: '/:locale(en|fr|zh-CN|ja|ko|es|pt|ar)/purchase', destination: '/:locale/purchase-v2' },
-    ];
-  },
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true }
 };
