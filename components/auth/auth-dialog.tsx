@@ -41,6 +41,9 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       lastName: fr ? 'Nom' : zh ? '姓' : 'Last name',
       email: fr ? 'Email' : zh ? '邮箱' : 'Email',
       password: fr ? 'Mot de passe' : zh ? '密码' : 'Password',
+      forgotPassword: fr ? 'Mot de passe oublié ?' : zh ? '忘记密码？' : 'Forgot password?',
+      resetSent: fr ? 'Un email de réinitialisation a été envoyé.' : zh ? '密码重置邮件已发送。' : 'A password reset email has been sent.',
+      resetError: fr ? 'Impossible d’envoyer l’email de réinitialisation.' : zh ? '无法发送密码重置邮件。' : 'Could not send the password reset email.',
       show: fr ? 'Afficher' : zh ? '显示' : 'Show',
       hide: fr ? 'Masquer' : zh ? '隐藏' : 'Hide',
       goDashboard: fr ? 'Aller au Dashboard' : zh ? '进入控制台' : 'Go to Dashboard',
@@ -68,14 +71,10 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const [showPasswordSignup, setShowPasswordSignup] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetLoading, setIsResetLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  /**
-   * ✅ Redirect intelligent :
-   * 1) si on vient d’un achat marketplace, on aura stocké une URL dans sessionStorage
-   *    key: post_auth_redirect
-   * 2) sinon, fallback normal
-   */
   const redirectAfterAuth = (fallbackPath: string) => {
     try {
       const key = 'post_auth_redirect';
@@ -90,15 +89,14 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       // ignore
     }
 
-    // fallback (avec locale)
     window.location.href = `/${locale}${fallbackPath}`;
   };
 
-  // --- 1. CONNEXION (LOGIN) -> dashboard OU redirect marketplace ---
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setSuccess('');
 
     const { error } = await signIn(email, password);
 
@@ -110,11 +108,11 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
     }
   };
 
-  // --- 2. INSCRIPTION (SIGNUP) -> purchase OU redirect marketplace ---
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setSuccess('');
 
     const { error } = await signUp(email, password, { firstName, lastName });
 
@@ -122,8 +120,34 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       setError(error.message);
       setIsLoading(false);
     } else {
-      // si marketplace -> redirect stocké, sinon /purchase
       redirectAfterAuth('/purchase');
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setSuccess('');
+
+    if (!email) {
+      setError('Please enter your email first.');
+      return;
+    }
+
+    setIsResetLoading(true);
+
+    try {
+      const response = await fetch('/api/emails/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) throw new Error(t.resetError);
+      setSuccess(t.resetSent);
+    } catch (e: any) {
+      setError(e?.message || t.resetError);
+    } finally {
+      setIsResetLoading(false);
     }
   };
 
@@ -140,7 +164,6 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
           <DialogDescription className="text-slate-500">{t.subtitle}</DialogDescription>
         </DialogHeader>
 
-        {/* ✅ Inscription en premier */}
         <Tabs defaultValue="signup" className="w-full mt-2">
           <TabsList className="grid w-full grid-cols-2 bg-slate-50 p-1 rounded-xl mb-6">
             <TabsTrigger
@@ -157,7 +180,6 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
             </TabsTrigger>
           </TabsList>
 
-          {/* SIGNUP */}
           <TabsContent value="signup">
             <form onSubmit={handleSignUp} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -206,11 +228,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                     onClick={() => setShowPasswordSignup((v) => !v)}
                     className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1"
                   >
-                    {showPasswordSignup ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPasswordSignup ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     {showPasswordSignup ? t.hide : t.show}
                   </button>
                 </div>
@@ -226,29 +244,15 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                 />
               </div>
 
-              {error && (
-                <p className="text-sm text-red-500 bg-red-50 p-2 rounded text-center font-medium">
-                  {error}
-                </p>
-              )}
+              {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded text-center font-medium">{error}</p>}
+              {success && <p className="text-sm text-emerald-600 bg-emerald-50 p-2 rounded text-center font-medium">{success}</p>}
 
-              <Button
-                type="submit"
-                className="w-full bg-slate-900 text-white h-12 text-lg font-bold shadow-md"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <>
-                    <UserPlus className="mr-2 h-5 w-5" /> {t.createAccount}
-                  </>
-                )}
+              <Button type="submit" className="w-full bg-slate-900 text-white h-12 text-lg font-bold shadow-md" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin" /> : <><UserPlus className="mr-2 h-5 w-5" /> {t.createAccount}</>}
               </Button>
             </form>
           </TabsContent>
 
-          {/* LOGIN */}
           <TabsContent value="signin">
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
@@ -272,11 +276,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                     onClick={() => setShowPasswordLogin((v) => !v)}
                     className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1"
                   >
-                    {showPasswordLogin ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPasswordLogin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     {showPasswordLogin ? t.hide : t.show}
                   </button>
                 </div>
@@ -291,24 +291,22 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                 />
               </div>
 
-              {error && (
-                <p className="text-sm text-red-500 bg-red-50 p-2 rounded text-center font-medium">
-                  {error}
-                </p>
-              )}
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={isResetLoading}
+                  className="text-sm font-medium text-[#e11d48] hover:text-[#be123c] disabled:opacity-60"
+                >
+                  {isResetLoading ? 'Sending...' : t.forgotPassword}
+                </button>
+              </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-[#e11d48] hover:bg-[#be123c] h-12 text-lg font-bold shadow-md"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <>
-                    <LogIn className="mr-2 h-5 w-5" /> {t.goDashboard}
-                  </>
-                )}
+              {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded text-center font-medium">{error}</p>}
+              {success && <p className="text-sm text-emerald-600 bg-emerald-50 p-2 rounded text-center font-medium">{success}</p>}
+
+              <Button type="submit" className="w-full bg-[#e11d48] hover:bg-[#be123c] h-12 text-lg font-bold shadow-md" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin" /> : <><LogIn className="mr-2 h-5 w-5" /> {t.goDashboard}</>}
               </Button>
             </form>
           </TabsContent>
