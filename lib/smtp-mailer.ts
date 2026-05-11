@@ -7,19 +7,19 @@ type SendMailInput = {
   text?: string;
 };
 
-function requireEnv(name: string) {
-  const value = process.env[name];
+function requireValue(name: string, value?: string) {
   if (!value) throw new Error(`Missing ${name} in Vercel environment variables`);
   return value;
 }
 
 export async function sendSmtpMail({ to, subject, html, text }: SendMailInput) {
-  const host = requireEnv('SMTP_HOST');
+  const host = process.env.SMTP_HOST || 'ssl0.ovh.net';
   const port = Number(process.env.SMTP_PORT || '465');
-  const user = requireEnv('SMTP_USER');
-  const pass = requireEnv('SMTP_PASS');
   const secure = (process.env.SMTP_SECURE || 'true') === 'true';
+  const user = process.env.SMTP_USER || 'support@lovelockparis.com';
+  const pass = requireValue('SMTP_PASS', process.env.SMTP_PASS);
   const from = process.env.SMTP_FROM || 'LoveLockParis <support@lovelockparis.com>';
+  const replyTo = process.env.SMTP_REPLY_TO || 'support@lovelockparis.com';
 
   const transporter = nodemailer.createTransport({
     host,
@@ -34,6 +34,6 @@ export async function sendSmtpMail({ to, subject, html, text }: SendMailInput) {
     subject,
     html,
     text,
-    replyTo: process.env.SMTP_REPLY_TO || 'support@lovelockparis.com',
+    replyTo,
   });
 }
