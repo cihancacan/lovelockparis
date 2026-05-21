@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -36,6 +36,11 @@ function PurchasePageContent() {
   const [goldenAssetPrice, setGoldenAssetPrice] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const skinStepRef = useRef<HTMLElement | null>(null);
+  const contentStepRef = useRef<HTMLElement | null>(null);
+  const numberStepRef = useRef<HTMLElement | null>(null);
+  const reviewStepRef = useRef<HTMLElement | null>(null);
+
   const validZone = selectedZone !== null;
   const validSkin = selectedSkin !== null;
   const validContent = contentText.trim().length > 0 && termsAccepted;
@@ -44,6 +49,45 @@ function PurchasePageContent() {
   const currentPrice = selectedZone && selectedSkin
     ? calculateLockPrice(selectedZone, selectedSkin, mediaType, customNumber, visibility === 'Private') + (goldenAssetPrice || 0)
     : 0;
+
+  const scrollToStep = (ref: React.RefObject<HTMLElement>) => {
+    window.setTimeout(() => {
+      ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+  };
+
+  const handleZoneSelect = (zone: Zone) => {
+    setSelectedZone(zone);
+    scrollToStep(skinStepRef);
+  };
+
+  const handleSkinSelect = (skin: Skin) => {
+    setSelectedSkin(skin);
+    scrollToStep(contentStepRef);
+  };
+
+  const handleContentTextChange = (value: string) => {
+    setContentText(value);
+    if (value.trim().length > 0 && termsAccepted) scrollToStep(numberStepRef);
+  };
+
+  const handleTermsAcceptedChange = (value: boolean) => {
+    setTermsAccepted(value);
+    if (value && contentText.trim().length > 0) scrollToStep(numberStepRef);
+  };
+
+  const handleCustomNumberChange = (value: boolean) => {
+    setCustomNumber(value);
+    if (!value) {
+      setSelectedNumber(null);
+      scrollToStep(reviewStepRef);
+    }
+  };
+
+  const handleSelectedNumberChange = (value: number | null) => {
+    setSelectedNumber(value);
+    if (value !== null && value >= 1 && value <= 1000000) scrollToStep(reviewStepRef);
+  };
 
   async function handlePurchase() {
     if (isProcessing) return;
@@ -114,7 +158,7 @@ function PurchasePageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+    <div className="min-h-screen bg-white text-slate-900 font-sans scroll-smooth">
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-20 shadow-sm">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -140,11 +184,11 @@ function PurchasePageContent() {
 
         <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-2 space-y-8">
-            <section><h2 className="text-xl font-bold mb-4">1. Choose Location</h2><ZoneSelector selectedZone={selectedZone} onSelectZone={setSelectedZone} /></section>
-            {validZone && <section><h2 className="text-xl font-bold mb-4">2. Choose Design</h2><SkinSelector selectedSkin={selectedSkin} onSelectSkin={setSelectedSkin} /></section>}
-            {validZone && validSkin && <section><h2 className="text-xl font-bold mb-4">3. Personalize Message</h2><ContentForm contentText={contentText} onContentTextChange={setContentText} authorName={authorName} onAuthorNameChange={setAuthorName} visibility={visibility} onVisibilityChange={setVisibility} termsAccepted={termsAccepted} onTermsAcceptedChange={setTermsAccepted} imageRightsGranted={imageRightsGranted} onImageRightsGrantedChange={setImageRightsGranted} mediaType={mediaType} onMediaTypeChange={setMediaType} mediaUrl={mediaUrl} onMediaUrlChange={setMediaUrl} mediaFile={mediaFile} onMediaFileChange={setMediaFile} /></section>}
-            {validZone && validSkin && validContent && <section><h2 className="text-xl font-bold mb-4">4. Choose Number (Optional)</h2><NumberSelector customNumber={customNumber} onCustomNumberChange={setCustomNumber} selectedNumber={selectedNumber} onSelectedNumberChange={setSelectedNumber} onCheckAvailability={async () => true} onGoldenAssetPriceChange={setGoldenAssetPrice} /></section>}
-            {validZone && validSkin && validContent && validNumber && <section className="rounded-xl border border-slate-200 bg-slate-50 p-6"><div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-xl font-bold mb-2">5. Review & Pay</h2><p className="text-slate-600">Pay securely now. Your account can be created after payment to manage the lock.</p></div><div className="rounded-xl border border-rose-100 bg-white px-5 py-3 text-right shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Final amount</p><p className="text-3xl font-black text-[#e11d48]">${currentPrice.toFixed(2)}</p></div></div>{mediaUploadLater && <div className="mb-4 p-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-700">Media selected. You can upload it later from Dashboard after payment.</div>}<Button onClick={handlePurchase} disabled={isProcessing} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 text-lg min-h-[64px]">{isProcessing ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Redirecting to Stripe...</> : <><CreditCard className="mr-2 h-5 w-5" /> Pay ${currentPrice.toFixed(2)} Securely Now</>}</Button></section>}
+            <section className="scroll-mt-28"><h2 className="text-xl font-bold mb-4">1. Choose Location</h2><ZoneSelector selectedZone={selectedZone} onSelectZone={handleZoneSelect} /></section>
+            {validZone && <section ref={skinStepRef} className="scroll-mt-28"><h2 className="text-xl font-bold mb-4">2. Choose Design</h2><SkinSelector selectedSkin={selectedSkin} onSelectSkin={handleSkinSelect} /></section>}
+            {validZone && validSkin && <section ref={contentStepRef} className="scroll-mt-28"><h2 className="text-xl font-bold mb-4">3. Personalize Message</h2><ContentForm contentText={contentText} onContentTextChange={handleContentTextChange} authorName={authorName} onAuthorNameChange={setAuthorName} visibility={visibility} onVisibilityChange={setVisibility} termsAccepted={termsAccepted} onTermsAcceptedChange={handleTermsAcceptedChange} imageRightsGranted={imageRightsGranted} onImageRightsGrantedChange={setImageRightsGranted} mediaType={mediaType} onMediaTypeChange={setMediaType} mediaUrl={mediaUrl} onMediaUrlChange={setMediaUrl} mediaFile={mediaFile} onMediaFileChange={setMediaFile} /></section>}
+            {validZone && validSkin && validContent && <section ref={numberStepRef} className="scroll-mt-28"><h2 className="text-xl font-bold mb-4">4. Choose Number (Optional)</h2><NumberSelector customNumber={customNumber} onCustomNumberChange={handleCustomNumberChange} selectedNumber={selectedNumber} onSelectedNumberChange={handleSelectedNumberChange} onCheckAvailability={async () => true} onGoldenAssetPriceChange={setGoldenAssetPrice} /></section>}
+            {validZone && validSkin && validContent && validNumber && <section ref={reviewStepRef} className="scroll-mt-28 rounded-xl border border-slate-200 bg-slate-50 p-6"><div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-xl font-bold mb-2">5. Review & Pay</h2><p className="text-slate-600">Pay securely now. Your account can be created after payment to manage the lock.</p></div><div className="rounded-xl border border-rose-100 bg-white px-5 py-3 text-right shadow-sm"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">Final amount</p><p className="text-3xl font-black text-[#e11d48]">${currentPrice.toFixed(2)}</p></div></div>{mediaUploadLater && <div className="mb-4 p-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-700">Media selected. You can upload it later from Dashboard after payment.</div>}<Button onClick={handlePurchase} disabled={isProcessing} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 text-lg min-h-[64px]">{isProcessing ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Redirecting to Stripe...</> : <><CreditCard className="mr-2 h-5 w-5" /> Pay ${currentPrice.toFixed(2)} Securely Now</>}</Button></section>}
           </div>
           <aside className="lg:col-span-1 lg:sticky lg:top-24 self-start">
             {validZone || validSkin || validContent ? <CheckoutSummary zone={selectedZone} skin={selectedSkin} mediaType={mediaType} contentText={contentText} customNumber={customNumber} selectedNumber={selectedNumber} goldenAssetPrice={goldenAssetPrice} onPurchase={handlePurchase} isProcessing={isProcessing} /> : <div className="p-8 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400"><ShieldCheck className="h-10 w-10 mx-auto mb-3 opacity-20" /><p className="text-sm font-medium">Select a Zone & Skin to see summary.</p></div>}
