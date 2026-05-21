@@ -46,13 +46,15 @@ function PurchasePageContent() {
     : 0;
 
   async function handlePurchase() {
+    if (isProcessing) return;
+
     if (!validZone || !validSkin || !validContent || !validNumber) {
       toast.error('Please complete all required fields');
       return;
     }
 
     setIsProcessing(true);
-    toast.loading('Opening secure payment...');
+    toast.loading('Redirecting to secure Stripe checkout...');
 
     try {
       let mediaFileData: string | null = null;
@@ -99,8 +101,9 @@ function PurchasePageContent() {
       });
 
       const data = await response.json();
-      if (data.url) window.location.href = data.url;
-      else {
+      if (data.url) {
+        window.location.assign(data.url);
+      } else {
         toast.error('Payment Error: ' + (data.error || 'Unknown error'));
         setIsProcessing(false);
       }
@@ -141,9 +144,9 @@ function PurchasePageContent() {
             {validZone && <section><h2 className="text-xl font-bold mb-4">2. Choose Design</h2><SkinSelector selectedSkin={selectedSkin} onSelectSkin={setSelectedSkin} /></section>}
             {validZone && validSkin && <section><h2 className="text-xl font-bold mb-4">3. Personalize Message</h2><ContentForm contentText={contentText} onContentTextChange={setContentText} authorName={authorName} onAuthorNameChange={setAuthorName} visibility={visibility} onVisibilityChange={setVisibility} termsAccepted={termsAccepted} onTermsAcceptedChange={setTermsAccepted} imageRightsGranted={imageRightsGranted} onImageRightsGrantedChange={setImageRightsGranted} mediaType={mediaType} onMediaTypeChange={setMediaType} mediaUrl={mediaUrl} onMediaUrlChange={setMediaUrl} mediaFile={mediaFile} onMediaFileChange={setMediaFile} /></section>}
             {validZone && validSkin && validContent && <section><h2 className="text-xl font-bold mb-4">4. Choose Number (Optional)</h2><NumberSelector customNumber={customNumber} onCustomNumberChange={setCustomNumber} selectedNumber={selectedNumber} onSelectedNumberChange={setSelectedNumber} onCheckAvailability={async () => true} onGoldenAssetPriceChange={setGoldenAssetPrice} /></section>}
-            {validZone && validSkin && validContent && validNumber && <section className="rounded-xl border border-slate-200 bg-slate-50 p-6"><h2 className="text-xl font-bold mb-2">5. Review & Pay</h2><p className="text-slate-600 mb-5">Pay securely now. Your account can be created after payment to manage the lock.</p>{mediaUploadLater && <div className="mb-4 p-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-700">Media selected. You can upload it later from Dashboard after payment.</div>}<Button onClick={handlePurchase} disabled={isProcessing} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 text-lg">{isProcessing ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing Payment...</> : <><CreditCard className="mr-2 h-5 w-5" /> Pay Securely Now</>}</Button></section>}
+            {validZone && validSkin && validContent && validNumber && <section className="rounded-xl border border-slate-200 bg-slate-50 p-6"><h2 className="text-xl font-bold mb-2">5. Review & Pay</h2><p className="text-slate-600 mb-5">Pay securely now. Your account can be created after payment to manage the lock.</p>{mediaUploadLater && <div className="mb-4 p-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-700">Media selected. You can upload it later from Dashboard after payment.</div>}<Button onClick={handlePurchase} disabled={isProcessing} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 text-lg min-h-[64px]">{isProcessing ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Redirecting to Stripe...</> : <><CreditCard className="mr-2 h-5 w-5" /> Pay Securely Now</>}</Button></section>}
           </div>
-          <aside className="lg:col-span-1 lg:sticky lg:top-24">
+          <aside className="lg:col-span-1">
             {validZone || validSkin || validContent ? <CheckoutSummary zone={selectedZone} skin={selectedSkin} mediaType={mediaType} contentText={contentText} customNumber={customNumber} selectedNumber={selectedNumber} goldenAssetPrice={goldenAssetPrice} onPurchase={handlePurchase} isProcessing={isProcessing} /> : <div className="p-8 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400"><ShieldCheck className="h-10 w-10 mx-auto mb-3 opacity-20" /><p className="text-sm font-medium">Select a Zone & Skin to see summary.</p></div>}
           </aside>
         </div>
