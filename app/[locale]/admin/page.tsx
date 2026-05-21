@@ -15,12 +15,13 @@ import { PromoCodes } from '@/components/admin/promo-codes';
 import { AdminMap } from '@/components/admin/admin-map';
 import { EmailBlaster } from '@/components/admin/email-blaster';
 import { GhostProtocol } from '@/components/admin/ghost-protocol';
+import { AssistancePanel } from '@/components/admin/assistance-panel';
 import { AuthDialog } from '@/components/auth/auth-dialog';
-import { ArrowLeft, Shield, Map, Mail, Tag, Lock, Users, Ghost, LogOut } from 'lucide-react';
+import { ArrowLeft, Shield, Map, Mail, Tag, Lock, Users, Ghost, LogOut, LifeBuoy } from 'lucide-react';
 
 function AdminPageContent() {
   const router = useRouter();
-  const { user, loading, signOut } = useAuth(); // J'ai ajouté signOut ici
+  const { user, loading, signOut } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [stats, setStats] = useState({ totalRevenue: 0, totalLocks: 0, totalUsers: 0, activeLocks: 0 });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
@@ -52,7 +53,7 @@ function AdminPageContent() {
         activeLocks: activeCount || 0
       });
     } catch (error) {
-      console.error("Erreur stats admin:", error);
+      console.error('Erreur stats admin:', error);
     } finally {
       setIsLoadingStats(false);
     }
@@ -62,8 +63,6 @@ function AdminPageContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      
-      {/* HEADER AVEC BOUTON DECONNEXION */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -90,6 +89,7 @@ function AdminPageContent() {
           <Tabs defaultValue="golden" className="space-y-6">
             <TabsList className="bg-white p-1 border border-slate-200 rounded-xl w-full flex justify-start overflow-x-auto h-auto flex-wrap">
               <TabsTrigger value="golden" className="data-[state=active]:bg-amber-100 data-[state=active]:text-amber-900">👑 Golden Assets</TabsTrigger>
+              <TabsTrigger value="assist" className="data-[state=active]:bg-rose-100 data-[state=active]:text-rose-900"><LifeBuoy className="w-4 h-4 mr-1"/> ASSISTANCE</TabsTrigger>
               <TabsTrigger value="map" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-900"><Map className="w-4 h-4 mr-1"/> Live Map</TabsTrigger>
               <TabsTrigger value="locks"><Lock className="w-4 h-4 mr-1"/> Modération</TabsTrigger>
               <TabsTrigger value="users"><Users className="w-4 h-4 mr-1"/> Users</TabsTrigger>
@@ -100,6 +100,7 @@ function AdminPageContent() {
 
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm min-h-[500px]">
               <TabsContent value="golden" className="mt-0"><GoldenAssets /></TabsContent>
+              <TabsContent value="assist" className="mt-0"><AssistancePanel /></TabsContent>
               <TabsContent value="map" className="mt-0"><AdminMap /></TabsContent>
               <TabsContent value="promo" className="mt-0"><PromoCodes /></TabsContent>
               <TabsContent value="email" className="mt-0"><EmailBlaster /></TabsContent>
