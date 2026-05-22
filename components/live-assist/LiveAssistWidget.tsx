@@ -11,10 +11,10 @@ export function LiveAssistWidget() {
   const [pendingRequest, setPendingRequest] = useState<any | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const stopRef = useRef<null | (() => void)>(null);
-  const queueRef = useRef<any[]>([]);
   const sessionIdRef = useRef<string | null>(null);
-  const isFlushingRef = useRef(false);
+  const visitorIdRef = useRef<string | null>(null);
+  const captureTimerRef = useRef<number | null>(null);
+  const isCapturingRef = useRef(false);
 
   useEffect(() => {
     if (pathname?.includes('/admin') || pathname?.includes('/ar-view')) return;
@@ -24,6 +24,7 @@ export function LiveAssistWidget() {
       id = crypto.randomUUID();
       window.localStorage.setItem('llp_live_assist_visitor', id);
     }
+    visitorIdRef.current = id;
     setVisitorId(id);
   }, [pathname]);
 
@@ -54,64 +55,52 @@ export function LiveAssistWidget() {
     return () => window.clearInterval(t);
   }, [visitorId, pathname, isActive]);
 
-  const flushEvents = async () => {
-    const currentSessionId = sessionIdRef.current || sessionId;
-    if (!currentSessionId || queueRef.current.length === 0 || isFlushingRef.current) return;
+  const sendFrame = async () => {
+    const currentSessionId = sessionIdRef.current;
+    const currentVisitorId = visitorIdRef.current;
+    if (!currentSessionId || !currentVisitorId || isCapturingRef.current) return;
 
-    isFlushingRef.current = true;
-    const batch = queueRef.current.splice(0, 120);
-
+    isCapturingRef.current = true;
     try {
-      await fetch('/api/cobrowse/events', {
+      const html2canvasModule: any = await import('html2canvas');
+      const html2canvas = html2canvasModule.default || html2canvasModule;
+      const root = document.body;
+      const canvas = await html2canvas(root, {
+        backgroundColor: '#ffffff',
+        scale: 0.55,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        ignoreElements: (element: Element) => {
+          const el = element as HTMLElement;
+          return Boolean(
+            el.closest('[data-live-assist-hidden="true"]') ||
+            el.closest('.llp-no-record') ||
+            el.tagName === 'INPUT' ||
+            el.tagName === 'TEXTAREA' ||
+            el.tagName === 'SELECT'
+          );
+        },
+      });
+      const imageData = canvas.toDataURL('image/jpeg', 0.45);
+      await fetch('/api/live-assist/frame', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: currentSessionId, currentPath: window.location.pathname, events: batch }),
-      });
-    } catch {
-      queueRef.current.unshift(...batch);
+        body: JSON.stringify({
+          sessionId: currentSessionId,
+          visitorId: currentVisitorId,
+          imageData,
+          currentPath: window.location.pathname,
+        }),
+      }).catch(() => null);
     } finally {
-      isFlushingRef.current = false;
+      isCapturingRef.current = false;
     }
   };
 
-  useEffect(() => {
-    if (!isActive || !sessionId) return;
-    const t = window.setInterval(flushEvents, 500);
-    return () => window.clearInterval(t);
-  }, [isActive, sessionId]);
-
-  const startRecorder = async () => {
-    const rrwebModule: any = await import('rrweb');
-    const record = rrwebModule.record || rrwebModule.default?.record;
-
-    if (typeof record !== 'function') {
-      queueRef.current.push({
-        type: 99,
-        timestamp: Date.now(),
-        data: { source: 'lovelockparis', error: 'rrweb record function not found' },
-      });
-      await flushEvents();
-      return;
-    }
-
-    stopRef.current = record({
-      emit(event: any) {
-        queueRef.current.push(event);
-        if (queueRef.current.length <= 3) {
-          window.setTimeout(flushEvents, 100);
-        }
-      },
-      maskAllInputs: true,
-      blockClass: 'llp-no-record',
-      maskTextClass: 'llp-mask-record',
-      recordCanvas: false,
-      collectFonts: false,
-      inlineStylesheet: true,
-    });
-
-    window.setTimeout(flushEvents, 150);
-    window.setTimeout(flushEvents, 600);
-    window.setTimeout(flushEvents, 1200);
+  const startLiveFrames = () => {
+    sendFrame();
+    captureTimerRef.current = window.setInterval(sendFrame, 1200);
   };
 
   const respond = async (accepted: boolean) => {
@@ -132,18 +121,15 @@ export function LiveAssistWidget() {
     sessionIdRef.current = newSessionId;
     setSessionId(newSessionId);
     setIsActive(true);
-
-    await startRecorder();
+    startLiveFrames();
   };
 
   const stop = async () => {
-    stopRef.current?.();
-    stopRef.current = null;
-    await flushEvents();
+    if (captureTimerRef.current) window.clearInterval(captureTimerRef.current);
+    captureTimerRef.current = null;
     setIsActive(false);
     setSessionId(null);
     sessionIdRef.current = null;
-    queueRef.current = [];
   };
 
   if (pathname?.includes('/admin') || pathname?.includes('/ar-view')) return null;
@@ -151,11 +137,11 @@ export function LiveAssistWidget() {
   return (
     <>
       {pendingRequest && (
-        <div className="fixed bottom-6 right-4 z-[80] w-[320px] rounded-2xl border border-rose-100 bg-white p-4 shadow-2xl">
+        <div data-live-assist-hidden="true" className="fixed bottom-6 right-4 z-[80] w-[320px] rounded-2xl border border-rose-100 bg-white p-4 shadow-2xl">
           <div className="mb-2 text-xs font-black uppercase tracking-wide text-[#e11d48]">LoveLockParis Support</div>
           <h3 className="text-base font-bold text-slate-900">Allow live assistance?</h3>
           <p className="mt-2 text-xs leading-5 text-slate-600">
-            Support would like to help you on this website. If you accept, they can view your navigation in real time. Sensitive inputs are masked. Chat stays in Crisp.
+            Support would like to help you on this website. If you accept, they can view this website screen in real time. Sensitive inputs are hidden. Chat stays in Crisp.
           </p>
           <div className="mt-3 flex gap-2">
             <Button onClick={() => respond(true)} className="flex-1 bg-[#e11d48] text-white hover:bg-[#be123c]"><CheckCircle className="mr-2 h-4 w-4" /> Accept</Button>
@@ -165,7 +151,7 @@ export function LiveAssistWidget() {
       )}
 
       {isActive && (
-        <div className="fixed bottom-4 right-4 z-[80] rounded-full bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-xl">
+        <div data-live-assist-hidden="true" className="fixed bottom-4 right-4 z-[80] rounded-full bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-xl">
           <button onClick={stop} className="flex items-center gap-2"><StopCircle className="h-4 w-4" /> Assistance active — Stop</button>
         </div>
       )}
