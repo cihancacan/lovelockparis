@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,19 +8,15 @@ import { RefreshCw, LifeBuoy, Send, Clock } from 'lucide-react';
 
 type VisitorItem = { visitor_id: string; current_path?: string | null; last_seen_at: string; metadata?: any };
 type RequestState = { id: string; visitor_id: string; status: string; session_id?: string | null };
+type LiveFrame = { session_id: string; visitor_id: string; image_data: string; current_path?: string | null; updated_at: string };
 
 export function AssistancePanel() {
   const [visitors, setVisitors] = useState<VisitorItem[]>([]);
   const [selected, setSelected] = useState<VisitorItem | null>(null);
   const [activeRequest, setActiveRequest] = useState<RequestState | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [events, setEvents] = useState<any[]>([]);
-  const [lastId, setLastId] = useState(0);
+  const [frame, setFrame] = useState<LiveFrame | null>(null);
   const [loading, setLoading] = useState(false);
-  const [viewerError, setViewerError] = useState('');
-  const replayRef = useRef<HTMLDivElement | null>(null);
-
-  const hasFullSnapshot = events.some((event) => event?.type === 2);
 
   const loadVisitors = async () => {
     setLoading(true);
@@ -35,11 +31,8 @@ export function AssistancePanel() {
 
   const requestAccess = async (visitor: VisitorItem) => {
     setSelected(visitor);
-    setEvents([]);
-    setLastId(0);
     setSessionId(null);
-    setViewerError('');
-    if (replayRef.current) replayRef.current.innerHTML = '';
+    setFrame(null);
 
     const res = await fetch('/api/live-assist/request', {
       method: 'POST',
@@ -59,14 +52,12 @@ export function AssistancePanel() {
     if (data.request.status === 'accepted' && data.request.session_id) setSessionId(data.request.session_id);
   };
 
-  const loadEvents = async (id: string, after = 0) => {
-    const res = await fetch(`/api/live-assist/events?sessionId=${id}&afterId=${after}`);
-    const data = await res.json();
-    const rows = data.events || [];
-    if (rows.length) {
-      setLastId(rows[rows.length - 1].id);
-      setEvents((prev) => [...prev, ...rows.map((x: any) => x.event_data)]);
-    }
+  const loadFrame = async () => {
+    if (!sessionId) return;
+    const res = await fetch(`/api/live-assist/frame?sessionId=${sessionId}`).catch(() => null);
+    if (!res) return;
+    const data = await res.json().catch(() => null);
+    if (data?.frame) setFrame(data.frame);
   };
 
   useEffect(() => {
@@ -83,38 +74,13 @@ export function AssistancePanel() {
 
   useEffect(() => {
     if (!sessionId) return;
-    loadEvents(sessionId, lastId);
-    const t = window.setInterval(() => loadEvents(sessionId, lastId), 900);
+    loadFrame();
+    const t = window.setInterval(loadFrame, 1000);
     return () => window.clearInterval(t);
-  }, [sessionId, lastId]);
-
-  useEffect(() => {
-    const render = async () => {
-      if (!replayRef.current || events.length < 2 || !hasFullSnapshot) return;
-      try {
-        setViewerError('');
-        replayRef.current.innerHTML = '';
-        await import('rrweb-player/dist/style.css');
-        const mod: any = await import('rrweb-player');
-        const Player = mod.default || mod;
-        new Player({
-          target: replayRef.current,
-          props: {
-            events,
-            width: 980,
-            height: 620,
-            autoPlay: true,
-            showController: true,
-          },
-        });
-      } catch (e: any) {
-        setViewerError(e?.message || 'Live viewer could not start');
-      }
-    };
-    render();
-  }, [events.length, sessionId, hasFullSnapshot]);
+  }, [sessionId]);
 
   const isOnline = (d: string) => Date.now() - new Date(d).getTime() < 15000;
+  const frameFresh = frame ? Date.now() - new Date(frame.updated_at).getTime() < 5000 : false;
 
   return (
     <div className="space-y-6">
@@ -153,16 +119,23 @@ export function AssistancePanel() {
               {activeRequest?.status === 'pending' && <Badge className="bg-amber-500"><Clock className="mr-1 h-3 w-3" /> En attente</Badge>}
               {activeRequest?.status === 'declined' && <Badge className="bg-red-600">Refusé</Badge>}
               {activeRequest?.status === 'accepted' && <Badge className="bg-emerald-600">Accepté</Badge>}
+              {frame && <Badge className={frameFresh ? 'bg-emerald-600' : 'bg-slate-500'}>{frameFresh ? 'LIVE' : 'FRAME OLD'}</Badge>}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {!selected && <div className="flex min-h-[620px] items-center justify-center rounded-xl border border-dashed text-slate-500">Choisis un visiteur.</div>}
             {selected && !sessionId && activeRequest?.status !== 'declined' && <div className="flex min-h-[620px] items-center justify-center rounded-xl border border-dashed text-slate-500">En attente de l’accord...</div>}
             {activeRequest?.status === 'declined' && <div className="flex min-h-[620px] items-center justify-center rounded-xl border border-dashed text-red-500">Accès refusé.</div>}
-            {sessionId && events.length < 2 && <div className="flex min-h-[620px] items-center justify-center rounded-xl border border-dashed text-slate-500">Initialisation du live... ({events.length} event)</div>}
-            {sessionId && events.length >= 2 && !hasFullSnapshot && <div className="flex min-h-[620px] items-center justify-center rounded-xl border border-dashed text-slate-500">Réception du flux... ({events.length} events, snapshot en attente)</div>}
-            {viewerError && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">Erreur live : {viewerError}</div>}
-            <div ref={replayRef} className={sessionId && events.length >= 2 && hasFullSnapshot ? 'min-h-[620px] overflow-hidden rounded-xl border bg-white' : 'hidden'} />
+            {sessionId && !frame && <div className="flex min-h-[620px] items-center justify-center rounded-xl border border-dashed text-slate-500">Accès accepté. En attente de la première image live...</div>}
+            {frame && (
+              <div className="overflow-auto rounded-xl border bg-slate-950 p-3">
+                <div className="mb-2 flex items-center justify-between text-xs text-slate-300">
+                  <span>{frame.current_path || '/'}</span>
+                  <span>{new Date(frame.updated_at).toLocaleTimeString()}</span>
+                </div>
+                <img src={frame.image_data} alt="Live assistance view" className="mx-auto max-h-[720px] max-w-full rounded-lg bg-white object-contain" />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
