@@ -19,7 +19,8 @@ export function AssistancePanel() {
   const [loading, setLoading] = useState(false);
   const [viewerError, setViewerError] = useState('');
   const replayRef = useRef<HTMLDivElement | null>(null);
-  const playerRef = useRef<any>(null);
+
+  const hasFullSnapshot = events.some((event) => event?.type === 2);
 
   const loadVisitors = async () => {
     setLoading(true);
@@ -38,7 +39,6 @@ export function AssistancePanel() {
     setLastId(0);
     setSessionId(null);
     setViewerError('');
-    playerRef.current = null;
     if (replayRef.current) replayRef.current.innerHTML = '';
 
     const res = await fetch('/api/live-assist/request', {
@@ -90,20 +90,21 @@ export function AssistancePanel() {
 
   useEffect(() => {
     const render = async () => {
-      if (!replayRef.current || events.length < 2 || playerRef.current) return;
+      if (!replayRef.current || events.length < 2 || !hasFullSnapshot) return;
       try {
         setViewerError('');
         replayRef.current.innerHTML = '';
+        await import('rrweb-player/dist/style.css');
         const mod: any = await import('rrweb-player');
         const Player = mod.default || mod;
-        playerRef.current = new Player({
+        new Player({
           target: replayRef.current,
           props: {
             events,
             width: 980,
             height: 620,
             autoPlay: true,
-            showController: false,
+            showController: true,
           },
         });
       } catch (e: any) {
@@ -111,7 +112,7 @@ export function AssistancePanel() {
       }
     };
     render();
-  }, [events.length, sessionId]);
+  }, [events.length, sessionId, hasFullSnapshot]);
 
   const isOnline = (d: string) => Date.now() - new Date(d).getTime() < 15000;
 
@@ -159,8 +160,9 @@ export function AssistancePanel() {
             {selected && !sessionId && activeRequest?.status !== 'declined' && <div className="flex min-h-[620px] items-center justify-center rounded-xl border border-dashed text-slate-500">En attente de l’accord...</div>}
             {activeRequest?.status === 'declined' && <div className="flex min-h-[620px] items-center justify-center rounded-xl border border-dashed text-red-500">Accès refusé.</div>}
             {sessionId && events.length < 2 && <div className="flex min-h-[620px] items-center justify-center rounded-xl border border-dashed text-slate-500">Initialisation du live... ({events.length} event)</div>}
+            {sessionId && events.length >= 2 && !hasFullSnapshot && <div className="flex min-h-[620px] items-center justify-center rounded-xl border border-dashed text-slate-500">Réception du flux... ({events.length} events, snapshot en attente)</div>}
             {viewerError && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">Erreur live : {viewerError}</div>}
-            <div ref={replayRef} className={sessionId && events.length >= 2 ? 'min-h-[620px] overflow-hidden rounded-xl border bg-black' : 'hidden'} />
+            <div ref={replayRef} className={sessionId && events.length >= 2 && hasFullSnapshot ? 'min-h-[620px] overflow-hidden rounded-xl border bg-white' : 'hidden'} />
           </CardContent>
         </Card>
       </div>
