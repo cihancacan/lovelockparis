@@ -101,21 +101,6 @@ function PurchasePageContent() {
     toast.loading('Redirecting to secure Stripe checkout...');
 
     try {
-      let mediaFileData: string | null = null;
-      let mediaFileName: string | null = null;
-      let mediaFileType: string | null = null;
-
-      if (mediaFile && !mediaUploadLater) {
-        const reader = new FileReader();
-        mediaFileData = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(mediaFile);
-        });
-        mediaFileName = mediaFile.name;
-        mediaFileType = mediaFile.type;
-      }
-
       const sessionResult = user ? await supabase.auth.getSession() : null;
       const session = sessionResult?.data?.session;
       const response = await fetch('/api/checkout', {
@@ -130,22 +115,18 @@ function PurchasePageContent() {
           contentText,
           mediaType,
           mediaUploadLater,
-          totalPrice: currentPrice,
           customNumber,
           selectedNumber,
           authorName,
           goldenAssetPrice,
           isPrivate: visibility === 'Private',
-          mediaFileData,
-          mediaFileName,
-          mediaFileType,
           userId: user?.id || null,
           userEmail: user?.email || null,
         }),
       });
 
       const data = await response.json();
-      if (data.url) {
+      if (response.ok && data.url) {
         window.location.assign(data.url);
       } else {
         toast.error('Payment Error: ' + (data.error || 'Unknown error'));
