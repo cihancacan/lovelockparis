@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Webhook Error' }, { status: 400 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -42,9 +42,17 @@ export async function POST(request: NextRequest) {
       const userId = metadata.user_id || null;
       const amount = session.amount_total ? session.amount_total / 100 : 0;
 
+      const { data: existingTx } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('stripe_event_id', event.id)
+        .maybeSingle();
+
+      if (existingTx) return NextResponse.json({ received: true, duplicate: true });
+
       if (lockId) {
         if (type === 'new_lock') {
-          await supabase.from('locks').update({ status: 'Active', pending_until: null, locked_at: new Date().toISOString() }).eq('id', lockId);
+          await supabase.from('locks').update({ status: 'Active', pending_until: null }).eq('id', lockId);
         } else if (type === 'boost') {
           const pkg = metadata.boost_package || 'basic';
           const daysToAdd = pkg === 'vip' ? 30 : pkg === 'premium' ? 14 : 7;
@@ -54,7 +62,7 @@ export async function POST(request: NextRequest) {
         } else if (type === 'marketplace') {
           await supabase.from('locks').update({ owner_id: userId, status: 'Active', resale_price: null, boost_level: 'none' }).eq('id', lockId);
         } else if (type === 'media_upgrade') {
-          await supabase.from('locks').update({ media_type: metadata.media_type || null, is_media_enabled_: true }).eq('id', lockId);
+          await supabase.from('locks').update({ media_type: metadata.media_type || null, is_media_enabled: true }).eq('id', lockId);
         } else if (type === 'media_unlock' && userId) {
           const { data: existing } = await supabase.from('media_unlocks').select('id').eq('lock_id', lockId).eq('user_id', userId).maybeSingle();
           if (!existing) {
@@ -64,7 +72,24 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        await supabase.from('transactions').insert({ lock_id: lockId, buyer_id: userId || null, transaction_type: type, amount });
+        await supabase.from('transactions').insert({
+          lock_id: lockId,
+          user_id: userId,
+          type,
+          amount,
+          stripe_event_id: event.id,
+          stripe_session_id: session.id,
+        });
+
+        await supabase.from('checkout_events').insert({
+          event_type: 'payment_completed',
+          lock_id: lockId,
+          session_id: session.id,
+          user_id: userId,
+          user_email: session.customer_details?.email || session.customer_email || metadata.user_email || null,
+          amount,
+          metadata: { type, stripe_event_id: event.id },
+        });
 
         const email = session.customer_details?.email || session.customer_email || metadata.user_email;
 
@@ -86,15 +111,22 @@ export async function POST(request: NextRequest) {
             await supabase.from('email_events').insert({ email, event_type: 'purchase', status: 'failed', provider: 'smtp', error_message: message, metadata: { lockId, amount, type } });
             console.error('Purchase SMTP email failed', message, emailError);
           }
-        } else {
-          console.log('Purchase email skipped', { email, type });
         }
       }
     }
 
     if (event.type === 'checkout.session.expired') {
-      const lockId = parseInt(event.data.object.metadata?.lock_id || '0');
-      if (lockId) await supabase.from('locks').delete().eq('id', lockId).eq('status', 'Pending');
+      const session = event.data.object as Stripe.Checkout.Session;
+      const lockId = parseInt(session.metadata?.lock_id || '0');
+      if (lockId) {
+        await supabase.from('locks').delete().eq('id', lockId).eq('status', 'Pending');
+        await supabase.from('checkout_events').insert({
+          event_type: 'checkout_expired',
+          lock_id: lockId,
+          session_id: session.id,
+          metadata: { type: session.metadata?.type || 'new_lock' },
+        });
+      }
     }
 
     return NextResponse.json({ received: true });
