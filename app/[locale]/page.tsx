@@ -289,13 +289,62 @@ export default function Home({ params }: { params: { locale: string } }) {
       </main>
 
       <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 font-serif font-bold text-slate-900"><Heart className="h-4 w-4 fill-[#e11d48] text-[#e11d48]"/>LoveLockParis</div>
-          <div className="flex flex-wrap gap-5">
-            <Link href={`${prefix}/terms`} className="hover:text-slate-900">{t.terms}</Link>
-            <Link href={`${prefix}/privacy`} className="hover:text-slate-900">{t.privacy}</Link>
-            <Link href={`${prefix}/refund`} className="hover:text-slate-900">{t.refund}</Link>
-            <a href="mailto:support@lovelockparis.com" className="hover:text-slate-900">support@lovelockparis.com</a>
+        <div className="mx-auto max-w-6xl px-4 py-10">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <div className="flex items-center gap-2 font-serif text-lg font-bold text-slate-900"><Heart className="h-4 w-4 fill-[#e11d48] text-[#e11d48]"/>LoveLockParis</div>
+              <p className="mt-3 max-w-xs text-sm leading-6 text-slate-500">
+                {locale === 'fr'
+                  ? "Expérience numérique inspirée de la tradition des cadenas d’amour du Pont des Arts à Paris."
+                  : "A digital experience inspired by the love-lock tradition of Pont des Arts in Paris."}
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wide text-slate-900">
+                {locale === 'fr' ? 'Guides Paris' : 'Paris Guides'}
+              </h3>
+              <div className="mt-4 space-y-2 text-sm text-slate-500">
+                <Link href={`${prefix}/guide/love-lock-bridge-paris`} className="block hover:text-[#e11d48]">Love Lock Bridge Paris</Link>
+                <Link href={`${prefix}/guide/where-is-pont-des-arts`} className="block hover:text-[#e11d48]">
+                  {locale === 'fr' ? 'Où se trouve le Pont des Arts ?' : 'Where Is Pont des Arts?'}
+                </Link>
+                <Link href={`${prefix}/guide/is-it-illegal-paris-locks`} className="block hover:text-[#e11d48]">
+                  {locale === 'fr' ? 'Les cadenas sont-ils interdits à Paris ?' : 'Are Love Locks Illegal in Paris?'}
+                </Link>
+                <Link href={`${prefix}/romantic-things-to-do-in-paris`} className="block hover:text-[#e11d48]">
+                  {locale === 'fr' ? 'Activités romantiques à Paris' : 'Romantic Things to Do in Paris'}
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wide text-slate-900">
+                {locale === 'fr' ? 'Découvrir' : 'Explore'}
+              </h3>
+              <div className="mt-4 space-y-2 text-sm text-slate-500">
+                <Link href={`${prefix}/about`} className="block hover:text-[#e11d48]">
+                  {locale === 'fr' ? 'Histoire des cadenas d’amour' : 'Love Lock History'}
+                </Link>
+                <Link href={`${prefix}/concept`} className="block hover:text-[#e11d48]">
+                  {locale === 'fr' ? 'Le concept LoveLockParis' : 'LoveLockParis Concept'}
+                </Link>
+                <Link href={`${prefix}/paris-concierge-service`} className="block hover:text-[#e11d48]">Paris Concierge Service</Link>
+                <Link href={`${prefix}/bridge`} className="block hover:text-[#e11d48]">{t.navBridge || t.bridge}</Link>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wide text-slate-900">
+                {locale === 'fr' ? 'Informations' : 'Information'}
+              </h3>
+              <div className="mt-4 space-y-2 text-sm text-slate-500">
+                <Link href={`${prefix}/terms`} className="block hover:text-slate-900">{t.terms}</Link>
+                <Link href={`${prefix}/privacy`} className="block hover:text-slate-900">{t.privacy}</Link>
+                <Link href={`${prefix}/refund`} className="block hover:text-slate-900">{t.refund}</Link>
+                <a href="mailto:support@lovelockparis.com" className="block hover:text-slate-900">support@lovelockparis.com</a>
+              </div>
+            </div>
           </div>
         </div>
       </footer>
