@@ -239,6 +239,7 @@ function PurchasePageContent() {
           isPrivate: true,
           userId: user?.id || null,
           userEmail: user?.email || null,
+          visitorId: visitorIdRef.current || null,
         }),
       });
 
