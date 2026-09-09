@@ -22,6 +22,7 @@ const VALID_ZONES = new Set<Zone>(['Standard', 'Premium_Eiffel', 'Sky_Balloon'])
 const VALID_SKINS = new Set<Skin>(['Iron', 'Gold', 'Diamond', 'Ruby']);
 const VALID_MEDIA = new Set<MediaType>(['none', 'photo', 'video', 'audio']);
 const VALID_LOCALES = new Set(['en', 'fr', 'zh-CN', 'ja', 'ko', 'es', 'pt', 'ar']);
+const BOOST_PRICES: Record<string, number> = { basic: 14.99, premium: 29.99, vip: 59.99 };
 
 function generateLockId() {
   return Math.floor(100000 + Math.random() * 900000);
@@ -116,10 +117,61 @@ export async function POST(req: Request) {
       lockId = Number(body.lockId || body.selectedNumber || 0) || null;
       if (!lockId) throw new Error('Missing lock number');
 
-      if (type === 'media_unlock') finalPrice = 4.99;
-      else if (type === 'media_upgrade') finalPrice = Number(body.price) || 9.99;
-      else if (type === 'boost' || type === 'marketplace') finalPrice = Number(body.price);
-      else throw new Error('Unsupported checkout type');
+      if (type === 'media_unlock') {
+        if (!userId) throw new Error('Login required');
+        finalPrice = 4.99;
+      } else if (type === 'media_upgrade') {
+        if (!userId) throw new Error('Login required');
+        mediaType = (body.media_type || body.mediaType || '') as MediaType;
+        if (!['photo', 'video', 'audio'].includes(mediaType)) throw new Error('Invalid media upgrade');
+        finalPrice = MEDIA_PRICES[mediaType];
+
+        const { data: ownedLock, error } = await supabase
+          .from('locks')
+          .select('id, owner_id, status')
+          .eq('id', lockId)
+          .maybeSingle();
+        if (error) throw error;
+        if (!ownedLock || ownedLock.owner_id !== userId || ownedLock.status !== 'Active') {
+          throw new Error('Lock not available for this upgrade');
+        }
+      } else if (type === 'boost') {
+        if (!userId) throw new Error('Login required');
+        const pkg = String(body.package || body.packageName || '');
+        finalPrice = BOOST_PRICES[pkg];
+        if (!finalPrice) throw new Error('Invalid boost package');
+
+        const { data: ownedLock, error } = await supabase
+          .from('locks')
+          .select('id, owner_id, status')
+          .eq('id', lockId)
+          .maybeSingle();
+        if (error) throw error;
+        if (!ownedLock || ownedLock.owner_id !== userId || ownedLock.status !== 'Active') {
+          throw new Error('Lock not available for boost');
+        }
+      } else if (type === 'marketplace') {
+        if (!userId) throw new Error('Login required');
+        const { data: marketLock, error } = await supabase
+          .from('locks')
+          .select('id, owner_id, status, golden_asset_price, resale_price')
+          .eq('id', lockId)
+          .maybeSingle();
+        if (error) throw error;
+        if (!marketLock) throw new Error('Marketplace lock not found');
+        if (marketLock.owner_id === userId) throw new Error('You already own this lock');
+
+        const listedPrice = marketLock.status === 'Reserved_Admin'
+          ? Number(marketLock.golden_asset_price || 0)
+          : Number(marketLock.resale_price || 0);
+
+        if (!Number.isFinite(listedPrice) || listedPrice <= 0) {
+          throw new Error('This lock is no longer listed for sale');
+        }
+        finalPrice = listedPrice;
+      } else {
+        throw new Error('Unsupported checkout type');
+      }
 
       if (!Number.isFinite(finalPrice) || finalPrice <= 0) throw new Error('Invalid price');
       computedAmount = finalPrice;
@@ -182,14 +234,18 @@ export async function POST(req: Request) {
       }],
       mode: 'payment',
       locale: 'auto',
-      success_url: `${origin}${prefix}/purchase/success?payment_success=true&lock_id=${lockId}`,
-      cancel_url: `${origin}${prefix}/purchase?canceled=true`,
+      success_url: type === 'new_lock'
+        ? `${origin}${prefix}/purchase/success?payment_success=true&lock_id=${lockId}`
+        : `${origin}${prefix}/dashboard?payment_success=true&type=${encodeURIComponent(type)}&lock_id=${lockId}`,
+      cancel_url: type === 'new_lock'
+        ? `${origin}${prefix}/purchase?canceled=true`
+        : `${origin}${prefix}/dashboard?payment_canceled=true`,
       metadata: {
         type,
         lock_id: lockId.toString(),
         user_id: userId || '',
         user_email: userEmail || '',
-        boost_package: body.package || '',
+        boost_package: body.package || body.packageName || '',
         media_type: mediaType || '',
         locale,
       },
