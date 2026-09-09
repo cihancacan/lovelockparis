@@ -40,6 +40,8 @@ export async function POST(request: NextRequest) {
       const type = metadata.type || 'new_lock';
       const lockId = parseInt(metadata.lock_id || '0');
       const userId = metadata.user_id || null;
+      const visitorId = metadata.visitor_id || null;
+      const locale = metadata.locale || 'en';
       const amount = session.amount_total ? session.amount_total / 100 : 0;
 
       const { data: existingTx } = await supabase
@@ -90,6 +92,16 @@ export async function POST(request: NextRequest) {
           amount,
           metadata: { type, stripe_event_id: event.id },
         });
+
+        if (type === 'new_lock') {
+          await supabase.from('conversion_events').insert({
+            event_type: 'payment_success',
+            visitor_id: visitorId,
+            locale,
+            path: locale === 'en' ? '/purchase/success' : `/${locale}/purchase/success`,
+            metadata: { lock_id: lockId, amount, stripe_session_id: session.id },
+          });
+        }
 
         const email = session.customer_details?.email || session.customer_email || metadata.user_email;
 
