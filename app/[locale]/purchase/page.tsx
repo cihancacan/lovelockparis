@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
@@ -134,6 +135,7 @@ function PurchasePageContent() {
   const visitorIdRef = useRef('');
 
   const total = calculateLockPrice(zone, skin, mediaType, customNumber, true);
+  const prefix = locale === 'en' ? '' : `/${locale}`;
 
   const track = (eventType: string, metadata: Record<string, any> = {}) => {
     fetch('/api/analytics/conversion', {
@@ -447,10 +449,15 @@ function PurchasePageContent() {
               )}
             </div>
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-              <Checkbox checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(Boolean(v))} className="mt-0.5" />
-              <span>{t.terms}</span>
-            </label>
+            <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+              <Checkbox id="purchase-terms" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(Boolean(v))} className="mt-0.5" />
+              <label htmlFor="purchase-terms" className="cursor-pointer leading-6">
+                {t.terms}{' '}
+                <Link href={`${prefix}/terms`} target="_blank" className="font-semibold text-slate-900 underline underline-offset-2">
+                  {locale === 'fr' ? 'Lire les conditions' : 'View terms'}
+                </Link>
+              </label>
+            </div>
 
             <Button
               onClick={handlePurchase}
@@ -493,6 +500,7 @@ function PurchasePageContent() {
 
                 <div className="pt-2 text-center">
                   <p className="flex items-center justify-center gap-1 text-xs font-semibold text-slate-600"><ShieldCheck className="h-4 w-4 text-emerald-600" /> {t.stripe}</p>
+                  <p className="mt-1 text-[11px] text-slate-400">Cards · Apple Pay · Google Pay · Link when eligible</p>
                   <p className="mt-1 text-[11px] text-slate-400">{t.account}</p>
                 </div>
               </div>
