@@ -1,181 +1,53 @@
-import { Metadata } from 'next';
 import Link from 'next/link';
+import { ArrowLeft, CheckCircle, Heart, Mail, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
-export const metadata: Metadata = {
-  title: 'Refund Policy - LoveLockParis',
-  description: 'Refund Policy for digital goods purchased on LoveLockParis.com',
+const copy: Record<string, any> = {
+  en:{
+    back:'Back',title:'Refund & purchase support',intro:'LoveLockParis is a personalized digital product. We want the purchase to be clear and the product to be delivered as expected.',
+    heading:'When we will help with a refund',items:['You were charged twice for the same order.','A technical problem prevented us from delivering or activating the purchased service.','A payment was made without your authorization, subject to verification.','A refund is required under applicable consumer law.'],
+    digital:'Personalized digital purchases',digitalText:'Because a Love Lock is personalized and created digitally after payment, change-of-mind refunds can be limited once delivery has started. This does not affect any mandatory rights you may have under applicable law.',
+    contact:'Need help?',contactText:'Contact us with the payment email and, if available, your lock number. We will review the issue and reply as quickly as possible.',
+    email:'Email support',note:'Before filing a payment dispute, contacting support first is usually the fastest way for us to investigate a technical or billing problem.'
+  },
+  fr:{
+    back:'Retour',title:'Remboursements & assistance achat',intro:'LoveLockParis est un produit numérique personnalisé. Nous voulons que l’achat soit clair et que le produit soit délivré comme prévu.',
+    heading:'Dans quels cas nous pouvons rembourser',items:['Vous avez été débité deux fois pour la même commande.','Un problème technique nous a empêchés de délivrer ou d’activer le service acheté.','Un paiement a été effectué sans votre autorisation, sous réserve de vérification.','Un remboursement est imposé par le droit de la consommation applicable.'],
+    digital:'Achats numériques personnalisés',digitalText:'Comme un cadenas LoveLockParis est personnalisé et créé numériquement après le paiement, les remboursements pour simple changement d’avis peuvent être limités une fois la livraison commencée. Cela ne réduit pas les droits obligatoires dont vous pouvez bénéficier selon la loi applicable.',
+    contact:'Besoin d’aide ?',contactText:'Contactez-nous avec l’adresse e-mail utilisée pour le paiement et, si possible, le numéro du cadenas. Nous examinerons le problème rapidement.',
+    email:'Contacter le support',note:'Avant d’ouvrir un litige de paiement, contacter notre support est généralement le moyen le plus rapide pour résoudre un problème technique ou de facturation.'
+  }
 };
 
-export default function RefundPage() {
+export default function RefundPage({params}:{params:{locale:string}}){
+  const locale=params.locale;
+  const t=copy[locale]||copy.en;
+  const prefix=locale==='en'?'':'/'+locale;
   return (
-    <div className="min-h-screen bg-black py-12">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <Link href="/">
-          <Button variant="ghost" className="mb-8">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Home
-          </Button>
-        </Link>
+    <div className="min-h-screen bg-[#fffdfc] px-4 py-10 text-slate-900">
+      <div className="mx-auto max-w-3xl">
+        <Link href={prefix||'/'}><Button variant="ghost" className="mb-6"><ArrowLeft className="mr-2 h-4 w-4"/>{t.back}</Button></Link>
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl sm:p-10">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50"><Heart className="h-6 w-6 fill-[#e11d48] text-[#e11d48]"/></div>
+          <h1 className="mt-5 font-serif text-3xl font-bold sm:text-4xl">{t.title}</h1>
+          <p className="mt-4 leading-7 text-slate-600">{t.intro}</p>
 
-        <div className="prose prose-invert max-w-none">
-          <h1 className="text-4xl font-bold mb-8 text-gradient">Refund Policy</h1>
-
-          <Alert className="mb-8 border-amber-500/50 bg-amber-950/30">
-            <AlertTriangle className="h-4 w-4 text-amber-400" />
-            <AlertDescription className="text-amber-100">
-              Please read this policy carefully before making a purchase. Digital goods have special refund conditions.
-            </AlertDescription>
-          </Alert>
-
-          <section className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4 text-primary">Digital Goods Exception</h2>
-            <div className="bg-zinc-900 p-6 rounded-lg mb-6">
-              <p className="mb-4 text-muted-foreground">
-                Our products (Virtual Locks, Keys, Customizations) are <strong>intangible digital goods</strong> delivered
-                instantly via our WebApp.
-              </p>
-              <p className="font-semibold text-amber-400 text-lg">
-                Therefore, we do not offer refunds once the order is confirmed and the product is delivered to your digital wallet/account.
-              </p>
-            </div>
-
-            <p className="text-muted-foreground">
-              This policy is in accordance with the French Consumer Code <strong>Article L221-28</strong>, which exempts
-              digital content delivered immediately from the standard 14-day withdrawal period.
-            </p>
-          </section>
-
-          <section className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4 text-primary">Why No Refunds?</h2>
-            <ul className="list-disc pl-6 space-y-3 text-muted-foreground">
-              <li>
-                <strong>Instant Delivery:</strong> Your virtual lock is created and stored in our database immediately upon payment
-              </li>
-              <li>
-                <strong>Customization:</strong> Each lock is personalized with your chosen content, making it a custom digital item
-              </li>
-              <li>
-                <strong>Blockchain Integration:</strong> Some locks may be minted as NFTs, which are immutable once created
-              </li>
-              <li>
-                <strong>Resource Allocation:</strong> Your lock number is reserved exclusively for you, preventing others from using it
-              </li>
-            </ul>
-          </section>
-
-          <section className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4 text-primary">Exceptions</h2>
-            <div className="bg-green-950/30 border border-green-500/50 p-6 rounded-lg">
-              <p className="mb-4 font-semibold text-green-400">We will process refunds in these specific cases:</p>
-              <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                <li>
-                  <strong>Technical Error:</strong> A technical error prevented the delivery of the product to your account
-                </li>
-                <li>
-                  <strong>Double Charging:</strong> You were charged twice for the same item due to a payment gateway error
-                </li>
-                <li>
-                  <strong>Service Unavailability:</strong> The service was unavailable and we could not fulfill your order
-                </li>
-                <li>
-                  <strong>Fraudulent Transaction:</strong> Your payment was made without your authorization (subject to investigation)
-                </li>
-              </ul>
+          <section className="mt-9">
+            <h2 className="text-xl font-bold">{t.heading}</h2>
+            <div className="mt-4 space-y-3">
+              {t.items.map((item:string)=><div key={item} className="flex gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-950"><CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600"/>{item}</div>)}
             </div>
           </section>
 
-          <section className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4 text-primary">How to Request a Refund</h2>
-            <p className="mb-4 text-muted-foreground">
-              If you believe you qualify for a refund under the exceptions listed above:
-            </p>
-            <div className="bg-zinc-900 p-6 rounded-lg">
-              <ol className="list-decimal pl-6 space-y-3 text-muted-foreground">
-                <li>
-                  Contact our support team at <a href="mailto:support@lovelockparis.com" className="text-primary hover:underline">support@lovelockparis.com</a>
-                </li>
-                <li>
-                  Include your order number and email address
-                </li>
-                <li>
-                  Describe the issue in detail with any relevant screenshots
-                </li>
-                <li>
-                  Submit your request <strong>within 48 hours</strong> of the transaction
-                </li>
-              </ol>
-              <p className="mt-4 text-sm text-muted-foreground">
-                Refund requests submitted after 48 hours may not be processed.
-              </p>
-            </div>
+          <section className="mt-9 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <div className="flex gap-3"><ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-slate-500"/><div><h2 className="font-bold">{t.digital}</h2><p className="mt-2 text-sm leading-6 text-slate-600">{t.digitalText}</p></div></div>
           </section>
 
-          <section className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4 text-primary">Refund Processing Time</h2>
-            <p className="text-muted-foreground mb-4">
-              If your refund is approved:
-            </p>
-            <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-              <li>We will process the refund within 5-7 business days</li>
-              <li>The refund will be credited to your original payment method</li>
-              <li>Depending on your bank, it may take an additional 3-5 business days for the refund to appear in your account</li>
-            </ul>
-          </section>
-
-          <section className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4 text-primary">Alternative: Resale Marketplace</h2>
-            <div className="bg-blue-950/30 border border-blue-500/50 p-6 rounded-lg">
-              <p className="mb-4 text-blue-100">
-                Instead of a refund, consider listing your lock on our <strong>Resale Marketplace</strong>:
-              </p>
-              <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                <li>Sell your lock to another user who wants that specific number</li>
-                <li>Set your own resale price</li>
-                <li>A 30% commission applies to marketplace sales</li>
-                <li>Funds are credited to your LoveLockParis wallet</li>
-              </ul>
-              <p className="mt-4 text-sm text-blue-300">
-                This is often a better option than requesting a refund, especially for premium lock numbers.
-              </p>
-            </div>
-          </section>
-
-          <section className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4 text-primary">Chargebacks</h2>
-            <div className="bg-red-950/30 border border-red-500/50 p-6 rounded-lg">
-              <p className="mb-4 font-semibold text-red-400">Warning About Chargebacks:</p>
-              <p className="text-muted-foreground">
-                Filing a chargeback instead of contacting us first may result in:
-              </p>
-              <ul className="list-disc pl-6 space-y-2 text-muted-foreground mt-3">
-                <li>Immediate suspension of your account</li>
-                <li>Loss of access to all purchased locks</li>
-                <li>Permanent ban from the platform</li>
-              </ul>
-              <p className="mt-4 text-red-300">
-                Please contact us first to resolve any issues. We are committed to fair and honest customer service.
-              </p>
-            </div>
-          </section>
-
-          <section className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4 text-primary">Contact Us</h2>
-            <p className="text-muted-foreground mb-4">
-              If you have any questions about this Refund Policy, please contact us:
-            </p>
-            <div className="bg-zinc-900 p-6 rounded-lg">
-              <p className="mb-2"><strong>Email:</strong> <a href="mailto:support@lovelockparis.com" className="text-primary hover:underline">support@lovelockparis.com</a></p>
-              <p className="mb-2"><strong>Response Time:</strong> Within 24-48 hours</p>
-            </div>
-          </section>
-
-          <section className="mt-12 pt-8 border-t border-zinc-800">
-            <p className="text-sm text-muted-foreground">
-              Last updated: December 2024
-            </p>
+          <section className="mt-9">
+            <h2 className="text-xl font-bold">{t.contact}</h2>
+            <p className="mt-2 leading-7 text-slate-600">{t.contactText}</p>
+            <a href="mailto:support@lovelockparis.com" className="mt-5 inline-flex h-12 items-center rounded-full bg-[#e11d48] px-5 font-bold text-white hover:bg-[#be123c]"><Mail className="mr-2 h-4 w-4"/>{t.email}</a>
+            <p className="mt-5 text-xs leading-5 text-slate-400">{t.note}</p>
           </section>
         </div>
       </div>
