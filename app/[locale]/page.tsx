@@ -1,1306 +1,304 @@
-import { getTranslations } from 'next-intl/server';
-import Link from 'next/link';
 import Image from 'next/image';
-import { Lock, Heart, DollarSign, Globe, ShoppingCart, Target, Medal, ShieldCheck, ArrowRight, Smartphone, Coins, Users, MapPin, Star, TrendingUp, CheckCircle, Calendar, Eye, Award, Clock, Zap, ChevronRight, Trophy, Sparkles, InfinityIcon, Building, Euro, Crown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import Link from 'next/link';
+import { ArrowRight, Check, Globe2, Heart, Headphones, Lock, ShieldCheck, Sparkles } from 'lucide-react';
 import { Header } from '@/components/home/header';
-import { Badge } from '@/components/ui/badge';
-import { PurchaseNotifications } from '@/components/home/purchase-notifications';
+import { ConversionLink } from '@/components/home/conversion-link';
 
-export default async function Home({ params }: { params: { locale: string } }) {
-  const t = await getTranslations('home');
+const copy: Record<string, any> = {
+  en: {
+    navBridge:'3D Bridge',cta:'Create our Love Lock',
+    eyebrow:'A digital love lock for Paris',title:'Leave your love in Paris.',accent:'Revisit it from anywhere.',
+    sub:'Create a personalized digital Love Lock inspired by the Pont des Arts. Add your names, your message and your style in less than a minute.',
+    price:'From $29.99 USD',secure:'Secure Stripe payment',instant:'Instant creation',lifetime:'Lifetime access',support:'Real customer support',
+    how:'How it works',howSub:'Simple by design. No account before payment.',
+    s1:'Personalize',s1d:'Add your names and a message.',s2:'Choose your style',s2d:'Classic, Gold or Diamond.',s3:'Pay securely',s3d:'Your account can be created after payment.',
+    choose:'Choose the look you love',chooseSub:'Every option includes a personalized digital Love Lock and a unique number.',
+    classic:'Classic',gold:'Gold',diamond:'Diamond',
+    what:'What you get',what1:'A personalized Love Lock',what1d:'Your names, message and chosen finish.',what2:'A unique lock number',what2d:'Assigned automatically, or choose your own.',what3:'Your Paris experience',what3d:'View your lock online and explore the 3D bridge.',what4:'Access from anywhere',what4d:'Come back to your lock whenever you want.',
+    why:'A modern alternative to physical love locks',whyText:'The Pont des Arts no longer carries the old walls of physical padlocks. LoveLockParis keeps the romantic gesture digital, lightweight and accessible from anywhere.',
+    bridge:'See the 3D bridge',bridgeSub:'Explore the experience before creating your own lock.',
+    faq:'Questions before you create yours?',q1:'Is this a physical lock on the bridge?',a1:'No. LoveLockParis is a digital experience inspired by the love-lock tradition in Paris.',q2:'Do I need an account to buy?',a2:'No. You personalize first and pay securely. You can create an account after payment to manage your lock.',q3:'Can I choose my lock number?',a3:'Yes. A unique number is included automatically, and a special number can be selected as an optional upgrade when available.',q4:'How do I pay?',a4:'Checkout is handled securely by Stripe. Eligible wallets and payment methods can appear depending on your device, country and Stripe settings.',
+    final:'Ready to create your Love Lock?',finalSub:'Your names. Your message. Your Paris memory.',terms:'Terms',privacy:'Privacy',refund:'Refund policy'
+  },
+  fr: {
+    navBridge:'Pont 3D',cta:'Créer notre cadenas',
+    eyebrow:'Un cadenas d’amour numérique pour Paris',title:'Laissez votre amour à Paris.',accent:'Retrouvez-le où que vous soyez.',
+    sub:'Créez un cadenas d’amour numérique personnalisé inspiré du Pont des Arts. Ajoutez vos prénoms, votre message et votre style en moins d’une minute.',
+    price:'À partir de 29,99 $ USD',secure:'Paiement Stripe sécurisé',instant:'Création instantanée',lifetime:'Accès à vie',support:'Support humain',
+    how:'Comment ça marche',howSub:'Pensé pour être simple. Aucun compte avant le paiement.',
+    s1:'Personnalisez',s1d:'Ajoutez vos prénoms et un message.',s2:'Choisissez le style',s2d:'Classique, Or ou Diamant.',s3:'Payez en sécurité',s3d:'Le compte peut être créé après le paiement.',
+    choose:'Choisissez le style qui vous ressemble',chooseSub:'Chaque option comprend un cadenas numérique personnalisé et un numéro unique.',
+    classic:'Classique',gold:'Or',diamond:'Diamant',
+    what:'Ce que vous recevez',what1:'Un cadenas personnalisé',what1d:'Vos prénoms, votre message et votre finition.',what2:'Un numéro unique',what2d:'Attribué automatiquement, ou choisissez le vôtre.',what3:'Votre expérience Paris',what3d:'Retrouvez votre cadenas en ligne et explorez le pont 3D.',what4:'Accessible partout',what4d:'Revenez voir votre cadenas quand vous le souhaitez.',
+    why:'Une alternative moderne aux cadenas physiques',whyText:'Le Pont des Arts ne porte plus les anciens murs de cadenas physiques. LoveLockParis conserve le geste romantique sous forme numérique, légère et accessible partout.',
+    bridge:'Voir le pont 3D',bridgeSub:'Découvrez l’expérience avant de créer votre propre cadenas.',
+    faq:'Une question avant de créer le vôtre ?',q1:'Est-ce un vrai cadenas physique sur le pont ?',a1:'Non. LoveLockParis est une expérience numérique inspirée de la tradition des cadenas d’amour à Paris.',q2:'Faut-il créer un compte pour acheter ?',a2:'Non. Vous personnalisez puis payez en sécurité. Le compte peut être créé après le paiement pour gérer votre cadenas.',q3:'Puis-je choisir mon numéro ?',a3:'Oui. Un numéro unique est inclus automatiquement et un numéro spécial peut être choisi en option s’il est disponible.',q4:'Comment se passe le paiement ?',a4:'Le paiement est géré de façon sécurisée par Stripe. Les moyens disponibles dépendent de votre appareil, pays et configuration Stripe.',
+    final:'Prêt à créer votre cadenas d’amour ?',finalSub:'Vos prénoms. Votre message. Votre souvenir de Paris.',terms:'Conditions',privacy:'Confidentialité',refund:'Remboursements'
+  },
+  es: {
+    navBridge:'Puente 3D',cta:'Crear nuestro candado',eyebrow:'Un candado de amor digital para París',title:'Deja tu amor en París.',accent:'Vuelve a verlo desde cualquier lugar.',
+    sub:'Crea un candado de amor digital personalizado inspirado en el Pont des Arts. Añade sus nombres, un mensaje y un estilo en menos de un minuto.',
+    price:'Desde $29.99 USD',secure:'Pago seguro con Stripe',instant:'Creación instantánea',lifetime:'Acceso de por vida',support:'Soporte real',
+    how:'Cómo funciona',howSub:'Simple por diseño. Sin cuenta antes del pago.',s1:'Personaliza',s1d:'Añade sus nombres y un mensaje.',s2:'Elige el estilo',s2d:'Clásico, Oro o Diamante.',s3:'Paga con seguridad',s3d:'La cuenta se puede crear después del pago.',
+    choose:'Elige el estilo que te gusta',chooseSub:'Cada opción incluye un candado digital personalizado y un número único.',classic:'Clásico',gold:'Oro',diamond:'Diamante',
+    what:'Qué recibes',what1:'Un candado personalizado',what1d:'Sus nombres, mensaje y acabado.',what2:'Un número único',what2d:'Asignado automáticamente o elegido por ti.',what3:'Tu experiencia París',what3d:'Mira tu candado online y explora el puente 3D.',what4:'Acceso desde cualquier lugar',what4d:'Vuelve a tu candado cuando quieras.',
+    why:'Una alternativa moderna a los candados físicos',whyText:'El Pont des Arts ya no conserva los antiguos muros de candados físicos. LoveLockParis mantiene el gesto romántico en formato digital y accesible.',
+    bridge:'Ver el puente 3D',bridgeSub:'Explora la experiencia antes de crear tu candado.',faq:'¿Preguntas antes de crear el tuyo?',q1:'¿Es un candado físico en el puente?',a1:'No. LoveLockParis es una experiencia digital inspirada en la tradición de los candados de amor de París.',q2:'¿Necesito una cuenta?',a2:'No. Personaliza y paga primero; crea la cuenta después.',q3:'¿Puedo elegir número?',a3:'Sí, si está disponible como opción especial.',q4:'¿Cómo pago?',a4:'El pago seguro está gestionado por Stripe.',final:'¿Listos para crear su candado?',finalSub:'Sus nombres. Su mensaje. Su recuerdo de París.',terms:'Términos',privacy:'Privacidad',refund:'Reembolsos'
+  },
+  pt: {
+    navBridge:'Ponte 3D',cta:'Criar nosso cadeado',eyebrow:'Um cadeado do amor digital para Paris',title:'Deixe seu amor em Paris.',accent:'Revisite de qualquer lugar.',
+    sub:'Crie um cadeado do amor digital personalizado inspirado na Pont des Arts. Adicione nomes, mensagem e estilo em menos de um minuto.',
+    price:'A partir de $29.99 USD',secure:'Pagamento seguro Stripe',instant:'Criação instantânea',lifetime:'Acesso vitalício',support:'Suporte real',
+    how:'Como funciona',howSub:'Simples por design. Sem conta antes do pagamento.',s1:'Personalize',s1d:'Adicione seus nomes e uma mensagem.',s2:'Escolha o estilo',s2d:'Clássico, Ouro ou Diamante.',s3:'Pague com segurança',s3d:'A conta pode ser criada depois do pagamento.',
+    choose:'Escolha o estilo que você ama',chooseSub:'Cada opção inclui um cadeado digital personalizado e um número único.',classic:'Clássico',gold:'Ouro',diamond:'Diamante',
+    what:'O que você recebe',what1:'Um cadeado personalizado',what1d:'Seus nomes, mensagem e acabamento.',what2:'Um número único',what2d:'Atribuído automaticamente ou escolhido por você.',what3:'Sua experiência Paris',what3d:'Veja seu cadeado online e explore a ponte 3D.',what4:'Acesso de qualquer lugar',what4d:'Volte ao seu cadeado quando quiser.',
+    why:'Uma alternativa moderna aos cadeados físicos',whyText:'A Pont des Arts não mantém mais as antigas paredes de cadeados físicos. LoveLockParis preserva o gesto romântico de forma digital e acessível.',
+    bridge:'Ver a ponte 3D',bridgeSub:'Explore antes de criar seu próprio cadeado.',faq:'Dúvidas antes de criar o seu?',q1:'É um cadeado físico?',a1:'Não. É uma experiência digital inspirada na tradição de Paris.',q2:'Preciso de conta?',a2:'Não. Personalize e pague primeiro; crie a conta depois.',q3:'Posso escolher o número?',a3:'Sim, quando disponível.',q4:'Como pago?',a4:'O checkout seguro é processado pela Stripe.',final:'Pronto para criar seu cadeado?',finalSub:'Seus nomes. Sua mensagem. Sua lembrança de Paris.',terms:'Termos',privacy:'Privacidade',refund:'Reembolsos'
+  },
+  'zh-CN': {
+    navBridge:'3D 艺术桥',cta:'创建我们的爱情锁',eyebrow:'属于巴黎的数字爱情锁',title:'把爱留在巴黎。',accent:'无论身在何处，都能再次看到它。',
+    sub:'创建一个受艺术桥爱情锁传统启发的个性化数字爱情锁。不到一分钟即可添加名字、留言和样式。',
+    price:'$29.99 USD 起',secure:'Stripe 安全支付',instant:'即时创建',lifetime:'终身访问',support:'真人支持',
+    how:'如何使用',howSub:'简单直接。付款前无需注册。',s1:'个性化',s1d:'添加你们的名字和留言。',s2:'选择样式',s2d:'经典、黄金或钻石。',s3:'安全付款',s3d:'付款后再创建账户。',
+    choose:'选择你喜欢的样式',chooseSub:'每个选项都包含个性化数字爱情锁和唯一编号。',classic:'经典',gold:'黄金',diamond:'钻石',
+    what:'你将获得',what1:'个性化爱情锁',what1d:'你们的名字、留言和样式。',what2:'唯一编号',what2d:'自动分配，也可选择特别编号。',what3:'巴黎体验',what3d:'在线查看爱情锁并探索3D艺术桥。',what4:'随时访问',what4d:'无论在哪里都能再次查看。',
+    why:'实体爱情锁的现代替代方式',whyText:'艺术桥已经不再保留过去的实体挂锁墙。LoveLockParis 以数字方式延续这个浪漫动作。',
+    bridge:'查看3D艺术桥',bridgeSub:'创建之前先体验。',faq:'创建前有问题？',q1:'这是桥上的实体锁吗？',a1:'不是，这是受巴黎爱情锁传统启发的数字体验。',q2:'购买前需要账户吗？',a2:'不需要。先个性化并付款，之后再创建账户。',q3:'可以选择编号吗？',a3:'可以，特别编号需可用。',q4:'如何付款？',a4:'付款由 Stripe 安全处理。',final:'准备创建你们的爱情锁了吗？',finalSub:'名字、留言、属于你们的巴黎记忆。',terms:'条款',privacy:'隐私',refund:'退款政策'
+  },
+  ja: {
+    navBridge:'3Dブリッジ',cta:'ラブロックを作る',eyebrow:'パリのためのデジタルラブロック',title:'あなたの愛をパリに。',accent:'どこからでもまた会える。',
+    sub:'ポンデザールのラブロック文化に着想を得たデジタルラブロック。名前、メッセージ、スタイルを1分以内でカスタマイズできます。',
+    price:'$29.99 USD〜',secure:'Stripe安全決済',instant:'即時作成',lifetime:'生涯アクセス',support:'カスタマーサポート',
+    how:'使い方',howSub:'シンプル。支払い前の登録は不要です。',s1:'カスタマイズ',s1d:'名前とメッセージを追加。',s2:'スタイルを選択',s2d:'クラシック、ゴールド、ダイヤモンド。',s3:'安全に支払い',s3d:'アカウント作成は支払い後。',
+    choose:'お気に入りのスタイルを選ぶ',chooseSub:'すべてのプランに個別のデジタルラブロックとユニーク番号が含まれます。',classic:'クラシック',gold:'ゴールド',diamond:'ダイヤモンド',
+    what:'含まれるもの',what1:'パーソナライズされたロック',what1d:'名前、メッセージ、仕上げ。',what2:'ユニーク番号',what2d:'自動付与、または特別番号を選択。',what3:'パリ体験',what3d:'オンラインでロックを見て3Dブリッジを探索。',what4:'どこからでもアクセス',what4d:'いつでも戻って見られます。',
+    why:'物理的な南京錠に代わる現代的な方法',whyText:'ポンデザールには以前のような大量の南京錠の壁はありません。LoveLockParisはそのロマンチックな行為をデジタルで残します。',
+    bridge:'3Dブリッジを見る',bridgeSub:'作成前に体験をチェック。',faq:'作成前の質問',q1:'実物の南京錠ですか？',a1:'いいえ。パリのラブロック文化に着想を得たデジタル体験です。',q2:'アカウントは必要？',a2:'支払い前は不要です。',q3:'番号は選べますか？',a3:'空いている特別番号を選べます。',q4:'支払い方法は？',a4:'Stripeが安全に決済します。',final:'ラブロックを作りませんか？',finalSub:'二人の名前。メッセージ。パリの思い出。',terms:'規約',privacy:'プライバシー',refund:'返金'
+  },
+  ko: {
+    navBridge:'3D 브리지',cta:'우리의 러브락 만들기',eyebrow:'파리를 위한 디지털 러브락',title:'사랑을 파리에 남기세요.',accent:'어디서든 다시 만나세요.',
+    sub:'퐁데자르의 러브락 전통에서 영감을 받은 맞춤형 디지털 러브락. 이름, 메시지, 스타일을 1분 안에 완성하세요.',
+    price:'$29.99 USD부터',secure:'Stripe 보안 결제',instant:'즉시 생성',lifetime:'평생 이용',support:'고객 지원',
+    how:'이용 방법',howSub:'간단합니다. 결제 전 가입은 필요 없습니다.',s1:'꾸미기',s1d:'두 사람의 이름과 메시지.',s2:'스타일 선택',s2d:'클래식, 골드, 다이아몬드.',s3:'안전 결제',s3d:'계정은 결제 후 만들 수 있습니다.',
+    choose:'마음에 드는 스타일을 선택하세요',chooseSub:'모든 옵션에 맞춤 디지털 러브락과 고유 번호가 포함됩니다.',classic:'클래식',gold:'골드',diamond:'다이아몬드',
+    what:'포함 내용',what1:'맞춤 러브락',what1d:'이름, 메시지, 마감.',what2:'고유 번호',what2d:'자동 배정 또는 특별 번호 선택.',what3:'파리 경험',what3d:'온라인으로 확인하고 3D 브리지를 탐색.',what4:'어디서나 접근',what4d:'언제든 다시 볼 수 있습니다.',
+    why:'실물 자물쇠를 대신하는 현대적인 방식',whyText:'퐁데자르에는 과거의 실물 자물쇠 벽이 더 이상 남아 있지 않습니다. LoveLockParis는 그 낭만적인 의미를 디지털로 이어갑니다.',
+    bridge:'3D 브리지 보기',bridgeSub:'만들기 전에 먼저 둘러보세요.',faq:'만들기 전 궁금한 점?',q1:'실물 자물쇠인가요?',a1:'아니요. 파리 러브락 전통에서 영감을 받은 디지털 경험입니다.',q2:'계정이 필요한가요?',a2:'결제 전에는 필요 없습니다.',q3:'번호를 고를 수 있나요?',a3:'사용 가능한 특별 번호를 선택할 수 있습니다.',q4:'결제는 어떻게 하나요?',a4:'Stripe가 안전하게 처리합니다.',final:'러브락을 만들 준비가 되셨나요?',finalSub:'이름. 메시지. 파리의 추억.',terms:'약관',privacy:'개인정보',refund:'환불'
+  },
+  ar: {
+    navBridge:'الجسر ثلاثي الأبعاد',cta:'أنشئ قفل حبنا',eyebrow:'قفل حب رقمي لباريس',title:'اترك حبك في باريس.',accent:'وعد إليه من أي مكان.',
+    sub:'أنشئ قفل حب رقميًا مخصصًا مستوحى من تقليد جسر الفنون. أضف الاسمين والرسالة والتصميم في أقل من دقيقة.',
+    price:'ابتداءً من 29.99$ USD',secure:'دفع آمن عبر Stripe',instant:'إنشاء فوري',lifetime:'وصول مدى الحياة',support:'دعم حقيقي',
+    how:'كيف يعمل',howSub:'بسيط. لا حاجة لحساب قبل الدفع.',s1:'خصصه',s1d:'أضف الاسمين والرسالة.',s2:'اختر التصميم',s2d:'كلاسيكي، ذهبي أو ألماسي.',s3:'ادفع بأمان',s3d:'أنشئ الحساب بعد الدفع.',
+    choose:'اختر التصميم الذي تحبه',chooseSub:'كل خيار يشمل قفل حب رقميًا مخصصًا ورقمًا فريدًا.',classic:'كلاسيكي',gold:'ذهبي',diamond:'ألماسي',
+    what:'ما الذي تحصل عليه',what1:'قفل حب مخصص',what1d:'الأسماء والرسالة والتصميم.',what2:'رقم فريد',what2d:'يُمنح تلقائيًا أو اختر رقمًا خاصًا.',what3:'تجربة باريس',what3d:'شاهد القفل عبر الإنترنت واستكشف الجسر ثلاثي الأبعاد.',what4:'الوصول من أي مكان',what4d:'ارجع إلى القفل متى شئت.',
+    why:'بديل حديث للأقفال المادية',whyText:'لم يعد جسر الفنون يحمل جدران الأقفال المادية القديمة. LoveLockParis يحافظ على اللفتة الرومانسية بشكل رقمي.',
+    bridge:'شاهد الجسر ثلاثي الأبعاد',bridgeSub:'استكشف التجربة قبل إنشاء قفلك.',faq:'أسئلة قبل الإنشاء؟',q1:'هل هو قفل مادي على الجسر؟',a1:'لا، إنها تجربة رقمية مستوحاة من تقليد أقفال الحب في باريس.',q2:'هل أحتاج إلى حساب؟',a2:'لا، ليس قبل الدفع.',q3:'هل يمكن اختيار الرقم؟',a3:'نعم إذا كان الرقم الخاص متاحًا.',q4:'كيف أدفع؟',a4:'Stripe يدير الدفع بأمان.',final:'جاهز لإنشاء قفل الحب؟',finalSub:'اسماكما. رسالتكما. ذكرى باريس.',terms:'الشروط',privacy:'الخصوصية',refund:'الاسترداد'
+  }
+};
+
+const products = [
+  { key:'classic', image:'/images/skin-iron.png', price:'$29.99' },
+  { key:'gold', image:'/images/skin-gold.png', price:'$49.98' },
+  { key:'diamond', image:'/images/skin-diamond.png', price:'$79.98' },
+];
+
+export default function Home({ params }: { params: { locale: string } }) {
   const locale = params.locale;
+  const t = copy[locale] || copy.en;
+  const prefix = locale === 'en' ? '' : `/${locale}`;
+  const purchase = `${prefix}/purchase`;
+  const bridge = `${prefix}/bridge`;
 
-  // DONNÉES STRUCTURÉES MULTILINGUE
-  const getStructuredData = () => {
-    const baseSchema = {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "TouristAttraction",
-          "name": "Love Lock Bridge Paris (Virtual Registry)",
-          "alternateName": ["Lock of Love Bridge Paris", "Pont des Arts Love Locks", "Paris Love Lock Bridge"],
-          "url": "https://lovelockparis.com",
-          "image": "https://lovelockparis.com/images/hero-couple.jpg",
-          "description": "Official digital love lock registry for Pont des Arts in Paris. Virtual augmented reality experience for couples.",
-          "address": {
-            "@type": "PostalAddress",
-            "streetAddress": "Pont des Arts",
-            "addressLocality": "Paris",
-            "postalCode": "75006",
-            "addressCountry": "FR"
-          },
-          "geo": {
-            "@type": "GeoCoordinates",
-            "latitude": 48.858370,
-            "longitude": 2.337480
-          },
-          "openingHours": "24/7",
-          "publicAccess": true
-        },
-        {
-          "@type": "Product",
-          "name": "Digital Love Lock - Pont des Arts",
-          "description": "Permanent digital love lock secured on the Paris Love Lock Registry. Visible in augmented reality.",
-          "image": "https://lovelockparis.com/images/skin-gold.png",
-          "brand": {
-            "@type": "Brand",
-            "name": "LoveLockParis"
-          },
-          "offers": {
-            "@type": "Offer",
-            "price": "29.99",
-            "priceCurrency": "USD",
-            "priceValidUntil": "2026-12-31",
-            "availability": "https://schema.org/InStock",
-            "url": "https://lovelockparis.com/purchase"
-          },
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "reviewCount": "1247",
-            "bestRating": "5",
-            "worstRating": "1"
-          }
-        },
-        {
-          "@type": "FAQPage",
-          "mainEntity": [
-            {
-              "@type": "Question",
-              "name": "Where is the Love Lock Bridge in Paris?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "The famous Love Lock Bridge is the Pont des Arts, located between the Louvre Museum and Institut de France in central Paris (75006)."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "Are love locks still allowed on Pont des Arts?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "No, placing physical locks has been illegal since 2015 due to structural damage. LoveLockParis offers the only legal alternative."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "How does the digital love lock work?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Purchase a digital lock, customize it with your names, and view it in augmented reality when visiting the bridge or in 3D from anywhere."
-              }
-            }
-          ]
-        },
-        {
-          "@type": "Organization",
-          "name": "LoveLockParis",
-          "url": "https://lovelockparis.com",
-          "logo": "https://lovelockparis.com/logo.png",
-          "description": "Official digital love lock registry for Pont des Arts in Paris",
-          "sameAs": [
-            "https://www.instagram.com/lovelockparis",
-            "https://www.facebook.com/lovelockparis",
-            "https://twitter.com/lovelockparis"
-          ]
-        }
-      ]
-    };
-    return baseSchema;
+  const productJsonLd = {
+    '@context':'https://schema.org',
+    '@type':'Product',
+    name:'LoveLockParis Personalized Digital Love Lock',
+    description:t.sub,
+    image:'https://lovelockparis.com/images/skin-iron.png',
+    brand:{ '@type':'Brand', name:'LoveLockParis' },
+    offers:{
+      '@type':'Offer',
+      price:'29.99',
+      priceCurrency:'USD',
+      availability:'https://schema.org/InStock',
+      url:`https://lovelockparis.com${purchase}`
+    }
   };
 
-  const jsonLd = getStructuredData();
-
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-rose-100 selection:text-rose-900 overflow-x-hidden">
-      {/* Structured Data for SEO */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-
-      <Header
-        translations={{
-          navBridge: t('nav.bridge'),
-          problemHeading: t('problem.heading'),
-          solutionHeading: t('solution.heading'),
-          ctaStart: t('cta.start'),
-        }}
-      />
+    <div className="min-h-screen bg-white text-slate-900">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(productJsonLd)}} />
+      <Header translations={{ navBridge:t.navBridge, problemHeading:'', solutionHeading:'', ctaStart:t.cta }} />
 
       <main>
-        {/* =====================================================================================
-            HERO SECTION - Optimisé pour "lock of love bridge paris"
-        ===================================================================================== */}
-   <section className="relative min-h-[85vh] flex flex-col justify-center items-center text-center px-4 overflow-hidden pt-0 pb-0 md:pt-8">
-  
-  <div className="absolute inset-0 z-0">
-    {/* MOBILE IMAGE - NO FILTER */}
-    <div className="block md:hidden w-full h-full">
-      <Image 
-        src="/images/pont-des-arts-paris-mobile.jpg"
-        alt="Pont des Arts Paris mobile view"
-        fill
-        className="object-cover object-center"
-        priority
-        sizes="100vw"
-      />
-    </div>
-
-    {/* DESKTOP IMAGE */}
-    <div className="hidden md:block w-full h-full">
-      <Image 
-        src="/images/pont-des-arts-paris.jpg"
-        alt="Pont des Arts Paris with digital LoveLockParis lock in augmented reality"
-        fill
-        className="object-cover object-center"
-        priority
-        sizes="100vw"
-      />
-      <div className="absolute inset-0 bg-black/30"></div>
-    </div>
-  </div>
-
-  <div className="relative z-10 max-w-6xl mx-auto w-full space-y-8 pt-4 md:pt-20 px-2 sm:px-4">
-    
-    <div className="flex justify-center">
-      <div className="inline-flex items-center space-x-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-white/20 backdrop-blur-lg border-2 border-white/30 text-white">
-        <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-[#e11d48]" />
-        <span className="text-[11px] sm:text-[12px] md:text-xs font-bold tracking-wider uppercase">
-          {locale === 'fr' ? 'Le Registre Officiel • Paris 2026' : 
-           locale === 'es' ? 'El Registro Oficial • París 2026' :
-           locale === 'zh-CN' ? '官方注册处 • 巴黎 2026' :
-           'The Official Registry • Paris 2026'}
-        </span>
-      </div>
-    </div>
-
-    <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-serif font-bold leading-[1.1] sm:leading-[1.0] text-white px-2">
-      {locale === 'fr' ? (
-        <>
-          Le Véritable<br/>
-          <span className="text-[#e11d48]">Pont des Cadenas</span>
-          <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl block mt-2">Paris • Pont des Arts</span>
-        </>
-      ) : locale === 'zh-CN' ? (
-        <>
-          真正的<br/>
-          <span className="text-[#e11d48]">巴黎爱情锁桥</span><br/>
-          <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl block mt-2">艺术桥 • 巴黎</span>
-        </>
-      ) : (
-        <>
-          The Original<br/>
-          <span className="text-[#e11d48]">Lock of Love Bridge</span><br/>
-          <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl block mt-2">Paris • Pont des Arts</span>
-        </>
-      )}
-    </h1>
-
-    <div className="max-w-4xl mx-auto">
-      <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-100 leading-relaxed font-medium px-4">
-        {locale === 'fr' ? (
-          <>Recherchez le Pont des Cadenas d'Amour Paris France ? Les cadenas physiques sont interdits depuis 2015. Rejoignez le registre officiel Love Lock Paris. Votre amour, immortalisé sur le Pont des Arts.</>
-        ) : locale === 'zh-CN' ? (
-          <>寻找巴黎爱情锁桥法国？实体锁自2015年起已被禁止。加入官方巴黎爱情锁数字注册处。通过增强现实将您的爱情永远铭刻在艺术桥上。</>
-        ) : (
-          <>Looking for the Love Lock Bridge Paris France? Physical locks are illegal since 2015. Join the official Love Lock Paris digital registry. Your love, immortalized on the historic Pont des Arts via augmented reality.</>
-        )}
-      </p>
-    </div>
-
-    <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center pt-0 w-full max-w-xl mx-auto sm:max-w-none px-2">
-      <Link href="/purchase" className="w-full sm:w-auto">
-        <Button size="lg" className="w-full text-base sm:text-lg md:text-xl px-4 sm:px-8 md:px-10 py-4 sm:py-6 md:py-7 bg-gradient-to-r from-[#e11d48] to-rose-600 hover:from-rose-700 hover:to-[#be123c] text-white font-bold rounded-full transition-all hover:scale-105 border-none">
-          <Lock className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
-          {locale === 'fr' ? 'Sécuriser Mon Cadenas • 29,99€' :
-           locale === 'zh-CN' ? '购买数字锁 • ￥29.99' :
-           'Secure My Digital Lock • $29.99'}
-        </Button>
-      </Link>
-
-      <Link href="/bridge" className="w-full sm:w-auto">
-        <Button size="lg" variant="outline" className="w-full text-base sm:text-lg md:text-xl px-4 sm:px-8 md:px-10 py-4 sm:py-6 md:py-7 bg-white/15 backdrop-blur-md border-2 sm:border-3 border-white/60 text-white hover:bg-white hover:text-slate-900 font-bold rounded-full">
-          <Globe className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5" />
-          {locale === 'fr' ? 'Explorer le Pont 3D' :
-           locale === 'zh-CN' ? '探索3D桥梁' :
-           'Explore 3D Bridge First'}
-        </Button>
-      </Link>
-    </div>
-    
-    <div className="pt-4 sm:pt-6">
-      <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 text-white/90 text-xs sm:text-sm">
-        <span className="flex items-center gap-1 sm:gap-2">
-          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-400" /> 
-          {locale === 'fr' ? 'Légal & Autorisé' :
-           locale === 'zh-CN' ? '合法授权' :
-           'Legal & Authorized'}
-        </span>
-        <span className="flex items-center gap-1 sm:gap-2">
-          <Award className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400" /> 
-          {locale === 'fr' ? 'Note 4.9/5' :
-           locale === 'zh-CN' ? '评分4.9/5' :
-           '4.9/5 Rating'}
-        </span>
-        <span className="flex items-center gap-1 sm:gap-2">
-          <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400" /> 
-          {locale === 'fr' ? 'Livraison Instantanée' :
-           locale === 'zh-CN' ? '即时交付' :
-           'Instant Delivery'}
-        </span>
-        <span className="flex items-center gap-1 sm:gap-2">
-          <InfinityIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-400" /> 
-          {locale === 'fr' ? 'Accès à Vie' :
-           locale === 'zh-CN' ? '终身访问' :
-           'Lifetime Access'}
-        </span>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-        {/* STATISTICS BAR */}
-        <section className="py-6 sm:py-8 md:py-10 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
-          <div className="container mx-auto px-3 sm:px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 max-w-6xl mx-auto">
-              <div className="text-center p-1 sm:p-2">
-                <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2">347.293+</div>
-                <div className="text-[10px] sm:text-xs md:text-sm text-slate-300">
-                  {locale === 'fr' ? 'Cadenas Numériques' :
-                   locale === 'zh-CN' ? '数字锁已放置' :
-                   'Digital Locks Placed'}
-                </div>
+        <section className="relative overflow-hidden bg-slate-950">
+          <div className="absolute inset-0">
+            <Image src="/images/pont-des-arts-paris.jpg" alt="Pont des Arts in Paris" fill priority className="object-cover opacity-55" sizes="100vw" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-slate-950/30" />
+          </div>
+          <div className="relative mx-auto grid min-h-[76vh] max-w-7xl items-center gap-10 px-4 py-16 lg:grid-cols-[1.05fr_.95fr] lg:py-24">
+            <div className="max-w-3xl text-white">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold backdrop-blur">
+                <Heart className="h-4 w-4 fill-rose-500 text-rose-500" /> {t.eyebrow}
               </div>
-              <div className="text-center p-1 sm:p-2">
-                <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-emerald-400 mb-1 sm:mb-2">4.9/5</div>
-                <div className="text-[10px] sm:text-xs md:text-sm text-slate-300">
-                  {locale === 'fr' ? 'Note Clients' :
-                   locale === 'zh-CN' ? '客户评分' :
-                   'Customer Rating'}
-                </div>
+              <h1 className="font-serif text-4xl font-bold leading-[1.04] tracking-tight sm:text-5xl lg:text-7xl">
+                {t.title}<br/><span className="text-rose-400">{t.accent}</span>
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">{t.sub}</p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <ConversionLink href={purchase} className="inline-flex h-14 items-center justify-center rounded-full bg-[#e11d48] px-7 text-base font-black text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-[#be123c]">
+                  <Heart className="mr-2 h-5 w-5 fill-current" /> {t.cta}
+                </ConversionLink>
+                <span className="text-sm font-bold text-white">{t.price}</span>
               </div>
-              <div className="text-center p-1 sm:p-2">
-                <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-amber-400 mb-1 sm:mb-2">142</div>
-                <div className="text-[10px] sm:text-xs md:text-sm text-slate-300">
-                  {locale === 'fr' ? 'Pays' :
-                   locale === 'zh-CN' ? '国家/地区' :
-                   'Countries'}
-                </div>
+
+              <div className="mt-7 grid max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  [ShieldCheck,t.secure],
+                  [Sparkles,t.instant],
+                  [Lock,t.lifetime],
+                  [Headphones,t.support],
+                ].map(([Icon,label]:any) => (
+                  <div key={label} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 p-3 text-xs font-semibold text-slate-100 backdrop-blur">
+                    <Icon className="h-4 w-4 shrink-0 text-emerald-400" /> {label}
+                  </div>
+                ))}
               </div>
-              <div className="text-center p-1 sm:p-2">
-                <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-rose-400 mb-1 sm:mb-2">24/7</div>
-                <div className="text-[10px] sm:text-xs md:text-sm text-slate-300">
-                  {locale === 'fr' ? 'Support' :
-                   locale === 'zh-CN' ? '支持服务' :
-                   'Support'}
+            </div>
+
+            <div className="hidden lg:block">
+              <div className="relative mx-auto max-w-md rounded-[2rem] border border-white/20 bg-white/10 p-6 shadow-2xl backdrop-blur-md">
+                <div className="relative mx-auto h-72 w-72">
+                  <Image src="/images/skin-gold.png" alt="Gold Love Lock preview" fill className="object-contain drop-shadow-2xl" priority />
+                </div>
+                <div className="rounded-2xl bg-white/95 p-5 text-center text-slate-900">
+                  <p className="font-serif text-2xl font-bold">Emma ❤️ James</p>
+                  <p className="mt-1 text-sm text-slate-500">Paris, forever.</p>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* PROBLEM/SOLUTION SECTION */}
-        <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-b from-white to-slate-50">
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-              
-              <div className="space-y-6 md:space-y-8">
-                <div>
-                  <div className="inline-flex items-center px-3 sm:px-4 py-1 sm:py-2 bg-rose-100 text-rose-800 rounded-full text-xs sm:text-sm font-bold mb-4 sm:mb-6">
-                    {locale === 'fr' ? '⚠️ Important' :
-                     locale === 'zh-CN' ? '⚠️ 重要通知' :
-                     '⚠️ Important Notice'}
-                  </div>
-                  <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-slate-900 mb-4 sm:mb-6">
-                    {locale === 'fr' ? (
-                      <>Le <span className="text-[#e11d48]">Pont des Cadenas d'Amour</span><br/>a Changé Pour Toujours</>
-                    ) : locale === 'zh-CN' ? (
-                      <>巴黎<span className="text-[#e11d48]">爱情锁桥</span><br/>已永久改变</>
-                    ) : (
-                      <>The <span className="text-[#e11d48]">Love Lock Bridge Paris</span><br/>Has Changed Forever</>
-                    )}
-                  </h2>
-                  <p className="text-sm sm:text-base md:text-lg text-slate-700 mb-6 md:mb-8 leading-relaxed">
-                    {locale === 'fr' ? (
-                      <>Depuis 2015, placer des cadenas physiques sur le Pont des Arts à Paris est interdit et passible d'une amende de 500€. Les grilles d'origine se sont effondrées sous 45 tonnes de métal.</>
-                    ) : locale === 'zh-CN' ? (
-                      <>自2015年起，在巴黎艺术桥上放置实体锁已被禁止，违者将被处以500欧元罚款。原桥栏杆因承受45吨金属重量而倒塌。</>
-                    ) : (
-                      <>Since 2015, placing physical locks on the Pont des Arts bridge in Paris is illegal and punishable by €500 fines. The original bridge railings collapsed under 45 tons of metal locks.</>
-                    )}
-                  </p>
+        <section id="how-it-works" className="border-b border-slate-100 bg-[#fffdfc] py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="font-serif text-3xl font-bold sm:text-4xl">{t.how}</h2>
+              <p className="mt-3 text-slate-500">{t.howSub}</p>
+            </div>
+            <div className="mt-10 grid gap-4 md:grid-cols-3">
+              {[[t.s1,t.s1d],[t.s2,t.s2d],[t.s3,t.s3d]].map(([title,desc],i)=>(
+                <div key={title} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-50 font-black text-[#e11d48]">{i+1}</span>
+                  <h3 className="mt-5 text-xl font-bold">{title}</h3>
+                  <p className="mt-2 leading-6 text-slate-500">{desc}</p>
                 </div>
-
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl bg-rose-50 flex items-center justify-center text-[#e11d48] font-bold text-lg sm:text-xl">✗</div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-base sm:text-lg md:text-lg mb-1 sm:mb-2">
-                        {locale === 'fr' ? 'Cadenas Physiques (Interdits)' :
-                         locale === 'zh-CN' ? '实体锁（禁止）' :
-                         'Physical Locks (Banned)'}
-                      </h4>
-                      <ul className="text-slate-600 space-y-1 text-xs sm:text-sm">
-                        <li>• {locale === 'fr' ? 'Illegaux (500€ d\'amende)' : locale === 'zh-CN' ? '违法（罚款500欧元）' : 'Illegal with €500 fines'}</li>
-                        <li>• {locale === 'fr' ? 'Retrait immédiat' : locale === 'zh-CN' ? '立即移除' : 'Immediate removal'}</li>
-                        <li>• {locale === 'fr' ? 'Dégâts environnementaux' : locale === 'zh-CN' ? '环境破坏' : 'Environmental damage'}</li>
-                        <li>• {locale === 'fr' ? 'Risque structurel' : locale === 'zh-CN' ? '桥梁结构风险' : 'Bridge structural risk'}</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl shadow-lg border-2 border-emerald-200">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold text-lg sm:text-xl">✓</div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-base sm:text-lg md:text-lg mb-1 sm:mb-2">
-                        {locale === 'fr' ? 'Cadenas Numériques (Officiel)' :
-                         locale === 'zh-CN' ? '数字锁（官方）' :
-                         'Digital Locks (Official)'}
-                      </h4>
-                      <ul className="text-slate-600 space-y-1 text-xs sm:text-sm">
-                        <li>• {locale === 'fr' ? '100% légal et autorisé' : locale === 'zh-CN' ? '100%合法授权' : '100% legal & authorized'}</li>
-                        <li>• {locale === 'fr' ? 'Permanent sur blockchain' : locale === 'zh-CN' ? '区块链永久存储' : 'Permanent on blockchain'}</li>
-                        <li>• {locale === 'fr' ? 'Zéro impact environnemental' : locale === 'zh-CN' ? '零环境影响' : 'Zero environmental impact'}</li>
-                        <li>• {locale === 'fr' ? 'Visible de partout' : locale === 'zh-CN' ? '随时随地可查看' : 'View from anywhere'}</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative mt-8 md:mt-0">
-                <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-white shadow-2xl">
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6">
-                    {locale === 'fr' ? 'Pourquoi Choisir LoveLockParis ?' :
-                     locale === 'zh-CN' ? '为什么选择巴黎爱情锁？' :
-                     'Why Choose LoveLockParis?'}
-                  </h3>
-                  
-                  <div className="space-y-4 sm:space-y-6">
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-rose-300 mt-1 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-bold text-white text-base sm:text-lg">
-                          {locale === 'fr' ? 'Emplacement Authentique' :
-                           locale === 'zh-CN' ? '真实地理位置' :
-                           'Authentic Location'}
-                        </h4>
-                        <p className="text-slate-300 text-sm sm:text-base">
-                          {locale === 'fr' ? 'Positionnement GPS précis sur le véritable Pont des Arts' :
-                           locale === 'zh-CN' ? '在真实的艺术桥上进行GPS精确定位' :
-                           'GPS-precise positioning on the actual Pont des Arts Love Lock Bridge'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <Crown className="h-5 w-5 sm:h-6 sm:w-6 text-amber-300 mt-1 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-bold text-white text-base sm:text-lg">
-                          {locale === 'fr' ? 'Registre Officiel' :
-                           locale === 'zh-CN' ? '官方注册处' :
-                           'Official Registry'}
-                        </h4>
-                        <p className="text-slate-300 text-sm sm:text-base">
-                          {locale === 'fr' ? 'Reconnu comme le successeur légitime de la tradition physique' :
-                           locale === 'zh-CN' ? '被公认为实体传统的合法继承者' :
-                           'Recognized as the legitimate successor to the physical tradition'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-purple-300 mt-1 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-bold text-white text-base sm:text-lg">
-                          {locale === 'fr' ? 'Réalité Augmentée' :
-                           locale === 'zh-CN' ? '增强现实' :
-                           'Augmented Reality'}
-                        </h4>
-                        <p className="text-slate-300 text-sm sm:text-base">
-                          {locale === 'fr' ? 'Voyez votre cadenas apparaître sur le vrai pont via votre smartphone' :
-                           locale === 'zh-CN' ? '通过智能手机在真实桥梁上查看您的锁' :
-                           'See your lock appear on the actual bridge through your smartphone'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-300 mt-1 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-bold text-white text-base sm:text-lg">
-                          {locale === 'fr' ? 'Garantie à Vie' :
-                           locale === 'zh-CN' ? '终身保证' :
-                           'Lifetime Guarantee'}
-                        </h4>
-                        <p className="text-slate-300 text-sm sm:text-base">
-                          {locale === 'fr' ? 'Votre cadenas est stocké de manière permanente sur des serveurs décentralisés' :
-                           locale === 'zh-CN' ? '您的锁永久存储在去中心化服务器上' :
-                           'Your lock is permanently stored on decentralized servers'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 sm:mt-8 md:mt-10 pt-4 sm:pt-6 md:pt-8 border-t border-slate-700">
-                    <div className="text-center">
-                      <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-1 sm:mb-2">9,847+</div>
-                      <div className="text-slate-300 text-sm sm:text-base">
-                        {locale === 'fr' ? 'Cadenas Placés Ce Mois' :
-                         locale === 'zh-CN' ? '本月已放置锁具' :
-                         'Locks Placed This Month'}
-                      </div>
-                      <div className="text-xs sm:text-sm text-slate-400 mt-1 sm:mt-2">
-                        {locale === 'fr' ? 'Rejoignez des couples de 142 pays' :
-                         locale === 'zh-CN' ? '加入来自142个国家的伴侣' :
-                         'Join couples from 142 countries'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
+              ))}
             </div>
           </div>
         </section>
 
-        {/* HOW IT WORKS - AVEC LA SECTION AR EN PREMIER */}
-        <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-white">
-          <div className="container mx-auto px-4">
-            {/* Section AR Preview en premier */}
-            <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12 max-w-5xl mx-auto mb-12 sm:mb-16 md:mb-20">
-              <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8">
-                <div className="lg:w-1/2">
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 mb-4 sm:mb-6">
-                    {locale === 'fr' ? 'Visualisez Votre Cadenas en Réalité Augmentée' :
-                     locale === 'zh-CN' ? '在增强现实中查看您的锁' :
-                     'View Your Lock in Augmented Reality'}
-                  </h3>
-                  <p className="text-slate-700 text-sm sm:text-base md:text-lg mb-4 sm:mb-6">
-                    {locale === 'fr' ? 'Notre technologie de réalité augmentée vous permet de voir votre cadenas numérique apparaître exactement à l\'emplacement choisi sur le véritable Pont des Arts. Pointez simplement votre smartphone vers le pont pour vivre une expérience magique.' :
-                     locale === 'zh-CN' ? '我们的增强现实技术让您可以在艺术桥的真实位置上看到您的数字锁。只需将智能手机对准桥梁即可体验神奇的时刻。' :
-                     'Our augmented reality technology allows you to see your digital lock appear exactly at your chosen location on the actual Pont des Arts. Simply point your smartphone at the bridge for a magical experience.'}
-                  </p>
-                  <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
-                      <span className="text-slate-700 text-xs sm:text-sm md:text-base">
-                        {locale === 'fr' ? 'Prévisualisation en temps réel' :
-                         locale === 'zh-CN' ? '实时预览' :
-                         'Real-time preview'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
-                      <span className="text-slate-700 text-xs sm:text-sm md:text-base">
-                        {locale === 'fr' ? 'Compatible iOS et Android' :
-                         locale === 'zh-CN' ? '兼容iOS和Android' :
-                         'iOS & Android compatible'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
-                      <span className="text-slate-700 text-xs sm:text-sm md:text-base">
-                        {locale === 'fr' ? 'Pas d\'application à télécharger' :
-                         locale === 'zh-CN' ? '无需下载应用' :
-                         'No app download required'}
-                      </span>
-                    </div>
-                  </div>
-                  <Link href="/ar-view">
-                    <Button className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm sm:text-base">
-                      <Smartphone className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      {locale === 'fr' ? 'Essayer la Prévisualisation AR' :
-                       locale === 'zh-CN' ? '尝试AR预览' :
-                       'Try AR Preview Now'}
-                    </Button>
-                  </Link>
-                </div>
-                <div className="w-full lg:w-1/2 relative mt-6 lg:mt-0">
-                  <div className="relative w-full h-48 sm:h-56 md:h-64 lg:h-80 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
-                    <Image
-                      src="/images/ar-preview.png"
-                      alt="Augmented reality preview showing digital love lock on Pont des Arts bridge"
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 sm:p-4">
-                      <div className="flex items-center gap-1 sm:gap-2 text-white">
-                        <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="text-xs sm:text-sm font-medium">
-                          {locale === 'fr' ? 'Aperçu en réalité augmentée sur smartphone' :
-                           locale === 'zh-CN' ? '智能手机增强现实预览' :
-                           'AR preview on smartphone'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Badge mobile-friendly */}
-                  <div className="absolute -bottom-2 -right-2 sm:-bottom-3 sm:-right-3 md:-bottom-4 md:-right-4 bg-white p-1 sm:p-2 md:p-3 rounded sm:rounded-lg md:rounded-xl shadow-lg border z-20">
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 bg-blue-100 rounded sm:rounded-lg md:rounded-lg flex items-center justify-center">
-                        <Smartphone className="h-2 w-2 sm:h-3 sm:w-3 md:h-4 md:w-4 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] sm:text-xs md:text-xs text-slate-500">
-                          {locale === 'fr' ? 'Scannez avec votre' :
-                           locale === 'zh-CN' ? '使用您的' :
-                           'Scan with your'}
-                        </div>
-                        <div className="text-[10px] sm:text-xs md:text-sm font-bold text-slate-900">
-                          {locale === 'fr' ? 'Caméra smartphone' :
-                           locale === 'zh-CN' ? '智能手机摄像头' :
-                           'Smartphone camera'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        <section className="py-16 sm:py-24">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div>
+                <h2 className="font-serif text-3xl font-bold sm:text-4xl">{t.choose}</h2>
+                <p className="mt-3 max-w-2xl text-slate-500">{t.chooseSub}</p>
               </div>
+              <ConversionLink href={purchase} className="inline-flex items-center font-bold text-[#e11d48] hover:underline">{t.cta}<ArrowRight className="ml-1 h-4 w-4"/></ConversionLink>
             </div>
-
-            {/* Section How to Place Your Lock */}
-            <div className="text-center mb-12 sm:mb-16 md:mb-20">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-slate-900 mb-4 sm:mb-6">
-                {locale === 'fr' ? (
-                  <>Comment Placer Votre Cadenas sur le<br/><span className="text-[#e11d48]">Pont des Cadenas d'Amour Paris</span></>
-                ) : locale === 'zh-CN' ? (
-                  <>如何在<span className="text-[#e11d48]">巴黎爱情锁桥</span><br/>上放置您的锁</>
-                ) : (
-                  <>How to Place Your Lock on the<br/><span className="text-[#e11d48]">Love Lock Bridge Paris France</span></>
-                )}
-              </h2>
-              <p className="text-slate-600 text-sm sm:text-base md:text-lg max-w-3xl mx-auto">
-                {locale === 'fr' ? 'Trois étapes simples pour immortaliser votre amour sur le Pont des Arts' :
-                 locale === 'zh-CN' ? '三个简单步骤，将您的爱情永远铭刻在艺术桥上' :
-                 'Three simple steps to immortalize your love on the historic Pont des Arts'}
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
-              
-              <div className="relative">
-                <div className="absolute -top-3 -left-3 sm:-top-4 sm:-left-4 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-rose-500 text-white rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-lg sm:text-xl md:text-2xl font-bold shadow-lg">1</div>
-                <Card className="h-full border-2 border-slate-100 shadow-lg hover:shadow-xl transition-shadow pt-10 sm:pt-12">
-                  <CardContent className="p-4 sm:p-6 md:p-8">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-blue-50 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-blue-600 mb-4 sm:mb-6 mx-auto">
-                      <MapPin className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-3 sm:mb-4 text-center">
-                      {locale === 'fr' ? 'Choisissez Votre Emplacement' :
-                       locale === 'zh-CN' ? '选择您的位置' :
-                       'Choose Your Spot'}
-                    </h3>
-                    <p className="text-slate-700 text-sm sm:text-base text-center mb-4 sm:mb-6">
-                      {locale === 'fr' ? 'Sélectionnez l\'emplacement parfait sur notre carte 3D interactive du Pont des Arts. Choisissez entre vue sur la Tour Eiffel, centre du pont, ou emplacements alignés sur le lever du soleil.' :
-                       locale === 'zh-CN' ? '在我们艺术桥的交互式3D地图上选择完美位置。选择埃菲尔铁塔景观、桥中心或日出对齐位置。' :
-                       'Select the perfect location on our interactive 3D map of the Pont des Arts bridge. Choose between Eiffel Tower view, bridge center, or sunrise alignment spots.'}
-                    </p>
-                    <div className="text-center">
-                      <span className="inline-block px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm font-bold">
-                        {locale === 'fr' ? 'Le Plus Populaire : Vue Tour Eiffel' :
-                         locale === 'zh-CN' ? '最受欢迎：埃菲尔铁塔景观' :
-                         'Most Popular: Eiffel View'}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="relative">
-                <div className="absolute -top-3 -left-3 sm:-top-4 sm:-left-4 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-rose-500 text-white rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-lg sm:text-xl md:text-2xl font-bold shadow-lg">2</div>
-                <Card className="h-full border-2 border-slate-100 shadow-lg hover:shadow-xl transition-shadow pt-10 sm:pt-12">
-                  <CardContent className="p-4 sm:p-6 md:p-8">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-rose-50 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-[#e11d48] mb-4 sm:mb-6 mx-auto">
-                      <Heart className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-3 sm:mb-4 text-center">
-                      {locale === 'fr' ? 'Personnalisez Votre Cadenas' :
-                       locale === 'zh-CN' ? '个性化您的锁' :
-                       'Personalize Your Lock'}
-                    </h3>
-                    <p className="text-slate-700 text-sm sm:text-base text-center mb-4 sm:mb-6">
-                      {locale === 'fr' ? 'Gravez vos noms, date et un message personnel. Choisissez parmi des designs de cadenas or, argent ou diamant. Téléchargez une photo ou vidéo secrète.' :
-                       locale === 'zh-CN' ? '刻上您的姓名、日期和个人信息。选择金、银或钻石锁设计。上传秘密照片或视频信息。' :
-                       'Engrave your names, date, and a personal message. Choose from gold, silver, or diamond lock designs. Upload a secret photo or video message.'}
-                    </p>
-                    <div className="text-center">
-                      <span className="inline-block px-2 sm:px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs sm:text-sm font-bold">
-                        {locale === 'fr' ? 'Personnalisation Illimitée' :
-                         locale === 'zh-CN' ? '无限定制' :
-                         'Unlimited Customization'}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="relative">
-                <div className="absolute -top-3 -left-3 sm:-top-4 sm:-left-4 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-rose-500 text-white rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-lg sm:text-xl md:text-2xl font-bold shadow-lg">3</div>
-                <Card className="h-full border-2 border-slate-100 shadow-lg hover:shadow-xl transition-shadow pt-10 sm:pt-12">
-                  <CardContent className="p-4 sm:p-6 md:p-8">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-emerald-50 rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center text-emerald-600 mb-4 sm:mb-6 mx-auto">
-                      <Globe className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8" />
-                    </div>
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-3 sm:mb-4 text-center">
-                      {locale === 'fr' ? 'Expérience en RA' :
-                       locale === 'zh-CN' ? '增强现实体验' :
-                       'Experience in AR'}
-                    </h3>
-                    <p className="text-slate-700 text-sm sm:text-base text-center mb-4 sm:mb-6">
-                      {locale === 'fr' ? 'Votre cadenas est ajouté de manière permanente au registre Love Lock Paris. Visualisez-le en réalité augmentée lorsque vous visitez le pont ou en 3D depuis n\'importe où dans le monde.' :
-                       locale === 'zh-CN' ? '您的锁被永久添加到巴黎爱情锁注册处。访问桥梁时通过增强现实查看，或从世界任何地方通过3D查看。' :
-                       'Your lock is permanently added to the Love Lock Paris registry. View it in augmented reality when visiting the bridge or in 3D from anywhere in the world.'}
-                    </p>
-                    <div className="text-center">
-                      <span className="inline-block px-2 sm:px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs sm:text-sm font-bold">
-                        {locale === 'fr' ? 'Accès à Vie' :
-                         locale === 'zh-CN' ? '终身访问' :
-                         'Lifetime Access'}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
+            <div className="mt-9 grid gap-5 md:grid-cols-3">
+              {products.map((p)=>(
+                <ConversionLink key={p.key} href={purchase} className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+                  <div className="relative mx-auto h-52 w-52">
+                    <Image src={p.image} alt={t[p.key]} fill className="object-contain transition-transform group-hover:scale-105" />
+                  </div>
+                  <div className="mt-3 flex items-end justify-between">
+                    <div><h3 className="text-xl font-bold">{t[p.key]}</h3><p className="mt-1 text-xs text-slate-400">{t.chooseSub.split('.')[0]}</p></div>
+                    <span className="text-xl font-black text-[#e11d48]">{p.price}</span>
+                  </div>
+                </ConversionLink>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* MARKETPLACE SECTION */}
-        <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-r from-amber-50 via-white to-emerald-50">
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="text-center mb-12 sm:mb-16">
-              <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-4 sm:mb-6 shadow-lg">
-                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
-                {locale === 'fr' ? 'OPPORTUNITÉ D\'INVESTISSEMENT EXCLUSIVE' :
-                 locale === 'zh-CN' ? '独家投资机会' :
-                 'EXCLUSIVE INVESTMENT OPPORTUNITY'}
-              </div>
-              
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-slate-900 mb-4 sm:mb-6">
-                {locale === 'fr' ? (
-                  <>Achetez & Revendez Vos<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-800">Cadenas Numériques avec Profit</span></>
-                ) : locale === 'zh-CN' ? (
-                  <>购买并转售您的<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-800">数字锁以获取利润</span></>
-                ) : (
-                  <>Buy & Resell Your<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-800">Digital Locks for Profit</span></>
-                )}
-              </h2>
-              
-              <p className="text-slate-700 text-sm sm:text-base md:text-lg max-w-3xl mx-auto">
-                {locale === 'fr' ? 'Rejoignez notre marketplace exclusive : achetez des cadenas numériques sur le Pont des Arts et revendez-les à des collectionneurs pour des profits significatifs.' :
-                 locale === 'zh-CN' ? '加入我们的专属市场：购买艺术桥上的数字锁，并转售给收藏家以获取可观的利润。' :
-                 'Join our exclusive marketplace: purchase digital locks on Pont des Arts and resell them to collectors for significant profits.'}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-12 sm:mb-16">
-              <div className="bg-white p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl border-2 border-emerald-100 shadow-lg text-center">
-                <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-emerald-600 mb-2 sm:mb-4">+450%</div>
-                <h4 className="font-bold text-slate-900 text-lg sm:text-xl mb-2 sm:mb-3">
-                  {locale === 'fr' ? 'Profit Maximal' :
-                   locale === 'zh-CN' ? '最高利润' :
-                   'Maximum Profit'}
-                </h4>
-                <p className="text-slate-600 text-sm sm:text-base">
-                  {locale === 'fr' ? 'Certains numéros spéciaux ont augmenté de valeur jusqu\'à 450%' :
-                   locale === 'zh-CN' ? '某些特殊编号价值增长高达450%' :
-                   'Some special numbers have increased in value up to 450%'}
-                </p>
-              </div>
-              
-              <div className="bg-white p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl border-2 border-amber-100 shadow-lg text-center">
-                <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-amber-600 mb-2 sm:mb-4">$12.5K</div>
-                <h4 className="font-bold text-slate-900 text-lg sm:text-xl mb-2 sm:mb-3">
-                  {locale === 'fr' ? 'Record de Vente' :
-                   locale === 'zh-CN' ? '最高销售额' :
-                   'Sales Record'}
-                </h4>
-                <p className="text-slate-600 text-sm sm:text-base">
-                  {locale === 'fr' ? 'Cadenas #777 vendu pour 12,500 USD' :
-                   locale === 'zh-CN' ? '锁具#777以12,500美元售出' :
-                   'Lock #777 sold for 12,500 USD'}
-                </p>
-              </div>
-              
-              <div className="bg-white p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl border-2 border-blue-100 shadow-lg text-center">
-                <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-600 mb-2 sm:mb-4">72h</div>
-                <h4 className="font-bold text-slate-900 text-lg sm:text-xl mb-2 sm:mb-3">
-                  {locale === 'fr' ? 'Vente Rapide' :
-                   locale === 'zh-CN' ? '快速销售' :
-                   'Quick Sale'}
-                </h4>
-                <p className="text-slate-600 text-sm sm:text-base">
-                  {locale === 'fr' ? 'Temps moyen de vente pour les numéros premium' :
-                   locale === 'zh-CN' ? '优质编号的平均销售时间' :
-                   'Average sale time for premium numbers'}
-                </p>
-              </div>
-            </div>
-
-            <div className="mb-12 sm:mb-16">
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 mb-6 sm:mb-8 md:mb-10 text-center">
-                {locale === 'fr' ? 'Exemples Réels de Profits' :
-                 locale === 'zh-CN' ? '真实利润示例' :
-                 'Real Profit Examples'}
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                <Card className="border-2 border-slate-100 hover:border-emerald-200 transition-all hover:shadow-xl">
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-emerald-700 mx-auto mb-3 sm:mb-4">#777</div>
-                    <div className="space-y-2 sm:space-y-3">
-                      <div><div className="text-xs sm:text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-lg sm:text-xl font-bold text-slate-900">$149</div></div>
-                      <div><div className="text-xs sm:text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-xl sm:text-2xl font-bold text-emerald-600">$12,500</div></div>
-                      <div className="pt-2 sm:pt-3"><div className="inline-block px-2 sm:px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs sm:text-sm font-bold">+8,288%</div></div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-2 border-slate-100 hover:border-amber-200 transition-all hover:shadow-xl">
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-amber-100 to-amber-50 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-amber-700 mx-auto mb-3 sm:mb-4">#1313</div>
-                    <div className="space-y-2 sm:space-y-3">
-                      <div><div className="text-xs sm:text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-lg sm:text-xl font-bold text-slate-900">$79</div></div>
-                      <div><div className="text-xs sm:text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-xl sm:text-2xl font-bold text-amber-600">$2,499</div></div>
-                      <div className="pt-2 sm:pt-3"><div className="inline-block px-2 sm:px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs sm:text-sm font-bold">+3,063%</div></div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-2 border-slate-100 hover:border-blue-200 transition-all hover:shadow-xl">
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-blue-700 mx-auto mb-3 sm:mb-4">#2024</div>
-                    <div className="space-y-2 sm:space-y-3">
-                      <div><div className="text-xs sm:text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-lg sm:text-xl font-bold text-slate-900">$49</div></div>
-                      <div><div className="text-xs sm:text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-xl sm:text-2xl font-bold text-blue-600">$1,850</div></div>
-                      <div className="pt-2 sm:pt-3"><div className="inline-block px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm font-bold">+3,676%</div></div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-2 border-slate-100 hover:border-purple-200 transition-all hover:shadow-xl">
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-purple-100 to-purple-50 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-purple-700 mx-auto mb-3 sm:mb-4">#888</div>
-                    <div className="space-y-2 sm:space-y-3">
-                      <div><div className="text-xs sm:text-sm text-slate-500">{locale === 'fr' ? 'Prix d\'achat' : 'Purchase Price'}</div><div className="text-lg sm:text-xl font-bold text-slate-900">$49</div></div>
-                      <div><div className="text-xs sm:text-sm text-slate-500">{locale === 'fr' ? 'Prix de vente' : 'Sale Price'}</div><div className="text-xl sm:text-2xl font-bold text-purple-600">$999</div></div>
-                      <div className="pt-2 sm:pt-3"><div className="inline-block px-2 sm:px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs sm:text-sm font-bold">+3,345%</div></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 lg:p-12 text-center relative overflow-hidden">
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(16,185,129,0.4),transparent_50%)]"></div>
-              </div>
-              
-              <div className="relative z-10">
-                <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4 sm:mb-6">
-                  {locale === 'fr' ? (
-                    <>Prêt à <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Transformer $49.99 en $12,500</span> ?</>
-                  ) : locale === 'zh-CN' ? (
-                    <>准备好将<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">$49.99变成$12,500</span>吗？</>
-                  ) : (
-                    <>Ready to <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Turn $49.99 into $12,500</span> ?</>
-                  )}
-                </h3>
-                
-                <p className="text-base sm:text-lg md:text-xl text-slate-300 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto">
-                  {locale === 'fr' ? 'Rejoignez notre marketplace exclusive de cadenas numériques. Achetez des numéros spéciaux, personnalisez-les et revendez-les à des collectionneurs du monde entier.' :
-                   locale === 'zh-CN' ? '加入我们的数字锁专属市场。购买特殊编号，个性化定制，然后转售给全球收藏家。' :
-                   'Join our exclusive digital lock marketplace. Purchase special numbers, customize them, and resell to collectors worldwide.'}
-                </p>
-                
-                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center">
-                  <Link href="/marketplace" className="w-full sm:w-auto">
-                    <Button size="lg" className="w-full sm:w-auto text-sm sm:text-base md:text-lg lg:text-xl px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 lg:py-8 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-full shadow-2xl hover:scale-105 transition-transform">
-                      <TrendingUp className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
-                      {locale === 'fr' ? 'Explorer la Marketplace' :
-                       locale === 'zh-CN' ? '探索市场' :
-                       'Explore Marketplace'}
-                    </Button>
-                  </Link>
-                  <Link href="/purchase?investment=true" className="w-full sm:w-auto">
-                    <Button size="lg" variant="outline" className="w-full sm:w-auto text-sm sm:text-base md:text-lg lg:text-xl px-4 sm:px-6 md:px-8 lg:px-10 py-4 sm:py-5 md:py-6 lg:py-8 border-2 sm:border-3 border-white/40 bg-white/5 hover:bg-white/10 text-white font-bold rounded-full">
-                      <Coins className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5" />
-                      {locale === 'fr' ? 'Acheter à $29.99' :
-                       locale === 'zh-CN' ? '以$29.99购买' :
-                       'Buy Starting at $29.99'}
-                    </Button>
-                  </Link>
+        <section className="bg-slate-950 py-16 text-white sm:py-24">
+          <div className="mx-auto max-w-6xl px-4">
+            <h2 className="max-w-2xl font-serif text-3xl font-bold sm:text-4xl">{t.what}</h2>
+            <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                [Heart,t.what1,t.what1d],
+                [Lock,t.what2,t.what2d],
+                [Globe2,t.what3,t.what3d],
+                [Sparkles,t.what4,t.what4d],
+              ].map(([Icon,title,desc]:any)=>(
+                <div key={title} className="rounded-2xl border border-white/10 bg-white/5 p-6">
+                  <Icon className="h-6 w-6 text-rose-400" />
+                  <h3 className="mt-4 font-bold">{title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{desc}</p>
                 </div>
-                
-                <div className="mt-6 sm:mt-8 md:mt-10 pt-4 sm:pt-6 md:pt-8 border-t border-slate-700">
-                  <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm text-slate-400">
-                    <span className="flex items-center gap-1 sm:gap-2"><CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-400" />
-                      {locale === 'fr' ? 'Garantie 30 jours' :
-                       locale === 'zh-CN' ? '30天保证' :
-                       '30-day guarantee'}
-                    </span>
-                    <span className="flex items-center gap-1 sm:gap-2"><ShieldCheck className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400" />
-                      {locale === 'fr' ? 'Propriété vérifiée' :
-                       locale === 'zh-CN' ? '验证所有权' :
-                       'Verified ownership'}
-                    </span>
-                    <span className="flex items-center gap-1 sm:gap-2"><Users className="h-3 w-3 sm:h-4 sm:w-4 text-purple-400" />
-                      {locale === 'fr' ? '85,000+ collectionneurs' :
-                       locale === 'zh-CN' ? '85,000+收藏家' :
-                       '85,000+ collectors'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* LIMITED TIME OFFER SECTION */}
-        <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(225,29,72,0.4),transparent_50%)]"></div>
-          </div>
-          
-          <div className="container mx-auto px-4 relative z-10 max-w-5xl text-center">
-            
-            <div className="inline-flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 text-xs sm:text-sm font-bold uppercase tracking-wider mb-6 sm:mb-8 shadow-2xl">
-              <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
-              {locale === 'fr' ? 'Offre à Durée Limitée' :
-               locale === 'zh-CN' ? '限时优惠' :
-               'Limited Time Offer'}
-            </div>
-            
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold mb-6 sm:mb-8 leading-tight">
-              {locale === 'fr' ? (
-                <>Votre Histoire d'Amour Mérite<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-400">L'Héritage Parisien</span></>
-              ) : locale === 'zh-CN' ? (
-                <>您的爱情故事值得<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-400">巴黎遗产</span></>
-              ) : (
-                <>Your Love Story Deserves<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-400">The Parisian Legacy</span></>
-              )}
-            </h2>
-            
-            <div className="max-w-3xl mx-auto mb-8 sm:mb-10 md:mb-12">
-              <p className="text-base sm:text-lg md:text-xl text-slate-300 mb-6 sm:mb-8 md:mb-10 leading-relaxed">
-                {locale === 'fr' ? (
-                  <>Rejoignez la renaissance numérique de la tradition la plus romantique au monde. Sécurisez votre place sur l'historique Pont des Cadenas d'Amour avant que les emplacements premium ne disparaissent.</>
-                ) : locale === 'zh-CN' ? (
-                  <>加入世界上最浪漫传统的数字复兴。在优质位置消失之前，确保您在历史悠久的爱情锁桥上的位置。</>
-                ) : (
-                  <>Join the digital renaissance of the world's most romantic tradition. Secure your spot on the historic Pont des Arts Love Lock Bridge before premium locations are gone.</>
-                )}
-              </p>
-              
-              <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-8 sm:mb-10 md:mb-12">
-                <div className="bg-white/10 backdrop-blur-sm p-4 sm:p-6 rounded-xl sm:rounded-2xl text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-white">
-                    {locale === 'fr' ? '29,99€' :
-                     locale === 'zh-CN' ? '￥29.99' :
-                     '$29.99'}
-                  </div>
-                  <div className="text-xs sm:text-sm text-slate-300">
-                    {locale === 'fr' ? 'Paiement unique' :
-                     locale === 'zh-CN' ? '一次性付款' :
-                     'One-time payment'}
-                  </div>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm p-4 sm:p-6 rounded-xl sm:rounded-2xl text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-emerald-300">∞</div>
-                  <div className="text-xs sm:text-sm text-slate-300">
-                    {locale === 'fr' ? 'Accès à vie' :
-                     locale === 'zh-CN' ? '终身访问' :
-                     'Lifetime access'}
-                  </div>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm p-4 sm:p-6 rounded-xl sm:rounded-2xl text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-rose-300">4.9★</div>
-                  <div className="text-xs sm:text-sm text-slate-300">
-                    {locale === 'fr' ? 'Note' :
-                     locale === 'zh-CN' ? '评分' :
-                     'Rating'}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 md:mb-10">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <TrendingUp className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-amber-400" />
-                  <div className="text-left">
-                    <div className="font-bold text-white text-base sm:text-lg md:text-lg">
-                      {locale === 'fr' ? '72% des places avec vue Tour Eiffel déjà prises' :
-                       locale === 'zh-CN' ? '72%的埃菲尔铁塔景观位置已被占据' :
-                       '72% of Eiffel View spots already taken'}
-                    </div>
-                    <div className="text-slate-300 text-xs sm:text-sm">
-                      {locale === 'fr' ? 'Les emplacements premium partent vite' :
-                       locale === 'zh-CN' ? '优质位置销售迅速' :
-                       'Premium locations selling fast'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center">
-              <Link href="/purchase" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto text-sm sm:text-base md:text-lg lg:text-xl px-6 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-5 md:py-6 lg:py-8 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-900 font-bold rounded-full shadow-2xl hover:scale-105 transition-transform">
-                  <Lock className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
-                  {locale === 'fr' ? 'Sécuriser Mon Cadenas • 29,99€' :
-                   locale === 'zh-CN' ? '购买数字锁 • ￥29.99' :
-                   'Secure My Digital Lock • $29.99'}
-                </Button>
+        <section className="py-16 sm:py-24">
+          <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 lg:grid-cols-2">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#e11d48]">Pont des Arts · Paris</p>
+              <h2 className="mt-3 font-serif text-3xl font-bold sm:text-4xl">{t.why}</h2>
+              <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">{t.whyText}</p>
+              <Link href={bridge} className="mt-7 inline-flex items-center rounded-full border border-slate-300 px-5 py-3 text-sm font-bold hover:border-[#e11d48] hover:text-[#e11d48]">
+                {t.bridge}<ArrowRight className="ml-2 h-4 w-4"/>
               </Link>
-              <Link href="/bridge" className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-sm sm:text-base md:text-lg lg:text-xl px-4 sm:px-6 md:px-8 lg:px-10 py-4 sm:py-5 md:py-6 lg:py-8 border-2 sm:border-3 border-white/40 bg-white/5 hover:bg-white/10 text-white font-bold rounded-full">
-                  <Globe className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5" />
-                  {locale === 'fr' ? 'Voir les Places Disponibles' :
-                   locale === 'zh-CN' ? '查看可用位置' :
-                   'View Available Spots'}
-                </Button>
-              </Link>
+              <p className="mt-3 text-sm text-slate-400">{t.bridgeSub}</p>
             </div>
-            
-            <div className="mt-8 sm:mt-10 md:mt-12 pt-4 sm:pt-6 md:pt-8 border-t border-slate-700">
-              <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 lg:gap-8 text-xs sm:text-sm text-slate-400">
-                <span className="flex items-center gap-1 sm:gap-2"><CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-400" />
-                  {locale === 'fr' ? 'Pas de frais cachés' :
-                   locale === 'zh-CN' ? '无隐藏费用' :
-                   'No hidden fees'}
-                </span>
-                <span className="flex items-center gap-1 sm:gap-2"><ShieldCheck className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400" />
-                  {locale === 'fr' ? 'Cryptage 256-bit' :
-                   locale === 'zh-CN' ? '256位加密' :
-                   '256-bit encryption'}
-                </span>
-                <span className="flex items-center gap-1 sm:gap-2"><Clock className="h-3 w-3 sm:h-4 sm:w-4 text-purple-400" />
-                  {locale === 'fr' ? 'Livraison instantanée' :
-                   locale === 'zh-CN' ? '即时交付' :
-                   'Instant delivery'}
-                </span>
-                <span className="flex items-center gap-1 sm:gap-2"><Heart className="h-3 w-3 sm:h-4 sm:w-4 text-rose-400" />
-                  {locale === 'fr' ? 'Garantie 30 jours' :
-                   locale === 'zh-CN' ? '30天保证' :
-                   '30-day guarantee'}
-                </span>
-              </div>
+            <div className="relative min-h-[360px] overflow-hidden rounded-[2rem] border border-slate-200 shadow-xl">
+              <Image src="/images/pont-des-arts-paris.jpg" alt="Pont des Arts Paris" fill className="object-cover" />
             </div>
           </div>
         </section>
 
-        {/* FAQ SECTION */}
-        <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-slate-50">
-          <div className="container mx-auto px-4 max-w-4xl">
-            <div className="text-center mb-12 sm:mb-16">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-4 sm:mb-6">
-                {locale === 'fr' ? (
-                  <>Tout sur le<br/><span className="text-[#e11d48]">Pont des Cadenas d'Amour Paris</span></>
-                ) : locale === 'zh-CN' ? (
-                  <>关于<span className="text-[#e11d48]">巴黎爱情锁桥</span><br/>的一切</>
-                ) : (
-                  <>Everything About the<br/><span className="text-[#e11d48]">Love Lock Bridge Paris</span></>
-                )}
-              </h2>
-              <p className="text-slate-600 text-sm sm:text-base md:text-lg">
-                {locale === 'fr' ? 'Réponses aux questions les plus recherchées sur le Pont des Arts et les cadenas d\'amour' :
-                 locale === 'zh-CN' ? '关于艺术桥和爱情锁最常搜索问题的答案' :
-                 'Answers to the most searched questions about Pont des Arts and love locks'}
-              </p>
+        <section className="border-y border-slate-100 bg-[#fffdfc] py-16 sm:py-20">
+          <div className="mx-auto max-w-4xl px-4">
+            <h2 className="text-center font-serif text-3xl font-bold sm:text-4xl">{t.faq}</h2>
+            <div className="mt-8 space-y-3">
+              {[[t.q1,t.a1],[t.q2,t.a2],[t.q3,t.a3],[t.q4,t.a4]].map(([q,a])=>(
+                <details key={q} className="group rounded-2xl border border-slate-200 bg-white p-5">
+                  <summary className="cursor-pointer list-none pr-8 font-bold">{q}</summary>
+                  <p className="mt-3 leading-6 text-slate-500">{a}</p>
+                </details>
+              ))}
             </div>
+          </div>
+        </section>
 
-            <Accordion type="single" collapsible className="w-full space-y-3 sm:space-y-4">
-              
-              <AccordionItem value="item-1" className="bg-white border-2 border-slate-200 rounded-xl sm:rounded-2xl px-4 sm:px-6 shadow-sm hover:border-slate-300 transition-colors">
-                <AccordionTrigger className="text-left font-bold text-slate-900 text-base sm:text-lg py-4 sm:py-6">
-                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-[#e11d48] mr-2 sm:mr-3" />
-                  {locale === 'fr' ? 'Où se trouve exactement le Pont des Cadenas d\'Amour à Paris ?' :
-                   locale === 'zh-CN' ? '巴黎爱情锁桥的具体位置在哪里？' :
-                   'Where exactly is the Love Lock Bridge in Paris?'}
-                </AccordionTrigger>
-                <AccordionContent className="text-slate-700 pb-4 sm:pb-6 text-sm sm:text-base md:text-lg">
-                  {locale === 'fr' ? (
-                    <>Le fameux Pont des Cadenas d'Amour Paris s'appelle officiellement Pont des Arts. Il est situé dans le 6ᵉ arrondissement de Paris (75006), reliant le Musée du Louvre à l'Institut de France. Coordonnées GPS : 48.858370° N, 2.337480° E. Ce pont piétonnier offre une vue iconique sur la Seine et a été le berceau historique des cadenas d'amour depuis le début de la tradition.</>
-                  ) : locale === 'zh-CN' ? (
-                    <>著名的巴黎爱情锁桥正式名称为艺术桥。它位于巴黎第6区（75006），连接卢浮宫博物馆和法兰西学院。GPS坐标：48.858370° N, 2.337480° E。这座人行桥提供了塞纳河的标志性景观，自传统开始以来一直是爱情锁的历史发源地。</>
-                  ) : (
-                    <>The famous Love Lock Bridge Paris is officially called Pont des Arts. It's located in the 6th arrondissement of Paris (75006), connecting the Louvre Museum to the Institut de France. GPS coordinates: 48.858370° N, 2.337480° E. This pedestrian bridge offers iconic views of the Seine River and has been the historic home of love locks since the tradition began.</>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-2" className="bg-white border-2 border-slate-200 rounded-xl sm:rounded-2xl px-4 sm:px-6 shadow-sm hover:border-slate-300 transition-colors">
-                <AccordionTrigger className="text-left font-bold text-slate-900 text-base sm:text-lg py-4 sm:py-6">
-                  <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 mr-2 sm:mr-3" />
-                  {locale === 'fr' ? 'Puis-je encore mettre un cadenas physique sur le Pont des Arts ?' :
-                   locale === 'zh-CN' ? '我还能在艺术桥上放置实体锁吗？' :
-                   'Can I still put a physical lock on Pont des Arts?'}
-                </AccordionTrigger>
-                <AccordionContent className="text-slate-700 pb-4 sm:pb-6 text-sm sm:text-base md:text-lg">
-                  {locale === 'fr' ? (
-                    <>Non, c'est strictement interdit et illégal. Depuis juin 2015, la Ville de Paris a interdit d'attacher tout objet aux ponts. Les contrevenants risquent des amendes allant jusqu'à 500€. Les grilles d'origine ont été remplacées par des panneaux en verre spécialement conçus pour empêcher l'attachement des cadenas. LoveLockParis.com est le seul moyen autorisé et légal de perpétuer cette tradition romantique.</>
-                  ) : locale === 'zh-CN' ? (
-                    <>不，这是严格禁止且违法的。自2015年6月起，巴黎市已禁止在桥上附着任何物品。违者将面临高达500欧元的罚款。原桥栏杆已更换为专门设计用于防止锁具附着的玻璃板。LoveLockParis.com是延续这一浪漫传统的唯一授权合法方式。</>
-                  ) : (
-                    <>No, it is strictly prohibited and illegal. Since June 2015, the City of Paris has banned attaching any objects to bridges. Violators face fines up to €500. The original railings were replaced with glass panels specifically designed to prevent lock attachment. LoveLockParis.com is the only authorized and legal way to continue this romantic tradition.</>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-3" className="bg-white border-2 border-slate-200 rounded-xl sm:rounded-2xl px-4 sm:px-6 shadow-sm hover:border-slate-300 transition-colors">
-                <AccordionTrigger className="text-left font-bold text-slate-900 text-base sm:text-lg py-4 sm:py-6">
-                  <Globe className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mr-2 sm:mr-3" />
-                  {locale === 'fr' ? 'Comment le cadenas d\'amour numérique apparaît-il sur le vrai pont ?' :
-                   locale === 'zh-CN' ? '数字爱情锁如何出现在真实桥梁上？' :
-                   'How does the digital love lock appear on the actual bridge?'}
-                </AccordionTrigger>
-                <AccordionContent className="text-slate-700 pb-4 sm:pb-6 text-sm sm:text-base md:text-lg">
-                  {locale === 'fr' ? (
-                    <>Grâce à notre technologie de réalité augmentée avancée. Lorsque vous visitez le Pont des Arts à Paris, ouvrez simplement l'application LoveLockParis sur votre smartphone et pointez votre caméra vers le pont. Votre cadenas numérique personnalisé apparaîtra exactement aux coordonnées GPS choisies, visible uniquement à travers votre appareil. Vous pouvez également le visualiser en 3D depuis n'importe où dans le monde via notre site web.</>
-                  ) : locale === 'zh-CN' ? (
-                    <>通过我们先进的增强现实技术。当您参观巴黎艺术桥时，只需在智能手机上打开LoveLockParis应用程序并将摄像头对准桥梁。您个性化的数字锁将精确出现在您选择的GPS坐标位置，仅通过您的设备可见。您还可以通过我们的网站在世界任何地方进行3D查看。</>
-                  ) : (
-                    <>Through our advanced augmented reality technology. When you visit the Pont des Arts in Paris, simply open the LoveLockParis app on your smartphone and point your camera at the bridge. Your personalized digital lock will appear exactly at your chosen GPS coordinates, visible only through your device. You can also view it in 3D from anywhere in the world via our website.</>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-
-            </Accordion>
-
-            <div className="mt-12 sm:mt-16 text-center">
-              <Link href="/purchase" className="w-full block max-w-md mx-auto">
-                <Button size="lg" className="w-full max-w-md mx-auto bg-gradient-to-r from-[#e11d48] to-rose-600 hover:from-rose-700 hover:to-[#be123c] text-white font-bold px-4 sm:px-8 md:px-10 lg:px-14 py-4 sm:py-6 md:py-7 lg:py-8 text-base sm:text-lg md:text-xl rounded-full shadow-2xl hover:scale-105 transition-transform">
-                  <Heart className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
-                  {locale === 'fr' ? 'Créer Votre Cadenas d\'Amour' :
-                   locale === 'zh-CN' ? '立即创建您的爱情锁' :
-                   'Create Your Love Lock Now'}
-                </Button>
-              </Link>
-              <p className="text-slate-500 mt-4 sm:mt-6 text-xs sm:text-sm px-4">
-                <ShieldCheck className="inline h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                {locale === 'fr' ? 'Garantie de remboursement 30 jours • Pas de frais d\'abonnement' :
-                 locale === 'zh-CN' ? '30天退款保证 • 无订阅费用' :
-                 '30-day money-back guarantee • No subscription fees'}
-              </p>
-            </div>
+        <section className="px-4 py-16 sm:py-24">
+          <div className="mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-rose-600 to-[#9f1239] px-6 py-14 text-center text-white shadow-2xl sm:px-12">
+            <Heart className="mx-auto h-9 w-9 fill-white" />
+            <h2 className="mt-5 font-serif text-3xl font-bold sm:text-5xl">{t.final}</h2>
+            <p className="mx-auto mt-4 max-w-xl text-rose-100">{t.finalSub}</p>
+            <ConversionLink href={purchase} className="mt-7 inline-flex h-14 items-center justify-center rounded-full bg-white px-7 font-black text-[#be123c] shadow-lg transition hover:scale-[1.02]">
+              {t.cta}<ArrowRight className="ml-2 h-4 w-4"/>
+            </ConversionLink>
           </div>
         </section>
       </main>
 
-      <PurchaseNotifications />
-
-
-{/* FOOTER */}
-<footer className="border-t border-slate-200 bg-white py-8 sm:py-12 md:py-16">
-  <div className="container mx-auto px-4">
-    <div className="max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10 mb-8 sm:mb-10 md:mb-12">
-
-        {/* CONCIERGE — MOBILE FIRST (visible en haut sur mobile, caché dès lg) */}
-        <div className="lg:hidden">
-          <h4 className="font-extrabold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-            Concierge
-          </h4>
-
-          <a
-            href="/paris-concierge-service"
-            className="group block rounded-2xl border border-amber-200 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 shadow-xl hover:shadow-2xl transition"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-sm font-extrabold text-white">
-                  Paris Concierge Service
-                </div>
-                <div className="text-[11px] font-bold tracking-[0.16em] text-amber-300 uppercase mt-1">
-                  VIP • Private Access • Luxury
-                </div>
-              </div>
-
-              <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-extrabold tracking-wider text-white">
-                SELECT
-              </div>
-            </div>
-
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                <div className="text-[10px] font-bold text-white/80">Jet</div>
-                <div className="text-[11px] font-extrabold text-white">Tarmac</div>
-              </div>
-              <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                <div className="text-[10px] font-bold text-white/80">Mercedes</div>
-                <div className="text-[11px] font-extrabold text-white">S-Class</div>
-              </div>
-              <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                <div className="text-[10px] font-bold text-white/80">Nightlife</div>
-                <div className="text-[11px] font-extrabold text-white">Clubs</div>
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between">
-              <div className="text-xs font-semibold text-white/85">
-                Fast reply • Discreet • Premium
-              </div>
-              <div className="text-xs font-extrabold text-amber-300 group-hover:text-amber-200">
-                Open →
-              </div>
-            </div>
-          </a>
-        </div>
-
-        {/* BRAND (desktop: concierge juste en dessous) */}
-        <div>
-          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-            <Heart className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-[#e11d48] fill-[#e11d48]" />
-            <span className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
-              LoveLock<span className="text-[#e11d48]">Paris</span>
-            </span>
-          </div>
-
-          <p className="text-xs sm:text-sm text-slate-600">
-            {locale === 'fr'
-              ? "Le registre numérique officiel du Pont des Cadenas d'Amour. Préserver le romantisme, protéger le patrimoine."
-              : locale === 'zh-CN'
-              ? "艺术桥爱情锁官方数字注册平台，自2026年起保护浪漫与文化遗产。"
-              : "The official digital registry of the Pont des Arts Love Lock Bridge. Preserving romance and heritage."}
-          </p>
-
-          {/* CONCIERGE — DESKTOP sous la brand (visible dès lg) */}
-          <div className="hidden lg:block mt-6">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-extrabold text-slate-900 text-sm">
-                Concierge
-              </h4>
-              <span className="text-[10px] font-extrabold tracking-[0.18em] text-amber-600 uppercase">
-                VIP Select
-              </span>
-            </div>
-
-            <a
-              href="/paris-concierge-service"
-              className="group block rounded-2xl border border-amber-200 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 shadow-xl hover:shadow-2xl transition"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-extrabold text-white">
-                    Paris Concierge Service
-                  </div>
-                  <div className="text-[11px] font-bold tracking-[0.16em] text-amber-300 uppercase mt-1">
-                    VIP • Private Access • Luxury
-                  </div>
-                </div>
-
-                <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-extrabold tracking-wider text-white">
-                  SELECT
-                </div>
-              </div>
-
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                  <div className="text-[10px] font-bold text-white/80">Jet</div>
-                  <div className="text-[11px] font-extrabold text-white">Tarmac</div>
-                </div>
-                <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                  <div className="text-[10px] font-bold text-white/80">Mercedes</div>
-                  <div className="text-[11px] font-extrabold text-white">S-Class</div>
-                </div>
-                <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                  <div className="text-[10px] font-bold text-white/80">Yacht</div>
-                  <div className="text-[11px] font-extrabold text-white">Seine</div>
-                </div>
-              </div>
-
-              <div className="mt-3 flex items-center justify-between">
-                <div className="text-xs font-semibold text-white/85">
-                  Fast reply • Discreet • Premium
-                </div>
-                <div className="text-xs font-extrabold text-amber-300 group-hover:text-amber-200">
-                  Open →
-                </div>
-              </div>
-            </a>
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 font-serif font-bold text-slate-900"><Heart className="h-4 w-4 fill-[#e11d48] text-[#e11d48]"/>LoveLockParis</div>
+          <div className="flex flex-wrap gap-5">
+            <Link href={`${prefix}/terms`} className="hover:text-slate-900">{t.terms}</Link>
+            <Link href={`${prefix}/privacy`} className="hover:text-slate-900">{t.privacy}</Link>
+            <Link href={`${prefix}/refund`} className="hover:text-slate-900">{t.refund}</Link>
+            <a href="mailto:support@lovelockparis.com" className="hover:text-slate-900">support@lovelockparis.com</a>
           </div>
         </div>
-
-        {/* NAVIGATION */}
-        <div>
-          <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-            Navigation
-          </h4>
-          <div className="space-y-2 text-xs sm:text-sm">
-            <a href="/marketplace" className="block text-slate-600 hover:text-[#e11d48]">Marketplace</a>
-            <a href="/bridge" className="block text-slate-600 hover:text-[#e11d48]">3D Bridge</a>
-            <a href="/ar-view" className="block text-slate-600 hover:text-[#e11d48]">AR View</a>
-            <a href="/concept" className="block text-slate-600 hover:text-[#e11d48]">Concept</a>
-            <a href="/about" className="block text-slate-600 hover:text-[#e11d48]">History</a>
-          </div>
-        </div>
-
-        {/* PARIS GUIDES */}
-        <div>
-          <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-            Paris Guides
-          </h4>
-          <div className="space-y-2 text-xs sm:text-sm">
-            <a href="/guide/is-it-illegal-paris-locks" className="block text-slate-600 hover:text-[#e11d48]">
-              Is It Illegal to Put Love Locks in Paris?
-            </a>
-            <a href="/guide/love-lock-bridge-paris" className="block text-slate-600 hover:text-[#e11d48]">
-              Love Lock Bridge Paris
-            </a>
-            <a href="/guide/where-is-pont-des-arts" className="block text-slate-600 hover:text-[#e11d48]">
-              Where Is Pont des Arts?
-            </a>
-            <a href="/romantic-things-to-do-in-paris" className="block text-slate-600 hover:text-[#e11d48]">
-              Romantic Things to Do in Paris
-            </a>
-          </div>
-        </div>
-
-        {/* LEGAL */}
-        <div>
-          <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-            Legal
-          </h4>
-          <div className="space-y-2 text-xs sm:text-sm">
-            <a href="/legal" className="block text-slate-600 hover:text-[#e11d48]">
-              Legal Notice
-            </a>
-            <a href="/terms" className="block text-slate-600 hover:text-[#e11d48]">
-              Terms of Service
-            </a>
-            <a href="/privacy" className="block text-slate-600 hover:text-[#e11d48]">
-              Privacy Policy
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* BOTTOM */}
-      <div className="pt-4 sm:pt-6 md:pt-8 border-t border-slate-100 text-center">
-        <p className="text-xs sm:text-sm text-slate-600 mb-2">
-          {locale === 'fr'
-            ? "Pont des Arts • 75006 Paris • GPS : 48.858370, 2.337480"
-            : locale === 'zh-CN'
-            ? "巴黎艺术桥 • 75006 巴黎 • GPS：48.858370, 2.337480"
-            : "Pont des Arts • 75006 Paris • GPS: 48.858370, 2.337480"}
-        </p>
-
-        <p className="text-[10px] sm:text-xs text-slate-500">
-          © 2026 PANORAMA GRUP. LoveLockParis™ — All rights reserved.
-        </p>
-      </div>
-    </div>
-  </div>
-</footer>
-
+      </footer>
     </div>
   );
 }
