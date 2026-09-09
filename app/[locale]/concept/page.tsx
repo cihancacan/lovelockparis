@@ -1,798 +1,109 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import {
-  TrendingUp, ShieldCheck, Globe,
-  Coins, Gem, MapPin, Eye, Wallet,
-  InfinityIcon, Clock, CheckCircle,
-  Heart
-} from 'lucide-react';
+import { Camera, CheckCircle, Heart, Lock, Map, ShieldCheck, Sparkles } from 'lucide-react';
 import { Header } from '@/components/home/header';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export const metadata: Metadata = {
-  title: 'LoveLockParis Concept | Digital Love Lock Investment & Passive Income Strategy',
-  description:
-    'Invest in digital real estate on Pont des Arts. Earn from views, resell on marketplace, benefit from finite supply & infinite demand. Turn romance into ROI.',
-  keywords:
-    'digital love lock investment, virtual love lock paris, love lock passive income, pont des arts digital real estate, buy love lock paris, love lock marketplace',
+  title: 'How LoveLockParis Works | Digital Love Lock Experience',
+  description: 'See how to personalize, purchase and revisit your digital Love Lock inspired by the Pont des Arts in Paris.',
 };
 
-export default function ConceptPage({ params }: { params: { locale: string } }) {
-  const locale = params?.locale || 'en';
+const copy: Record<string, any> = {
+  en:{
+    nav:'3D Bridge',cta:'Create our Love Lock',eyebrow:'How it works',title:'A romantic gesture, made digital.',sub:'LoveLockParis turns the love-lock tradition into a simple digital experience you can personalize, revisit and share.',
+    s1:'Personalize your lock',d1:'Add your names, a short message and choose a finish.',s2:'Get a unique number',d2:'Every new lock receives its own number. A special number is optional when available.',
+    s3:'Pay securely',d3:'Checkout is handled by Stripe. You do not need to create an account before paying.',s4:'Revisit your lock',d4:'After purchase, create an account if you want to keep the lock in your dashboard and explore the 3D bridge.',
+    preview:'What your experience includes',p1:'Personalized names and message',p2:'Classic, Gold or Diamond finishes',p3:'Unique Love Lock number',p4:'3D bridge experience',p5:'Optional digital memory',p6:'Customer support through Crisp',
+    ar:'Augmented-reality experience',arText:'The project also includes an AR view for compatible experiences. Availability can depend on your device and browser.',
+    simple:'No crypto knowledge. No wallet required. No investment pitch.',simpleText:'The main LoveLockParis experience is a digital romantic product. Marketplace and other account features are secondary and never required to create your first lock.',
+    final:'Create the memory first. Everything else can come later.'
+  },
+  fr:{
+    nav:'Pont 3D',cta:'Créer notre cadenas',eyebrow:'Comment ça marche',title:'Un geste romantique, en version numérique.',sub:'LoveLockParis transforme la tradition du cadenas d’amour en une expérience numérique simple à personnaliser, retrouver et partager.',
+    s1:'Personnalisez votre cadenas',d1:'Ajoutez vos prénoms, un petit message et choisissez une finition.',s2:'Recevez un numéro unique',d2:'Chaque nouveau cadenas reçoit son propre numéro. Un numéro spécial reste une option si disponible.',
+    s3:'Payez en sécurité',d3:'Le paiement est géré par Stripe. Aucun compte n’est nécessaire avant de payer.',s4:'Retrouvez votre cadenas',d4:'Après l’achat, créez un compte si vous souhaitez conserver votre cadenas dans le tableau de bord et explorer le pont 3D.',
+    preview:'Ce que comprend l’expérience',p1:'Prénoms et message personnalisés',p2:'Finitions Classique, Or ou Diamant',p3:'Numéro de cadenas unique',p4:'Expérience du pont 3D',p5:'Souvenir numérique en option',p6:'Support client via Crisp',
+    ar:'Expérience en réalité augmentée',arText:'Le projet comprend également une vue AR pour les expériences compatibles. La disponibilité peut dépendre de votre appareil et de votre navigateur.',
+    simple:'Pas de crypto à comprendre. Aucun wallet requis. Aucun discours d’investissement.',simpleText:'L’expérience principale LoveLockParis est un produit romantique numérique. La marketplace et les fonctions de compte sont secondaires et ne sont jamais nécessaires pour créer votre premier cadenas.',
+    final:'Créez d’abord le souvenir. Le reste peut venir après.'
+  }
+};
 
-  const investmentSchema = {
-    "@context": "https://schema.org",
-    "@type": "InvestmentOrDeposit",
-    "name": "Digital Love Lock Investment on Pont des Arts",
-    "description": "Digital asset investment combining romantic value with financial appreciation potential.",
-    "url": `https://lovelockparis.com/${locale}/concept`,
-    "offers": {
-      "@type": "Offer",
-      "price": "29.99",
-      "priceCurrency": "USD",
-      "availability": "https://schema.org/LimitedAvailability"
-    },
-    "areaServed": {
-      "@type": "Country",
-      "name": "Worldwide"
-    }
-  };
-
+export default function ConceptPage({params}:{params:{locale:string}}){
+  const locale=params.locale;
+  const t=copy[locale]||copy.en;
+  const prefix=locale==='en'?'':`/${locale}`;
+  const steps=[
+    [Heart,t.s1,t.d1],
+    [Lock,t.s2,t.d2],
+    [ShieldCheck,t.s3,t.d3],
+    [Map,t.s4,t.d4],
+  ];
   return (
-
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
-      {/* Structured Data */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(investmentSchema) }} />
-      
-      <Header translations={{}} />
-
-      {/* HERO SECTION - Préservée et enrichie */}
-        <section className="relative h-screen flex flex-col justify-start pt-2 md:justify-center md:pt-0 items-center text-center px-4 overflow-hidden bg-slate-900">
-
-       {/* 1. IMAGE DE FOND (Plus claire) */}
-        <div className="absolute inset-0 z-0">
-          <Image 
-            src="/images/concept-value.jpg" 
-            alt="Golden Lock floating like a rare jewel in Paris" 
-            fill 
-            className="object-cover opacity-50" // <--- ICI : 50% visible
-            priority
-          />
-          {/* 2. DÉGRADÉ LÉGER (Juste en bas pour le texte) */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent"></div>
-        </div>
-        
-        {/* 3. CONTENU */}
-        <div className="container mx-auto px-4 relative z-10 text-center mt-0">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#e11d48] text-white text-xs font-bold uppercase tracking-wider mb-8 shadow-lg animate-fade-in">
-            <TrendingUp className="h-3 w-3" /> Revolutionizing Tourism Economy
+    <div className="min-h-screen bg-white text-slate-900">
+      <Header translations={{navBridge:t.nav,problemHeading:'',solutionHeading:'',ctaStart:t.cta}} />
+      <main>
+        <section className="bg-[#fffdfc] px-4 py-16 sm:py-24">
+          <div className="mx-auto max-w-5xl text-center">
+            <p className="text-xs font-black uppercase tracking-[.2em] text-[#e11d48]">{t.eyebrow}</p>
+            <h1 className="mx-auto mt-4 max-w-3xl font-serif text-4xl font-bold leading-tight sm:text-6xl">{t.title}</h1>
+            <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-600">{t.sub}</p>
+            <Link href={`${prefix}/purchase`} className="mt-7 inline-block"><Button className="h-14 rounded-full bg-[#e11d48] px-7 font-black text-white hover:bg-[#be123c]"><Heart className="mr-2 h-5 w-5 fill-current"/>{t.cta}</Button></Link>
           </div>
-          
-          <h1 className="text-5xl md:text-6xl font-serif font-bold mb-6 leading-none text-white drop-shadow-2xl">
-            Finite Supply.<br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-400 drop-shadow-sm">Infinite Demand.</span>
-          </h1>
-          
-          <div className="max-w-3xl mx-auto mb-12">
-            <p className="text-xl text-slate-300 mb-8 leading-relaxed">
-              Paris receives <strong>30 million tourists</strong> every year. The Virtual Bridge has only <strong>1 million digital spots</strong>. 
-              Basic economics: Scarcity + Global Demand = Value. = <span className="text-amber-300 font-bold">appreciating asset value</span>.
-            </p>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl text-center">
-                <div className="text-3xl font-bold text-white">30M</div>
-                <div className="text-xs text-slate-300">Annual Tourists</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl text-center">
-                <div className="text-3xl font-bold text-amber-300">1M</div>
-                <div className="text-xs text-slate-300">Total Spots</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl text-center">
-                <div className="text-3xl font-bold text-emerald-300">23%</div>
-                <div className="text-xs text-slate-300">Annual Yield</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl text-center">
-                <div className="text-3xl font-bold text-rose-300">0</div>
-                <div className="text-xs text-slate-300">New Spots Post-Sellout</div>
-              </div>
+        </section>
+
+        <section className="py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {steps.map(([Icon,title,desc]:any,i)=>(
+                <div key={title} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+                  <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-50 font-black text-[#e11d48]">{i+1}</span><Icon className="h-5 w-5 text-slate-400"/></div>
+                  <h2 className="mt-5 text-2xl font-bold">{title}</h2>
+                  <p className="mt-3 leading-7 text-slate-600">{desc}</p>
+                </div>
+              ))}
             </div>
           </div>
-          
-          <Link href="/purchase">
-            <Button size="lg" className="bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900 hover:from-amber-500 hover:to-yellow-600 font-bold px-12 py-8 text-xl rounded-full shadow-2xl transition-all hover:scale-105 hover:shadow-amber-500/30">
-              <Coins className="mr-3 h-6 w-6" /> Secure My Prime Asset • $29.99
-            </Button>
-          </Link>
-          
-          <p className="text-sm text-slate-400 mt-6">
-            Early adopters have secured spots now valued at 5x purchase price
-          </p>
-        </div>
-      </section>
+        </section>
 
-      {/* SECTION 1: HOW IT MAKES MONEY - Détaillée */}
-      <section className="py-20 bg-slate-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-serif font-bold text-slate-900 mb-4">
-              This Isn't a Souvenir.<br/>
-              It's a <span className="text-[#e11d48]">Working Asset</span>.
-            </h2>
-            <p className="text-slate-600 text-lg max-w-3xl mx-auto">
-              Your digital love lock generates multiple revenue streams while preserving your romantic memory. 
-              Think of it as <strong>digital real estate on the world's most romantic bridge</strong>.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            
-            {/* Revenue Stream 1 - Enhanced */}
-            <Card className="border-2 border-blue-100 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-              <CardContent className="p-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 mb-6">
-                  <Eye className="h-8 w-8" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-4">1. Pay-Per-View Revenue</h3>
-                <p className="text-slate-700 mb-6">
-                  Transform your lock into a <strong>micro-media platform</strong>. Upload a photo, video, or love story and set it as "Premium Content".
-                </p>
-                
-                <div className="space-y-4 mb-8">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Tourists Pay to Unlock</div>
-                      <div className="text-sm text-slate-600">€0.99 per view, you keep 70%</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Perfect For</div>
-                      <div className="text-sm text-slate-600">Influencers, artists, marriage proposals, business promotions</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Real Example</div>
-                      <div className="text-sm text-slate-600">Lock #42105 earned €847 in 3 months from a viral proposal video</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-blue-50 p-4 rounded-xl">
-                  <div className="text-sm font-bold text-blue-800 mb-1">Projected Annual Yield</div>
-                  <div className="text-2xl font-bold text-blue-900">10-23%</div>
-                  <div className="text-xs text-blue-700">Based on location & content quality</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Revenue Stream 2 - Enhanced */}
-            <Card className="border-2 border-amber-100 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-              <CardContent className="p-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 mb-6">
-                  <TrendingUp className="h-8 w-8" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-4">2. Marketplace Appreciation</h3>
-                <p className="text-slate-700 mb-6">
-                  Buy low, sell high. Our internal marketplace allows <strong>instant liquidity</strong> for your digital asset.
-                </p>
-                
-                <div className="space-y-4 mb-8">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Strategic Acquisition</div>
-                      <div className="text-sm text-slate-600">Buy "Golden Numbers" (#777, #888) or "Eiffel View" spots at $29.99</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Immediate Resale</div>
-                      <div className="text-sm text-slate-600">List premium spots for $500+ to other collectors</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Real Transaction</div>
-                      <div className="text-sm text-slate-600">Lock #1007 (Eiffel view) sold for $2,150 (71x return)</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-amber-50 p-4 rounded-xl">
-                  <div className="text-sm font-bold text-amber-800 mb-1">Current Market Premium</div>
-                  <div className="text-2xl font-bold text-amber-900">50-300%</div>
-                  <div className="text-xs text-amber-700">For premium locations & numbers</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Revenue Stream 3 - Enhanced */}
-            <Card className="border-2 border-emerald-100 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-              <CardContent className="p-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 mb-6">
-                  <MapPin className="h-8 w-8" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-4">3. Scarcity & Location Value</h3>
-                <p className="text-slate-700 mb-6">
-                  Only <strong>1,000,000 spots</strong> will ever exist. Once the bridge is full, <strong>no new locks can be minted</strong>.
-                </p>
-                
-                <div className="space-y-4 mb-8">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Finite Supply</div>
-                      <div className="text-sm text-slate-600">1M spots for 30M annual tourists = 3.3% coverage ratio</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Prime Locations</div>
-                      <div className="text-sm text-slate-600">Eiffel Tower view, bridge center, sunrise/sunset alignment</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-900">Economic Principle</div>
-                      <div className="text-sm text-slate-600">Supply stops, demand grows = natural appreciation</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-emerald-50 p-4 rounded-xl">
-                  <div className="text-sm font-bold text-emerald-800 mb-1">Scarcity Multiplier</div>
-                  <div className="text-2xl font-bold text-emerald-900">5-10x</div>
-                  <div className="text-xs text-emerald-700">Projected post-sellout valuation</div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 2: KEY DIFFERENTIATOR - Enhanced */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <section className="bg-slate-950 py-16 text-white sm:py-24">
+          <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 lg:grid-cols-2">
+            <div className="relative min-h-[420px] overflow-hidden rounded-[2rem] bg-white/5">
+              <Image src="/images/skin-gold.png" alt="LoveLockParis Gold Love Lock" fill className="object-contain p-8" />
+            </div>
             <div>
-              <h2 className="text-4xl font-serif font-bold text-slate-900 mb-6">
-                "Does the lock disappear<br/>
-                <span className="text-[#e11d48]">if I sell it?</span>"
-              </h2>
-              <p className="text-2xl text-slate-700 mb-8 leading-relaxed">
-                <strong className="text-slate-900">Never.</strong> That's the fundamental difference between physical and digital ownership.
-              </p>
-              
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-[#e11d48] flex-shrink-0">
-                    <InfinityIcon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 text-lg mb-2">The Memory is Permanent</h4>
-                    <p className="text-slate-700">
-                      Even if you sell your lock, the <strong>digital object remains on the bridge forever</strong>. The names, date, and personalized design are immutable.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
-                    <Wallet className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 text-lg mb-2">You're Trading Title, Not Memory</h4>
-                    <p className="text-slate-700">
-                      The Certificate of Ownership simply transfers from your digital wallet to the buyer's wallet. Like selling a house—the building remains, ownership changes.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
-                    <Gem className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 text-lg mb-2">Physical vs. Digital Comparison</h4>
-                    <div className="text-sm text-slate-700 space-y-2">
-                      <div className="flex justify-between">
-                        <span>Physical lock lifespan:</span>
-                        <span className="font-bold text-rose-600">6-12 months</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Digital lock lifespan:</span>
-                        <span className="font-bold text-emerald-600">Permanent</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Physical resale value:</span>
-                        <span className="font-bold text-rose-600">€0 (destroyed)</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Digital resale value:</span>
-                        <span className="font-bold text-emerald-600">Appreciating</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-10 rounded-3xl shadow-2xl">
-              <h3 className="text-3xl font-bold mb-8 text-center">Lock Tiers & Investment Strategy</h3>
-              
-              <div className="space-y-8">
-                <div className="border border-slate-700 rounded-2xl p-6 hover:bg-slate-800/50 transition-colors">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-xl font-bold text-white">Standard Tier</h4>
-                    <span className="px-3 py-1 bg-slate-700 rounded-full text-sm">Entry Level</span>
-                  </div>
-                  <p className="text-slate-300 mb-4">
-                    Perfect for memory preservation and modest yield. The "blue chip" of love lock investments.
-                  </p>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-white mb-1">$29.99</div>
-                    <div className="text-sm text-slate-400">Projected 10-23% annual yield</div>
-                  </div>
-                </div>
-                
-                <div className="border-2 border-amber-500/50 rounded-2xl p-6 bg-gradient-to-r from-amber-900/20 to-yellow-900/20 hover:from-amber-900/30 hover:to-yellow-900/30 transition-all">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-xl font-bold text-amber-200">Golden Asset Tier</h4>
-                    <span className="px-3 py-1 bg-amber-900/50 text-amber-200 rounded-full text-sm">Premium</span>
-                  </div>
-                  <p className="text-amber-100 mb-4">
-                    Rare ID numbers (#007, #777, #888) or premium Eiffel Tower views. Designed specifically for <strong>maximum resale value</strong>.
-                  </p>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-amber-300 mb-1">$49.99 - $199.99</div>
-                    <div className="text-sm text-amber-200/80">Projected 20-40% annual appreciation</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-10 pt-8 border-t border-slate-700">
-                <div className="text-center">
-                  <div className="text-sm text-slate-400 mb-2">Current Market Status</div>
-                  <div className="text-2xl font-bold text-white">347,293 / 1,000,000</div>
-                  <div className="text-sm text-slate-300">Spots already secured (34.73% sold)</div>
-                  <div className="h-2 bg-slate-700 rounded-full mt-3 overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-[#e11d48] to-pink-600 rounded-full" style={{ width: '41.3%' }}></div>
-                  </div>
-                </div>
+              <h2 className="font-serif text-3xl font-bold sm:text-4xl">{t.preview}</h2>
+              <div className="mt-7 space-y-3">
+                {[t.p1,t.p2,t.p3,t.p4,t.p5,t.p6].map((item:string)=><div key={item} className="flex items-center gap-3 text-slate-200"><CheckCircle className="h-5 w-5 shrink-0 text-emerald-400"/>{item}</div>)}
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* SECTION 3: ROADMAP - Enhanced with Details */}
-      <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-serif font-bold text-slate-900 mb-4">
-              The Global Market <span className="text-[#e11d48]">Roadmap</span>
-            </h2>
-            <p className="text-slate-600 text-lg max-w-3xl mx-auto">
-              We're building more than an app—we're creating a <strong>decentralized global monument</strong>. 
-              Early holders aren't just users; they're the <strong>architects of a new digital economy</strong>.
-            </p>
-          </div>
-
-          <div className="space-y-12">
-            
-            {/* Phase 1 */}
-            <div className="grid md:grid-cols-5 gap-8 items-center">
-              <div className="md:col-span-2">
-                <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-8 rounded-3xl shadow-xl">
-                  <div className="text-sm font-bold uppercase tracking-widest opacity-90 mb-2">Phase 1: Now</div>
-                  <div className="text-4xl font-bold mb-2">0 → 500,000 Locks</div>
-                  <div className="text-blue-100">Foundation & Early Adoption</div>
-                </div>
-              </div>
-              <div className="md:col-span-3">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">✓</div>
-                    <div>
-                      <div className="font-bold text-slate-900">Fixed Price Entry</div>
-                      <div className="text-slate-700">All locks available at $29.99 (early adopter advantage)</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">✓</div>
-                    <div>
-                      <div className="font-bold text-slate-900">Internal Marketplace Active</div>
-                      <div className="text-slate-700">Buy/sell between users with instant settlement</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">✓</div>
-                    <div>
-                      <div className="font-bold text-slate-900">Fiat Gateway</div>
-                      <div className="text-slate-700">Credit card, Apple Pay, Google Pay integration</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">🎯</div>
-                    <div>
-                      <div className="font-bold text-slate-900">Primary Goal</div>
-                      <div className="text-slate-700">Secure all prime locations before global exposure</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        <section className="py-16 sm:py-24">
+          <div className="mx-auto grid max-w-6xl gap-6 px-4 md:grid-cols-2">
+            <div className="rounded-3xl border border-slate-200 bg-[#fffdfc] p-8">
+              <Camera className="h-7 w-7 text-[#e11d48]"/>
+              <h2 className="mt-4 text-2xl font-bold">{t.ar}</h2>
+              <p className="mt-3 leading-7 text-slate-600">{t.arText}</p>
             </div>
-
-            {/* Phase 2 */}
-            <div className="grid md:grid-cols-5 gap-8 items-center">
-              <div className="md:col-span-2">
-                <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-8 rounded-3xl shadow-xl">
-                  <div className="text-sm font-bold uppercase tracking-widest opacity-90 mb-2">Phase 2: Global Bridge</div>
-                  <div className="text-4xl font-bold mb-2">At 500,000 Locks</div>
-                  <div className="text-purple-100">International Market Integration</div>
-                </div>
-              </div>
-              <div className="md:col-span-3">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">🚀</div>
-                    <div>
-                      <div className="font-bold text-slate-900">Global Crypto Market Connection</div>
-                      <div className="text-slate-700">Your locks become tradeable as NFTs on OpenSea, Blur, etc.</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">🌍</div>
-                    <div>
-                      <div className="font-bold text-slate-900">International Investor Entry</div>
-                      <div className="text-slate-700">Crypto whales, investment funds, and global collectors enter</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">📈</div>
-                    <div>
-                      <div className="font-bold text-slate-900">Uncapped Valuation</div>
-                      <div className="text-slate-700">Market value determined by global demand, not platform caps</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">💎</div>
-                    <div>
-                      <div className="font-bold text-slate-900">Early Holder Advantage</div>
-                      <div className="text-slate-700">Phase 1 buyers enjoy massive unrealized gains at launch</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Phase 3 */}
-            <div className="grid md:grid-cols-5 gap-8 items-center">
-              <div className="md:col-span-2">
-                <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white p-8 rounded-3xl shadow-xl">
-                  <div className="text-sm font-bold uppercase tracking-widest opacity-90 mb-2">Phase 3: Sold Out</div>
-                  <div className="text-4xl font-bold mb-2">1,000,000 Locks</div>
-                  <div className="text-emerald-100">Scarcity-Driven Economy</div>
-                </div>
-              </div>
-              <div className="md:col-span-3">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">⛔</div>
-                    <div>
-                      <div className="font-bold text-slate-900">Minting Closed Forever</div>
-                      <div className="text-slate-700">No new locks can be created. Total supply fixed at 1M</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">🏆</div>
-                    <div>
-                      <div className="font-bold text-slate-900">Secondary Market Only</div>
-                      <div className="text-slate-700">The only way to get a spot is to buy from existing holders (YOU)</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">💰</div>
-                    <div>
-                      <div className="font-bold text-slate-900">Pure Scarcity Economics</div>
-                      <div className="text-slate-700">30M annual tourists ÷ 1M spots = natural price appreciation</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">👑</div>
-                    <div>
-                      <div className="font-bold text-slate-900">Early Adopter Royalty</div>
-                      <div className="text-slate-700">Phase 1 buyers become permanent rentiers of digital Paris real estate</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-8">
+              <Sparkles className="h-7 w-7 text-emerald-600"/>
+              <h2 className="mt-4 text-2xl font-bold text-emerald-950">{t.simple}</h2>
+              <p className="mt-3 leading-7 text-emerald-900/70">{t.simpleText}</p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FINAL CTA & WARNING */}
-      <section className="py-20 text-center bg-gradient-to-br from-slate-900 to-slate-950 text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(225,29,72,0.4),transparent_50%)]"></div>
-        </div>
-        
-        <div className="container mx-auto px-4 relative z-10 max-w-5xl">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 text-sm font-bold uppercase tracking-wider mb-6">
-            <Clock className="h-4 w-4" /> Time-Sensitive Opportunity
+        <section className="px-4 pb-20">
+          <div className="mx-auto max-w-5xl rounded-[2.5rem] bg-gradient-to-br from-rose-600 to-[#9f1239] px-6 py-14 text-center text-white">
+            <h2 className="font-serif text-3xl font-bold sm:text-5xl">{t.final}</h2>
+            <Link href={`${prefix}/purchase`} className="mt-7 inline-block"><Button className="h-14 rounded-full bg-white px-7 font-black text-[#be123c] hover:bg-rose-50">{t.cta}</Button></Link>
           </div>
-          
-          <h2 className="text-5xl md:text-6xl font-serif font-bold mb-8 leading-tight">
-            Smart Investors Don't Wait for<br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-400">The 500k Milestone</span>
-          </h2>
-          
-          <div className="max-w-3xl mx-auto mb-12">
-            <p className="text-xl text-slate-300 mb-10 leading-relaxed">
-              The <strong>best locations (Eiffel Tower view, bridge center, golden numbers)</strong> are disappearing daily. 
-              Once Phase 2 begins and global investors enter, early prices will be a distant memory.
-            </p>
-            
-            <div className="grid md:grid-cols-3 gap-6 mb-12">
-              <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-white/10">
-                <div className="text-3xl font-bold text-amber-300 mb-2">48%</div>
-                <div className="text-sm text-slate-300">Prime spots already taken</div>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-white/10">
-                <div className="text-3xl font-bold text-rose-300 mb-2">17 days</div>
-                <div className="text-sm text-slate-300">Avg. sellout time for Eiffel views</div>
-              </div>
-              <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-white/10">
-                <div className="text-3xl font-bold text-emerald-300 mb-2">343k/1M</div>
-                <div className="text-sm text-slate-300">Total spots secured (34.3%)</div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 mb-10">
-              <div className="flex items-center gap-4 mb-4">
-                <TrendingUp className="h-8 w-8 text-amber-400" />
-                <div className="text-left">
-                  <div className="font-bold text-white text-lg">Market Insight</div>
-                  <div className="text-slate-300 text-sm">Early buyers of premium spots are already seeing 3-5x returns on internal marketplace</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link href="/purchase" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-900 font-bold px-14 py-8 text-xl rounded-full shadow-2xl hover:scale-105 transition-transform">
-                <Gem className="mr-3 h-6 w-6" /> Acquire My Prime Asset • $29.99
-              </Button>
-            </Link>
-            <Link href="/bridge" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto border-2 border-white/30 bg-white/5 hover:bg-white/10 text-white font-bold px-10 py-8 text-xl rounded-full">
-                <Globe className="mr-3" /> Explore Available Spots First
-              </Button>
-            </Link>
-          </div>
-          
-          <p className="text-sm text-slate-400 mt-8">
-            <ShieldCheck className="inline h-4 w-4 mr-1" /> 7-day satisfaction guarantee • Instant delivery • No hidden fees
-          </p>
-        </div>
-      </section>
-
-         {/* FOOTER */}
-      <footer className="border-t border-slate-200 bg-white py-8 sm:py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10 mb-8 sm:mb-10 md:mb-12">
-
-              {/* CONCIERGE — MOBILE FIRST (visible en haut sur mobile, caché dès lg) */}
-              <div className="lg:hidden">
-                <h4 className="font-extrabold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-                  Concierge
-                </h4>
-
-                <a
-                  href="/paris-concierge-service"
-                  className="group block rounded-2xl border border-amber-200 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 shadow-xl hover:shadow-2xl transition"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-extrabold text-white">
-                        Paris Concierge Service
-                      </div>
-                      <div className="text-[11px] font-bold tracking-[0.16em] text-amber-300 uppercase mt-1">
-                        VIP • Private Access • Luxury
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-extrabold tracking-wider text-white">
-                      SELECT
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                      <div className="text-[10px] font-bold text-white/80">Jet</div>
-                      <div className="text-[11px] font-extrabold text-white">Tarmac</div>
-                    </div>
-                    <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                      <div className="text-[10px] font-bold text-white/80">Mercedes</div>
-                      <div className="text-[11px] font-extrabold text-white">S-Class</div>
-                    </div>
-                    <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                      <div className="text-[10px] font-bold text-white/80">Nightlife</div>
-                      <div className="text-[11px] font-extrabold text-white">Clubs</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="text-xs font-semibold text-white/85">
-                      Fast reply • Discreet • Premium
-                    </div>
-                    <div className="text-xs font-extrabold text-amber-300 group-hover:text-amber-200">
-                      Open →
-                    </div>
-                  </div>
-                </a>
-              </div>
-
-              {/* BRAND (desktop: concierge juste en dessous) */}
-              <div>
-                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                  <Heart className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-[#e11d48] fill-[#e11d48]" />
-                  <span className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
-                    LoveLock<span className="text-[#e11d48]">Paris</span>
-                  </span>
-                </div>
-
-                <p className="text-xs sm:text-sm text-slate-600">
-                  {locale === 'fr'
-                    ? "Le registre numérique officiel du Pont des Cadenas d'Amour. Préserver le romantisme, protéger le patrimoine."
-                    : locale === 'zh-CN'
-                    ? "艺术桥爱情锁官方数字注册平台，自2026年起保护浪漫与文化遗产。"
-                    : "The official digital registry of the Pont des Arts Love Lock Bridge. Preserving romance and heritage."}
-                </p>
-
-                {/* CONCIERGE — DESKTOP sous la brand (visible dès lg) */}
-                <div className="hidden lg:block mt-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-extrabold text-slate-900 text-sm">
-                      Concierge
-                    </h4>
-                    <span className="text-[10px] font-extrabold tracking-[0.18em] text-amber-600 uppercase">
-                      VIP Select
-                    </span>
-                  </div>
-
-                  <a
-                    href="/paris-concierge-service"
-                    className="group block rounded-2xl border border-amber-200 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 shadow-xl hover:shadow-2xl transition"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-extrabold text-white">
-                          Paris Concierge Service
-                        </div>
-                        <div className="text-[11px] font-bold tracking-[0.16em] text-amber-300 uppercase mt-1">
-                          VIP • Private Access • Luxury
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-extrabold tracking-wider text-white">
-                        SELECT
-                      </div>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                        <div className="text-[10px] font-bold text-white/80">Jet</div>
-                        <div className="text-[11px] font-extrabold text-white">Tarmac</div>
-                      </div>
-                      <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                        <div className="text-[10px] font-bold text-white/80">Mercedes</div>
-                        <div className="text-[11px] font-extrabold text-white">S-Class</div>
-                      </div>
-                      <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2">
-                        <div className="text-[10px] font-bold text-white/80">Yacht</div>
-                        <div className="text-[11px] font-extrabold text-white">Seine</div>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between">
-                      <div className="text-xs font-semibold text-white/85">
-                        Fast reply • Discreet • Premium
-                      </div>
-                      <div className="text-xs font-extrabold text-amber-300 group-hover:text-amber-200">
-                        Open →
-                      </div>
-                    </div>
-                  </a>
-                </div>
-              </div>
-
-              {/* NAVIGATION */}
-              <div>
-                <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-                  Navigation
-                </h4>
-                <div className="space-y-2 text-xs sm:text-sm">
-                  <a href="/marketplace" className="block text-slate-600 hover:text-[#e11d48]">Marketplace</a>
-                  <a href="/bridge" className="block text-slate-600 hover:text-[#e11d48]">3D Bridge</a>
-                  <a href="/ar-view" className="block text-slate-600 hover:text-[#e11d48]">AR View</a>
-                  <a href="/concept" className="block text-slate-600 hover:text-[#e11d48]">Concept</a>
-                  <a href="/about" className="block text-slate-600 hover:text-[#e11d48]">History</a>
-                </div>
-              </div>
-
-              {/* PARIS GUIDES */}
-              <div>
-                <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-                  Paris Guides
-                </h4>
-                <div className="space-y-2 text-xs sm:text-sm">
-                  <a href="/guide/is-it-illegal-paris-locks" className="block text-slate-600 hover:text-[#e11d48]">
-                    Is It Illegal to Put Love Locks in Paris?
-                  </a>
-                  <a href="/guide/love-lock-bridge-paris" className="block text-slate-600 hover:text-[#e11d48]">
-                    Love Lock Bridge Paris
-                  </a>
-                  <a href="/guide/where-is-pont-des-arts" className="block text-slate-600 hover:text-[#e11d48]">
-                    Where Is Pont des Arts?
-                  </a>
-                  <a href="/romantic-things-to-do-in-paris" className="block text-slate-600 hover:text-[#e11d48]">
-                    Romantic Things to Do in Paris
-                  </a>
-                </div>
-              </div>
-
-              {/* LEGAL */}
-              <div>
-                <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-3 sm:mb-4">
-                  Legal
-                </h4>
-                <div className="space-y-2 text-xs sm:text-sm">
-                  <a href="/legal" className="block text-slate-600 hover:text-[#e11d48]">
-                    Legal Notice
-                  </a>
-                  <a href="/terms" className="block text-slate-600 hover:text-[#e11d48]">
-                    Terms of Service
-                  </a>
-                  <a href="/privacy" className="block text-slate-600 hover:text-[#e11d48]">
-                    Privacy Policy
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {/* BOTTOM */}
-            <div className="pt-4 sm:pt-6 md:pt-8 border-t border-slate-100 text-center">
-              <p className="text-xs sm:text-sm text-slate-600 mb-2">
-                {locale === 'fr'
-                  ? "Pont des Arts • 75006 Paris • GPS : 48.858370, 2.337480"
-                  : locale === 'zh-CN'
-                  ? "巴黎艺术桥 • 75006 巴黎 • GPS：48.858370, 2.337480"
-                  : "Pont des Arts • 75006 Paris • GPS: 48.858370, 2.337480"}
-              </p>
-
-              <p className="text-[10px] sm:text-xs text-slate-500">
-                © 2026 PANORAMA GRUP. LoveLockParis™ — All rights reserved.
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
-
+        </section>
+      </main>
     </div>
   );
 }
