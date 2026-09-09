@@ -78,6 +78,7 @@ export async function POST(req: Request) {
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'https://lovelockparis.com';
     const userId = body.userId || null;
     const userEmail = body.userEmail || null;
+    const visitorId = body.visitorId ? String(body.visitorId).slice(0, 128) : null;
     const type = body.type || 'new_lock';
     const locale = VALID_LOCALES.has(body.locale) ? body.locale : 'en';
     const prefix = localePrefix(locale);
@@ -190,7 +191,7 @@ export async function POST(req: Request) {
       user_id: userId,
       user_email: userEmail,
       amount: finalPrice,
-      metadata: { type, zone, skin, mediaType, locale, origin },
+      metadata: { type, zone, skin, mediaType, locale, origin, visitor_id: visitorId },
     });
 
     if (type === 'new_lock') {
@@ -248,6 +249,7 @@ export async function POST(req: Request) {
         boost_package: body.package || body.packageName || '',
         media_type: mediaType || '',
         locale,
+        visitor_id: visitorId || '',
       },
     };
 
@@ -264,7 +266,7 @@ export async function POST(req: Request) {
       user_id: userId,
       user_email: userEmail,
       amount: finalPrice,
-      metadata: { type, locale, livemode: session.livemode },
+      metadata: { type, locale, livemode: session.livemode, visitor_id: visitorId },
     });
 
     return NextResponse.json({ url: session.url, sessionId: session.id, livemode: session.livemode });
