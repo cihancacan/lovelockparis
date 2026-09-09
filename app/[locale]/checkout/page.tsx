@@ -189,7 +189,7 @@ function CheckoutContent() {
             <div className="flex gap-2 items-start">
               <Checkbox id="terms" checked={acceptTerms} onCheckedChange={(c) => setAcceptTerms(c as boolean)} className="mt-1"/>
               <label htmlFor="terms" className="text-xs cursor-pointer text-slate-500 leading-tight">
-                I agree to the Terms. Digital item, no refund.
+                I agree to the Terms and understand this is a digital service.
               </label>
             </div>
 
