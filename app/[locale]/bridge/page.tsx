@@ -1,887 +1,777 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Lock, Eye, Heart, Move, Smartphone } from 'lucide-react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { 
-  OrbitControls, 
-  Sky, 
-  Environment, 
-  Float, 
-  Text, 
-  Stars,
-  Instance, 
-  Instances
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Canvas, useFrame } from '@react-three/fiber';
+import {
+  Environment,
+  Html,
+  Instance,
+  Instances,
+  OrbitControls,
+  RoundedBox,
+  Sparkles,
 } from '@react-three/drei';
 import * as THREE from 'three';
-import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import {
+  ArrowLeft,
+  Eye,
+  Heart,
+  Loader2,
+  Lock,
+  MapPin,
+  Maximize2,
+  Move,
+  X,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-// --- GENERATE INITIALS ---
-const generateInitials = () => {
-  const firstNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 
-                     'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
-  const nameStyles = [
-    () => `${firstNames[Math.floor(Math.random() * firstNames.length)]}${firstNames[Math.floor(Math.random() * firstNames.length)]}`,
-    () => `${firstNames[Math.floor(Math.random() * firstNames.length)]}.${firstNames[Math.floor(Math.random() * firstNames.length)]}`,
-    () => `${firstNames[Math.floor(Math.random() * firstNames.length)]}&${firstNames[Math.floor(Math.random() * firstNames.length)]}`,
-    () => `#${Math.floor(Math.random() * 90) + 10}`,
-  ];
-  
-  const style = nameStyles[Math.floor(Math.random() * nameStyles.length)];
-  return style();
+const PARIS_BACKPLATE =
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Love_Locks_on_the_Pont_des_Arts.jpg/2560px-Love_Locks_on_the_Pont_des_Arts.jpg';
+
+const CURRENT_LOCKS = 347293;
+const TOTAL_GOAL = 1000000;
+const DISTANT_LOCK_COUNT = 1100;
+
+const STORIES = [
+  ['Emma & Lucas', 'Toujours ensemble', 'Gold'],
+  ['Aylin & Deniz', 'Paris, notre promesse', 'Gold'],
+  ['Sofia & Mateo', 'You are my home', 'Ruby'],
+  ['Lina & Adam', 'Pour toujours', 'Iron'],
+  ['Anna & Leo', 'One city. One story.', 'Diamond'],
+  ['Mila & Noah', 'Depuis notre premier voyage', 'Gold'],
+  ['Camille & Hugo', 'À nous deux', 'Ruby'],
+  ['Elena & Marco', 'Sempre insieme', 'Iron'],
+  ['Maya & Liam', 'Until the end of time', 'Diamond'],
+  ['Chloé & Jules', 'Paris 2026', 'Gold'],
+  ['Nora & Elias', 'Our forever place', 'Iron'],
+  ['Sara & Alex', 'Je t’aime', 'Ruby'],
+  ['Mia & Theo', 'The beginning of everything', 'Gold'],
+  ['Léa & Tom', 'Un cadenas, une histoire', 'Iron'],
+  ['Alina & Emir', 'Bizim hikâyemiz', 'Diamond'],
+  ['Eva & Louis', 'Ici pour toujours', 'Gold'],
+] as const;
+
+type Story = {
+  id: number;
+  names: string;
+  message: string;
+  skin: string;
 };
 
-// --- REALISTIC LOCK GEOMETRY ---
-const createLockGeometry = () => {
-  // Create lock body (main box)
-  const body = new THREE.BoxGeometry(0.15, 0.25, 0.06);
-  
-  // Create shackle (U-shape)
-  const shacklePoints = [
-    new THREE.Vector3(-0.08, 0.15, 0),
-    new THREE.Vector3(0, 0.2, 0),
-    new THREE.Vector3(0.08, 0.15, 0),
-  ];
-  
-  const shackleCurve = new THREE.CatmullRomCurve3(shacklePoints);
-  const shackle = new THREE.TubeGeometry(shackleCurve, 8, 0.015, 6, false);
-  
-  // Merge geometries using BufferGeometryUtils
-  const mergedGeometry = mergeBufferGeometries([body, shackle]);
-  
-  return mergedGeometry;
-};
+function seeded(seed: number) {
+  const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
 
-// --- REALISTIC PARIS BRIDGE (Pont des Arts) ---
-function ParisBridge() {
+function useResponsive() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth <= 768);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  return isMobile;
+}
+
+function Beam({
+  start,
+  end,
+  radius = 0.035,
+}: {
+  start: [number, number, number];
+  end: [number, number, number];
+  radius?: number;
+}) {
+  const transform = useMemo(() => {
+    const a = new THREE.Vector3(...start);
+    const b = new THREE.Vector3(...end);
+    const mid = a.clone().add(b).multiplyScalar(0.5);
+    const direction = b.clone().sub(a);
+    const length = direction.length();
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      direction.normalize()
+    );
+    return { mid, quaternion, length };
+  }, [start, end]);
+
   return (
-    <group>
-      {/* Bridge deck - Beige stone planks */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
-        <boxGeometry args={[11, 155, 0.2]} />
-        <meshStandardMaterial 
-          color="#D8C9B4"
-          roughness={0.85}
-          metalness={0.05}
-        />
+    <mesh position={transform.mid} quaternion={transform.quaternion} castShadow>
+      <cylinderGeometry args={[radius, radius, transform.length, 8]} />
+      <meshStandardMaterial color="#191b1b" metalness={0.92} roughness={0.29} />
+    </mesh>
+  );
+}
+
+function ParisLamp({ side, z }: { side: number; z: number }) {
+  return (
+    <group position={[side * 4.35, 0.22, z]}>
+      <mesh position={[0, 1.55, 0]} castShadow>
+        <cylinderGeometry args={[0.055, 0.09, 3.1, 12]} />
+        <meshStandardMaterial color="#171918" metalness={0.88} roughness={0.3} />
       </mesh>
 
-      {/* Stone side walls - 1.20m height */}
-      <mesh position={[-5.4, 0.6, 0]}>
-        <boxGeometry args={[0.4, 1.2, 155]} />
-        <meshStandardMaterial color="#C4B6A0" roughness={0.8} />
-      </mesh>
-      <mesh position={[5.4, 0.6, 0]}>
-        <boxGeometry args={[0.4, 1.2, 155]} />
-        <meshStandardMaterial color="#C4B6A0" roughness={0.8} />
+      <mesh position={[0, 3.03, 0]} castShadow>
+        <cylinderGeometry args={[0.14, 0.09, 0.25, 12]} />
+        <meshStandardMaterial color="#111312" metalness={0.9} roughness={0.28} />
       </mesh>
 
-      {/* Parisian Railings - 1.50m height, green like lampposts */}
-      {/* Main vertical posts */}
-      <mesh position={[-5.2, 1.05, 0]}>
-        <boxGeometry args={[0.06, 1.5, 155]} />
-        <meshStandardMaterial color="#006B54" metalness={0.4} roughness={0.5} />
-      </mesh>
-      <mesh position={[5.2, 1.05, 0]}>
-        <boxGeometry args={[0.06, 1.5, 155]} />
-        <meshStandardMaterial color="#006B54" metalness={0.4} roughness={0.5} />
-      </mesh>
-
-      {/* Vertical bars (1.50m height from ground) */}
-      {Array.from({ length: 60 }).map((_, i) => {
-        const z = (i * 2.5) - 75;
-        return (
-          <group key={i}>
-            <mesh position={[-5.2, 1.5, z]}>
-              <cylinderGeometry args={[0.022, 0.022, 1.0]} />
-              <meshStandardMaterial color="#006B54" metalness={0.4} roughness={0.5} />
-            </mesh>
-            <mesh position={[5.2, 1.5, z]}>
-              <cylinderGeometry args={[0.022, 0.022, 1.0]} />
-              <meshStandardMaterial color="#006B54" metalness={0.4} roughness={0.5} />
-            </mesh>
-          </group>
-        );
-      })}
-
-      {/* Top cross beam */}
-      <mesh position={[-5.2, 1.8, 0]}>
-        <boxGeometry args={[0.09, 0.06, 155]} />
-        <meshStandardMaterial color="#006B54" metalness={0.4} roughness={0.5} />
-      </mesh>
-      <mesh position={[5.2, 1.8, 0]}>
-        <boxGeometry args={[0.09, 0.06, 155]} />
-        <meshStandardMaterial color="#006B54" metalness={0.4} roughness={0.5} />
-      </mesh>
-
-      {/* Middle cross beam */}
-      <mesh position={[-5.2, 1.2, 0]}>
-        <boxGeometry args={[0.09, 0.06, 155]} />
-        <meshStandardMaterial color="#006B54" metalness={0.4} roughness={0.5} />
-      </mesh>
-      <mesh position={[5.2, 1.2, 0]}>
-        <boxGeometry args={[0.09, 0.06, 155]} />
-        <meshStandardMaterial color="#006B54" metalness={0.4} roughness={0.5} />
-      </mesh>
-
-      {/* Bottom cross beam */}
-      <mesh position={[-5.2, 0.6, 0]}>
-        <boxGeometry args={[0.09, 0.06, 155]} />
-        <meshStandardMaterial color="#006B54" metalness={0.4} roughness={0.5} />
-      </mesh>
-      <mesh position={[5.2, 0.6, 0]}>
-        <boxGeometry args={[0.09, 0.06, 155]} />
-        <meshStandardMaterial color="#006B54" metalness={0.4} roughness={0.5} />
-      </mesh>
-
-      {/* Water */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]}>
-        <planeGeometry args={[200, 200]} />
-        <meshStandardMaterial 
-          color="#1e40af"
-          metalness={0.9}
-          roughness={0.1}
+      <mesh position={[0, 3.28, 0]} castShadow>
+        <cylinderGeometry args={[0.16, 0.24, 0.46, 8]} />
+        <meshPhysicalMaterial
+          color="#f6d6a4"
+          emissive="#e8a64b"
+          emissiveIntensity={1.2}
+          roughness={0.15}
           transparent
-          opacity={0.85}
+          opacity={0.88}
         />
+      </mesh>
+
+      <mesh position={[0, 3.54, 0]} castShadow>
+        <coneGeometry args={[0.26, 0.2, 10]} />
+        <meshStandardMaterial color="#111312" metalness={0.9} roughness={0.28} />
+      </mesh>
+
+      <pointLight
+        position={[0, 3.3, 0]}
+        color="#ffd39b"
+        intensity={0.75}
+        distance={7}
+        decay={2}
+      />
+    </group>
+  );
+}
+
+function Bench({ side, z }: { side: number; z: number }) {
+  return (
+    <group
+      position={[side * 3.55, 0.32, z]}
+      rotation={[0, side > 0 ? Math.PI : 0, 0]}
+    >
+      {[0, 0.24, 0.48].map((y) => (
+        <mesh key={y} position={[0, 0.36 + y, 0]} castShadow>
+          <boxGeometry args={[1.45, 0.12, 0.24]} />
+          <meshStandardMaterial color="#6f452a" roughness={0.72} />
+        </mesh>
+      ))}
+      <mesh position={[-0.58, 0.05, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.58, 0.55]} />
+        <meshStandardMaterial color="#1d1f1f" metalness={0.86} roughness={0.34} />
+      </mesh>
+      <mesh position={[0.58, 0.05, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.58, 0.55]} />
+        <meshStandardMaterial color="#1d1f1f" metalness={0.86} roughness={0.34} />
       </mesh>
     </group>
   );
 }
 
-// --- PARISIAN LAMPS ---
-function ParisianLamps() {
-  const lampPositions = useMemo(() => {
-    return Array.from({ length: 7 }).map((_, i) => ({
-      z: i * 24 - 72,
-    }));
+function BridgeStructure() {
+  const planks = useMemo(
+    () =>
+      Array.from({ length: 34 }).map((_, i) => ({
+        z: 9.6 - i * 0.72,
+        tone: 0.82 + seeded(i + 20) * 0.22,
+      })),
+    []
+  );
+
+  const posts = useMemo(
+    () => Array.from({ length: 18 }).map((_, i) => 9 - i * 1.38),
+    []
+  );
+
+  return (
+    <group>
+      {/* A real near-field bridge. The photographic Paris plate takes over in the distance. */}
+      <mesh position={[0, -0.17, -2.25]} receiveShadow castShadow>
+        <boxGeometry args={[9.55, 0.28, 24.5]} />
+        <meshStandardMaterial color="#4b3424" roughness={0.9} />
+      </mesh>
+
+      {planks.map((plank, i) => (
+        <mesh key={i} position={[0, 0.005, plank.z]} receiveShadow castShadow>
+          <boxGeometry args={[9.35, 0.12, 0.675]} />
+          <meshStandardMaterial
+            color={new THREE.Color(0.34 * plank.tone, 0.23 * plank.tone, 0.15 * plank.tone)}
+            roughness={0.74}
+            metalness={0.02}
+          />
+        </mesh>
+      ))}
+
+      {[-1, 1].map((side) => (
+        <group key={side}>
+          <mesh position={[side * 4.72, 2.08, -2.1]} castShadow>
+            <boxGeometry args={[0.14, 0.14, 24.7]} />
+            <meshStandardMaterial color="#171919" metalness={0.94} roughness={0.26} />
+          </mesh>
+
+          {[0.55, 1.05, 1.55].map((height) => (
+            <mesh key={height} position={[side * 4.72, height, -2.1]} castShadow>
+              <boxGeometry args={[0.075, 0.075, 24.7]} />
+              <meshStandardMaterial color="#242727" metalness={0.91} roughness={0.31} />
+            </mesh>
+          ))}
+
+          {posts.map((z, i) => (
+            <React.Fragment key={`${side}-${i}`}>
+              <mesh position={[side * 4.72, 1.12, z]} castShadow>
+                <boxGeometry args={[0.09, 2.08, 0.09]} />
+                <meshStandardMaterial color="#202222" metalness={0.92} roughness={0.31} />
+              </mesh>
+
+              {i < posts.length - 1 && (
+                <>
+                  <Beam
+                    start={[side * 4.72, 0.62, z - 0.04]}
+                    end={[side * 4.72, 1.58, z - 1.34]}
+                    radius={0.022}
+                  />
+                  <Beam
+                    start={[side * 4.72, 1.58, z - 0.04]}
+                    end={[side * 4.72, 0.62, z - 1.34]}
+                    radius={0.022}
+                  />
+                </>
+              )}
+            </React.Fragment>
+          ))}
+        </group>
+      ))}
+
+      {[-1, 1].map((side) =>
+        [5.8, -2.4, -10.6].map((z) => (
+          <ParisLamp key={`${side}-${z}`} side={side} z={z} />
+        ))
+      )}
+
+      <Bench side={1} z={3.2} />
+      <Bench side={-1} z={-6.2} />
+    </group>
+  );
+}
+
+function DistantLocks() {
+  const locks = useMemo(() => {
+    const colors = ['#8d7446', '#c29a49', '#6e7170', '#9d5a4d', '#c6b47c'];
+    return Array.from({ length: DISTANT_LOCK_COUNT }).map((_, i) => {
+      const side = i % 2 === 0 ? -1 : 1;
+      const z = 8.5 - seeded(i + 1) * 21;
+      const y = 0.68 + seeded(i + 90) * 1.1;
+      const scale = 0.32 + seeded(i + 170) * 0.42;
+      return {
+        position: [
+          side * (4.64 + seeded(i + 250) * 0.06),
+          y,
+          z,
+        ] as [number, number, number],
+        rotation: [
+          (seeded(i + 400) - 0.5) * 0.25,
+          side > 0 ? -Math.PI / 2 : Math.PI / 2,
+          (seeded(i + 500) - 0.5) * 0.4,
+        ] as [number, number, number],
+        scale,
+        color: colors[Math.floor(seeded(i + 600) * colors.length)],
+      };
+    });
   }, []);
 
   return (
-    <group>
-      {lampPositions.map((pos, i) => (
-        <group key={i}>
-          {/* Left lamp */}
-          <group position={[-4.5, 0, pos.z]}>
-            <mesh position={[0, 2.5, 0]}>
-              <cylinderGeometry args={[0.06, 0.08, 5]} />
-              <meshStandardMaterial color="#006B54" metalness={0.3} roughness={0.6} />
-            </mesh>
-            
-            <mesh position={[0, 5, 0]}>
-              <boxGeometry args={[0.35, 0.25, 0.35]} />
-              <meshStandardMaterial color="#006B54" metalness={0.3} roughness={0.6} />
-            </mesh>
-            
-            <mesh position={[0, 5.2, 0]}>
-              <sphereGeometry args={[0.18, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-              <meshStandardMaterial 
-                color="#FFE5B4"
-                emissive="#FFE5B4"
-                emissiveIntensity={0.8}
-                transparent
-                opacity={0.9}
-                roughness={0.1}
-              />
-            </mesh>
-            
-            <pointLight position={[0, 5.2, 0]} color="#FFE5B4" intensity={1.5} distance={15} />
-          </group>
-          
-          {/* Right lamp */}
-          <group position={[4.5, 0, pos.z]}>
-            <mesh position={[0, 2.5, 0]}>
-              <cylinderGeometry args={[0.06, 0.08, 5]} />
-              <meshStandardMaterial color="#006B54" metalness={0.3} roughness={0.6} />
-            </mesh>
-            
-            <mesh position={[0, 5, 0]}>
-              <boxGeometry args={[0.35, 0.25, 0.35]} />
-              <meshStandardMaterial color="#006B54" metalness={0.3} roughness={0.6} />
-            </mesh>
-            
-            <mesh position={[0, 5.2, 0]}>
-              <sphereGeometry args={[0.18, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-              <meshStandardMaterial 
-                color="#FFE5B4"
-                emissive="#FFE5B4"
-                emissiveIntensity={0.8}
-                transparent
-                opacity={0.9}
-                roughness={0.1}
-              />
-            </mesh>
-            
-            <pointLight position={[0, 5.2, 0]} color="#FFE5B4" intensity={1.5} distance={15} />
-          </group>
-        </group>
-      ))}
-    </group>
-  );
-}
-
-// --- EIFFEL TOWER ---
-function EiffelTower() {
-  return (
-    <group position={[0, -10, -120]} scale={[1.5, 1.5, 1.5]}>
-      <mesh position={[0, 0, 0]}>
-        <coneGeometry args={[30, 75, 4]} />
-        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.3} />
-      </mesh>
-      
-      <mesh position={[0, 40, 0]}>
-        <coneGeometry args={[12, 45, 4]} />
-        <meshStandardMaterial color="#4b5563" metalness={0.8} roughness={0.3} />
-      </mesh>
-      
-      <mesh position={[0, 70, 0]}>
-        <coneGeometry args={[5, 25, 4]} />
-        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.2} />
-      </mesh>
-      
-      <mesh position={[0, 90, 0]}>
-        <cylinderGeometry args={[0.6, 0.4, 20]} />
-        <meshStandardMaterial color="#9ca3af" metalness={1} roughness={0.1} />
-      </mesh>
-      
-      <pointLight position={[0, 105, 0]} color="#fbbf24" intensity={12} distance={300} />
-    </group>
-  );
-}
-
-// --- LOVE LOCKS (INCREASED COUNT) ---
-function LoveLocks({ onHover }: { onHover: (info: string | null) => void }) {
-  const count = 12000; // Increased for more visible locks
-  
-  const colors = useMemo(() => [
-    '#94a3b8',
-    '#fbbf24',
-    '#60a5fa',
-    '#dc2626'
-  ], []);
-  
-  const lockGeometry = useMemo(() => createLockGeometry(), []);
-  
-  const locksData = useMemo(() => {
-    return Array.from({ length: count }).map((_, i) => {
-      const side = i % 2 === 0 ? -4.8 : 4.8;
-      const z = (Math.random() * 150) - 75; // Full bridge length
-      const y = Math.random() * 1.0 + 0.6; // Adjusted for 1.5m railings
-      const rotationY = (i % 2 === 0 ? Math.PI / 2 : -Math.PI / 2) + (Math.random() - 0.5) * 0.4;
-      
-      // More distribution - some locks on lower parts
-      const heightMultiplier = Math.random();
-      const lockHeight = heightMultiplier > 0.7 ? 1.2 : 
-                        heightMultiplier > 0.4 ? 0.9 : 
-                        0.6;
-      
-      return {
-        position: [side + (Math.random() - 0.5) * 0.4, lockHeight, z] as [number, number, number],
-        rotation: [0, rotationY, 0] as [number, number, number],
-        color: colors[Math.floor(Math.random() * colors.length)],
-        scale: 0.7 + Math.random() * 0.4,
-        id: i + 1000,
-        initials: generateInitials()
-      };
-    });
-  }, [colors, count]);
-
-  return (
-    <Instances geometry={lockGeometry} range={count}>
-      <meshStandardMaterial metalness={0.9} roughness={0.2} />
-      {locksData.map((lock, i) => (
-        <LockInstance 
-          key={i} 
-          {...lock}
-          onHover={onHover}
+    <Instances limit={DISTANT_LOCK_COUNT} range={DISTANT_LOCK_COUNT}>
+      <boxGeometry args={[0.21, 0.25, 0.075]} />
+      <meshStandardMaterial metalness={0.88} roughness={0.3} />
+      {locks.map((lock, i) => (
+        <Instance
+          key={i}
+          position={lock.position}
+          rotation={lock.rotation}
+          scale={lock.scale}
+          color={lock.color}
         />
       ))}
     </Instances>
   );
 }
 
-function LockInstance({ position, rotation, color, scale, id, initials, onHover }: any) {
-  const ref = useRef<any>();
+function lockMaterial(skin: string) {
+  switch (skin) {
+    case 'Diamond':
+      return { color: '#cfeaf0', metalness: 0.78, roughness: 0.12, emissive: '#3c7782' };
+    case 'Ruby':
+      return { color: '#8b1f32', metalness: 0.7, roughness: 0.2, emissive: '#3a0710' };
+    case 'Gold':
+      return { color: '#c99b43', metalness: 0.96, roughness: 0.19, emissive: '#3c2606' };
+    default:
+      return { color: '#707573', metalness: 0.9, roughness: 0.31, emissive: '#000000' };
+  }
+}
+
+function InteractiveLock({
+  index,
+  story,
+  onSelect,
+}: {
+  index: number;
+  story: Story;
+  onSelect: (story: Story) => void;
+}) {
+  const group = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
+  const side = index % 2 === 0 ? -1 : 1;
+  const z = 7.5 - (index / (STORIES.length - 1)) * 18.2 + (seeded(index + 70) - 0.5) * 1.25;
+  const y = 0.82 + seeded(index + 30) * 0.84;
+  const baseScale = 0.86 + seeded(index + 140) * 0.3;
+  const material = lockMaterial(story.skin);
 
   useFrame(() => {
-    if (ref.current) {
-      ref.current.scale.setScalar(hovered ? scale * 1.3 : scale);
-    }
+    if (!group.current) return;
+    const target = hovered ? baseScale * 1.17 : baseScale;
+    const next = THREE.MathUtils.lerp(group.current.scale.x, target, 0.16);
+    group.current.scale.setScalar(next);
   });
 
   return (
-    <Instance
-      ref={ref}
-      position={position}
-      rotation={rotation}
-      color={hovered ? '#ffffff' : color}
-      onPointerOver={(e: any) => {
+    <group
+      ref={group}
+      position={[side * 4.58, y, z]}
+      rotation={[0, side > 0 ? -Math.PI / 2 : Math.PI / 2, (seeded(index + 240) - 0.5) * 0.17]}
+      scale={baseScale}
+      onPointerOver={(e) => {
         e.stopPropagation();
         setHovered(true);
-        onHover(`Lock #${id} • ${initials}`);
         document.body.style.cursor = 'pointer';
       }}
       onPointerOut={() => {
         setHovered(false);
-        onHover(null);
         document.body.style.cursor = 'default';
       }}
-      onClick={(e: any) => {
+      onClick={(e) => {
         e.stopPropagation();
-        alert(`🔒 Lock #${id} • ${initials}\n\nThis lock represents the love story of ${initials}\n\nAdded: ${Math.floor(Math.random() * 12) + 1}/${Math.floor(Math.random() * 28) + 1}/202${Math.floor(Math.random() * 4)}`);
+        onSelect(story);
       }}
-    />
-  );
-}
+    >
+      <RoundedBox args={[0.42, 0.49, 0.14]} radius={0.045} smoothness={4} castShadow>
+        <meshPhysicalMaterial
+          color={material.color}
+          metalness={material.metalness}
+          roughness={material.roughness}
+          emissive={material.emissive}
+          emissiveIntensity={hovered ? 0.26 : 0.05}
+          clearcoat={0.35}
+          clearcoatRoughness={0.16}
+        />
+      </RoundedBox>
 
-// --- HEART BALLOONS WITH CLICKABLE LOCKS ---
-function HeartBalloons() {
-  const heartGeometry = useMemo(() => {
-    const shape = new THREE.Shape();
-    const x = 0, y = 0;
-    
-    shape.moveTo(x, y + 0.3);
-    shape.bezierCurveTo(x + 0.3, y + 0.3, x + 0.3, y, x, y - 0.3);
-    shape.bezierCurveTo(x - 0.3, y, x - 0.3, y + 0.3, x, y + 0.3);
-    
-    const extrudeSettings = {
-      depth: 0.1,
-      bevelEnabled: true,
-      bevelThickness: 0.05,
-      bevelSize: 0.05,
-      bevelSegments: 3
-    };
-    
-    return new THREE.ExtrudeGeometry(shape, extrudeSettings);
-  }, []);
+      <mesh position={[0, 0.32, 0]} castShadow>
+        <torusGeometry args={[0.165, 0.03, 10, 30, Math.PI]} />
+        <meshStandardMaterial color="#9b9e9c" metalness={1} roughness={0.18} />
+      </mesh>
+      <mesh position={[-0.165, 0.23, 0]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.18, 10]} />
+        <meshStandardMaterial color="#9b9e9c" metalness={1} roughness={0.18} />
+      </mesh>
+      <mesh position={[0.165, 0.23, 0]} castShadow>
+        <cylinderGeometry args={[0.03, 0.03, 0.18, 10]} />
+        <meshStandardMaterial color="#9b9e9c" metalness={1} roughness={0.18} />
+      </mesh>
 
-  const balloons = useMemo(() => {
-    return Array.from({ length: 25 }).map((_, i) => ({
-      id: 5000 + i,
-      position: [
-        (Math.random() - 0.5) * 14,
-        3 + Math.random() * 2,
-        (Math.random() - 0.5) * 80
-      ] as [number, number, number],
-      scale: 0.7 + Math.random() * 0.6,
-      rotation: [0, 0, Math.random() * Math.PI * 2] as [number, number, number],
-      initials: generateInitials(),
-      color: ['#FF3366', '#FF6699', '#FF0066', '#FF0033'][Math.floor(Math.random() * 4)]
-    }));
-  }, []);
+      <mesh position={[0, -0.01, 0.073]}>
+        <planeGeometry args={[0.31, 0.22]} />
+        <meshStandardMaterial
+          color={hovered ? '#f5e7c3' : '#d7c697'}
+          metalness={0.36}
+          roughness={0.42}
+        />
+      </mesh>
 
-  return (
-    <group>
-      {balloons.map((balloon) => (
-        <Float 
-          key={balloon.id}
-          speed={0.5} 
-          rotationIntensity={0.6} 
-          floatIntensity={0.15}
-        >
-          <group position={balloon.position}>
-            <mesh 
-              geometry={heartGeometry} 
-              scale={balloon.scale}
-              rotation={balloon.rotation}
-            >
-              <meshStandardMaterial 
-                color={balloon.color}
-                emissive={balloon.color}
-                emissiveIntensity={0.7}
-                roughness={0.2}
-              />
-            </mesh>
-            
-            <mesh position={[0, -0.8, 0]}>
-              <cylinderGeometry args={[0.007, 0.007, 2]} />
-              <meshBasicMaterial color="white" transparent opacity={0.7} />
-            </mesh>
-            
-            {/* Clickable lock on balloon string */}
-            <mesh 
-              position={[0, -2.8, 0]} 
-              scale={0.35}
-              onClick={(e: any) => {
-                e.stopPropagation();
-                alert(`🎈 Balloon Lock #${balloon.id} • ${balloon.initials}\n\nThis balloon carries a love message from ${balloon.initials}\n\nReleased: ${Math.floor(Math.random() * 12) + 1}/${Math.floor(Math.random() * 28) + 1}/202${Math.floor(Math.random() * 4)}`);
-              }}
-              onPointerOver={(e: any) => {
-                e.stopPropagation();
-                document.body.style.cursor = 'pointer';
-              }}
-              onPointerOut={() => {
-                document.body.style.cursor = 'default';
-              }}
-            >
-              <boxGeometry args={[0.15, 0.2, 0.06]} />
-              <meshStandardMaterial color="#fbbf24" metalness={0.9} />
-            </mesh>
-          </group>
-        </Float>
-      ))}
+      {hovered && (
+        <Html position={[0, 0.72, 0]} center sprite distanceFactor={7.5} zIndexRange={[60, 0]}>
+          <div className="pointer-events-none w-max max-w-[220px] rounded-xl border border-white/15 bg-[#12100e]/90 px-4 py-3 text-center text-white shadow-2xl backdrop-blur-xl">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-[#d9b76f]">#{story.id}</div>
+            <div className="mt-1 text-sm font-semibold">{story.names}</div>
+            <div className="mt-1 text-[11px] text-white/60">{story.message}</div>
+          </div>
+        </Html>
+      )}
     </group>
   );
 }
 
-// --- SCENE LIGHTING ---
-function SceneLighting() {
+function InteractiveLocks({ onSelect }: { onSelect: (story: Story) => void }) {
+  const stories = useMemo<Story[]>(
+    () =>
+      STORIES.map((item, index) => ({
+        id: 184200 + index * 937,
+        names: item[0],
+        message: item[1],
+        skin: item[2],
+      })),
+    []
+  );
+
   return (
     <>
-      <ambientLight intensity={0.7} />
-      <directionalLight
-        position={[10, 30, 10]}
-        intensity={1.2}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-      />
-      <Sky 
-        distance={450000}
-        sunPosition={[0, 0.3, 1]}
-        inclination={0}
-        azimuth={0.1}
-        turbidity={5}
-        rayleigh={1.5}
-      />
-      <Stars radius={200} depth={50} count={2000} factor={4} fade />
-      <Environment preset="sunset" />
+      {stories.map((story, index) => (
+        <InteractiveLock key={story.id} index={index} story={story} onSelect={onSelect} />
+      ))}
     </>
   );
 }
 
-// --- ENHANCED MOBILE NAVIGATION CONTROLS ---
-function MobileNavigationControls() {
-  const { camera, viewport } = useThree();
-  const touchStart = useRef({ x: 0, y: 0 });
-  const lastTouch = useRef({ x: 0, y: 0 });
-  const isTouching = useRef(false);
-  const velocity = useRef({ x: 0, z: 0 });
-  
-  useEffect(() => {
-    const handleTouchStart = (e: TouchEvent) => {
-      isTouching.current = true;
-      touchStart.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY
-      };
-      lastTouch.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY
-      };
-      velocity.current = { x: 0, z: 0 };
-    };
-    
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isTouching.current) return;
-      
-      e.preventDefault();
-      
-      const touchX = e.touches[0].clientX;
-      const touchY = e.touches[0].clientY;
-      
-      const deltaX = touchX - lastTouch.current.x;
-      const deltaY = touchY - lastTouch.current.y;
-      
-      // Calculate velocity for momentum
-      velocity.current = {
-        x: -deltaX * 0.02,
-        z: -deltaY * 0.02
-      };
-      
-      // Move camera with momentum
-      camera.position.x += velocity.current.x * (viewport.width / window.innerWidth);
-      camera.position.z += velocity.current.z * (viewport.height / window.innerHeight);
-      
-      // Allow full bridge exploration
-      camera.position.x = Math.max(-15, Math.min(15, camera.position.x));
-      camera.position.z = Math.max(-90, Math.min(90, camera.position.z));
-      
-      lastTouch.current = { x: touchX, y: touchY };
-    };
-    
-    const handleTouchEnd = () => {
-      isTouching.current = false;
-      // Apply momentum
-      const applyMomentum = () => {
-        if (!isTouching.current && (Math.abs(velocity.current.x) > 0.01 || Math.abs(velocity.current.z) > 0.01)) {
-          camera.position.x += velocity.current.x;
-          camera.position.z += velocity.current.z;
-          
-          camera.position.x = Math.max(-15, Math.min(15, camera.position.x));
-          camera.position.z = Math.max(-90, Math.min(90, camera.position.z));
-          
-          velocity.current.x *= 0.95;
-          velocity.current.z *= 0.95;
-          
-          requestAnimationFrame(applyMomentum);
-        }
-      };
-      requestAnimationFrame(applyMomentum);
-    };
-    
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      camera.position.y = Math.max(2, Math.min(20, camera.position.y - e.deltaY * 0.001));
-    };
-    
-    const canvas = document.querySelector('canvas');
-    if (canvas) {
-      canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-      canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-      canvas.addEventListener('touchend', handleTouchEnd);
-      canvas.addEventListener('wheel', handleWheel, { passive: false });
-    }
-    
-    return () => {
-      if (canvas) {
-        canvas.removeEventListener('touchstart', handleTouchStart);
-        canvas.removeEventListener('touchmove', handleTouchMove);
-        canvas.removeEventListener('touchend', handleTouchEnd);
-        canvas.removeEventListener('wheel', handleWheel);
-      }
-    };
-  }, [camera, viewport]);
-  
-  return null;
-}
+function CameraTour({ active }: { active: boolean }) {
+  const start = useRef(0);
+  const target = useMemo(() => new THREE.Vector3(), []);
 
-// --- ENHANCED DESKTOP NAVIGATION CONTROLS ---
-function DesktopNavigationControls() {
-  const keys = useRef<Record<string, boolean>>({});
-  const mouseDown = useRef(false);
-  const lastMouse = useRef({ x: 0, y: 0 });
-  
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      keys.current[e.key.toLowerCase()] = true;
-    };
-    
-    const handleKeyUp = (e: KeyboardEvent) => {
-      keys.current[e.key.toLowerCase()] = false;
-    };
-    
-    const handleMouseDown = (e: MouseEvent) => {
-      if (e.button === 2) { // Right click
-        mouseDown.current = true;
-        lastMouse.current = { x: e.clientX, y: e.clientY };
-      }
-    };
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      if (mouseDown.current) {
-        const deltaX = e.clientX - lastMouse.current.x;
-        const deltaY = e.clientY - lastMouse.current.y;
-        
-        // Update camera position for right-click drag
-        const camera = (window as any).cameraRef;
-        if (camera) {
-          camera.position.x -= deltaX * 0.01;
-          camera.position.z -= deltaY * 0.01;
-          
-          camera.position.x = Math.max(-15, Math.min(15, camera.position.x));
-          camera.position.z = Math.max(-90, Math.min(90, camera.position.z));
-        }
-        
-        lastMouse.current = { x: e.clientX, y: e.clientY };
-      }
-    };
-    
-    const handleMouseUp = () => {
-      mouseDown.current = false;
-    };
-    
-    const handleContextMenu = (e: Event) => {
-      e.preventDefault();
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('contextmenu', handleContextMenu);
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('contextmenu', handleContextMenu);
-    };
-  }, []);
-  
-  useFrame((state, delta) => {
-    const moveSpeed = 15 * delta;
-    const camera = state.camera;
-    
-    // Store camera reference for mouse controls
-    (window as any).cameraRef = camera;
-    
-    // Arrow key movement
-    if (keys.current['arrowup'] || keys.current['w']) {
-      camera.position.z -= moveSpeed;
-    }
-    if (keys.current['arrowdown'] || keys.current['s']) {
-      camera.position.z += moveSpeed;
-    }
-    if (keys.current['arrowleft'] || keys.current['a']) {
-      camera.position.x -= moveSpeed;
-    }
-    if (keys.current['arrowright'] || keys.current['d']) {
-      camera.position.x += moveSpeed;
-    }
-    
-    // Q/E for up/down
-    if (keys.current['q'] || keys.current['pageup']) {
-      camera.position.y = Math.max(2, camera.position.y - moveSpeed);
-    }
-    if (keys.current['e'] || keys.current['pagedown']) {
-      camera.position.y = Math.min(20, camera.position.y + moveSpeed);
-    }
-    
-    // Allow full bridge exploration
-    camera.position.x = Math.max(-15, Math.min(15, camera.position.x));
-    camera.position.z = Math.max(-90, Math.min(90, camera.position.z));
+    start.current = performance.now() / 1000;
+  }, [active]);
+
+  useFrame(({ camera, clock }) => {
+    if (!active) return;
+
+    const t = clock.elapsedTime - start.current;
+    const cycle = (Math.sin(t * 0.22) + 1) * 0.5;
+    const wanted = new THREE.Vector3(
+      Math.sin(t * 0.31) * 0.9,
+      1.72 + Math.sin(t * 0.43) * 0.07,
+      8.2 - cycle * 14
+    );
+    camera.position.lerp(wanted, 0.025);
+    target.set(Math.sin(t * 0.2) * 0.3, 1.35, camera.position.z - 15);
+    camera.lookAt(target);
   });
 
   return null;
 }
 
-// --- RESPONSIVE DETECTION ---
-function useResponsive() {
-  const [isMobile, setIsMobile] = useState(false);
-  
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-  
-  return isMobile;
+function World({
+  isMobile,
+  tourActive,
+  onSelect,
+}: {
+  isMobile: boolean;
+  tourActive: boolean;
+  onSelect: (story: Story) => void;
+}) {
+  return (
+    <>
+      <ambientLight intensity={0.52} />
+      <hemisphereLight args={['#e8d9c7', '#2c271f', 1.15]} />
+      <directionalLight
+        position={[8, 12, 5]}
+        color="#ffd2a0"
+        intensity={2.1}
+        castShadow
+        shadow-mapSize-width={isMobile ? 1024 : 2048}
+        shadow-mapSize-height={isMobile ? 1024 : 2048}
+        shadow-camera-left={-12}
+        shadow-camera-right={12}
+        shadow-camera-top={12}
+        shadow-camera-bottom={-12}
+        shadow-bias={-0.0002}
+      />
+      <directionalLight position={[-8, 7, -10]} color="#91aabd" intensity={0.5} />
+      <Environment preset="sunset" background={false} />
+
+      <BridgeStructure />
+      <DistantLocks />
+      <InteractiveLocks onSelect={onSelect} />
+
+      <Sparkles
+        count={isMobile ? 35 : 75}
+        scale={[12, 5, 24]}
+        position={[0, 2.8, -3]}
+        size={0.75}
+        speed={0.1}
+        opacity={0.22}
+        color="#f7dfb3"
+      />
+
+      <CameraTour active={tourActive} />
+      <OrbitControls
+        enabled={!tourActive}
+        makeDefault
+        target={[0, 1.32, -8]}
+        enablePan={false}
+        enableDamping
+        dampingFactor={0.055}
+        rotateSpeed={0.38}
+        zoomSpeed={0.62}
+        minDistance={4.5}
+        maxDistance={24}
+        minPolarAngle={1.22}
+        maxPolarAngle={1.55}
+        minAzimuthAngle={-0.28}
+        maxAzimuthAngle={0.28}
+      />
+    </>
+  );
 }
 
-// --- MAIN COMPONENT ---
 export default function BridgeScene() {
   const router = useRouter();
-  const [hoverInfo, setHoverInfo] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const [currentLocks] = useState(347293);
-  const [totalGoal] = useState(1000000);
-  const [showMobileControls, setShowMobileControls] = useState(false);
-  const [navigationMode, setNavigationMode] = useState<'explore' | 'flyover'>('explore');
+  const params = useParams();
+  const locale = typeof params?.locale === 'string' ? params.locale : 'en';
+  const isFr = locale === 'fr';
   const isMobile = useResponsive();
+  const [mounted, setMounted] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
+  const [selectedLock, setSelectedLock] = useState<Story | null>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setMounted(true);
-    if (isMobile) {
-      setShowMobileControls(true);
-      const timer = setTimeout(() => setShowMobileControls(false), 7000);
-      return () => clearTimeout(timer);
+  useEffect(() => setMounted(true), []);
+
+  const progress = (CURRENT_LOCKS / TOTAL_GOAL) * 100;
+
+  const moveBackdrop = (event: React.PointerEvent<HTMLDivElement>) => {
+    const node = backdropRef.current;
+    if (!node) return;
+    const px = event.clientX / window.innerWidth - 0.5;
+    const py = event.clientY / window.innerHeight - 0.5;
+    node.style.transform = `scale(1.075) translate3d(${px * -16}px, ${py * -9}px, 0)`;
+  };
+
+  const resetBackdrop = () => {
+    if (backdropRef.current) {
+      backdropRef.current.style.transform = 'scale(1.075) translate3d(0,0,0)';
     }
-  }, [isMobile]);
+  };
 
-  const progressPercentage = (currentLocks / totalGoal) * 100;
-
-  const handleFlyover = () => {
-    setNavigationMode('flyover');
-    // This would trigger an automatic camera tour
-    // For now, we just show a message
-    alert("Flyover mode activated! Camera will now take you on a tour of the entire bridge.\n\nOn desktop: Right-click + drag to look around\nScroll to zoom in/out");
+  const enterFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {
+      // Fullscreen is optional; silently keep the immersive view if unavailable.
+    }
   };
 
   return (
-    <div className="h-screen w-full bg-gradient-to-b from-slate-950 to-blue-950 relative overflow-hidden">
-      
-      <div className="absolute top-4 left-4 z-50 flex gap-2 flex-wrap">
-        <Button variant="outline" onClick={() => router.back()} className="bg-white/90 text-black hover:bg-white">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
-        </Button>
-        <Button variant="outline" className="bg-white/90 text-black hover:bg-white">
-          <Heart className="mr-2 h-4 w-4 text-[#dc2626]" />
-          Add Your Lock
-        </Button>
-        {!isMobile && (
-          <Button 
-            variant="outline" 
-            onClick={handleFlyover}
-            className="bg-white/90 text-black hover:bg-white"
-          >
-            <Move className="mr-2 h-4 w-4" />
-            Bridge Tour
-          </Button>
-        )}
-      </div>
+    <div
+      className="relative h-screen w-full overflow-hidden bg-[#0d0d0c]"
+      onPointerMove={moveBackdrop}
+      onPointerLeave={resetBackdrop}
+    >
+      {/* Real Paris photographic plate: the scene no longer invents Paris with boxes. */}
+      <div
+        ref={backdropRef}
+        className="absolute inset-[-4%] bg-cover bg-center transition-transform duration-700 ease-out will-change-transform"
+        style={{
+          backgroundImage: `url(${PARIS_BACKPLATE})`,
+          backgroundPosition: isMobile ? 'center 48%' : 'center 50%',
+          filter: 'saturate(1.02) contrast(1.08) brightness(0.74) sepia(0.08)',
+          transform: 'scale(1.075) translate3d(0,0,0)',
+        }}
+      />
 
-      {hoverInfo && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-          <div className="bg-gradient-to-r from-black/90 to-blue-900/90 text-white px-6 py-3 rounded-xl backdrop-blur-md shadow-2xl border border-white/20 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center gap-2">
-              <Lock size={18} className="text-[#dc2626]" />
-              <span className="font-bold text-lg">{hoverInfo}</span>
-            </div>
-            <div className="text-sm text-slate-300 mt-2 flex items-center gap-2">
-              <Eye size={14} /> Click to view the story
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Golden-hour integration layer between the real plate and WebGL foreground. */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_22%,rgba(255,188,108,0.25),transparent_28%),linear-gradient(to_bottom,rgba(32,28,26,0.02)_0%,rgba(23,20,18,0.17)_48%,rgba(9,8,7,0.62)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(6,6,6,0.24),transparent_22%,transparent_78%,rgba(6,6,6,0.2))]" />
 
-      <div className={`absolute top-4 right-4 z-50 bg-black/80 backdrop-blur-md rounded-xl p-4 border border-white/20 ${
-        isMobile ? 'min-w-[140px]' : 'min-w-[180px]'
-      }`}>
-        <div className="text-white text-center">
-          <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-[#fbbf24] mb-2`}>
-            {currentLocks.toLocaleString()}
-            <span className={`${isMobile ? 'text-sm' : 'text-lg'} text-slate-300 ml-2`}>/ {totalGoal.toLocaleString()}</span>
-          </div>
-          
-          <div className="w-full bg-slate-700 rounded-full h-2.5 mb-3">
-            <div 
-              className="bg-gradient-to-r from-[#dc2626] to-[#fbbf24] h-2.5 rounded-full"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
-          </div>
-          
-          <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-slate-300 mb-4`}>
-            Love Locks • Pont des Arts
-          </div>
-          
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-2 gap-2'}`}>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#94a3b8]"></div>
-              <span className="text-xs text-white">Iron</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#fbbf24]"></div>
-              <span className="text-xs text-white">Gold</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#60a5fa]"></div>
-              <span className="text-xs text-white">Diamond</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#dc2626]"></div>
-              <span className="text-xs text-white">Ruby</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {showMobileControls && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md text-white px-6 py-4 rounded-xl border border-white/20 animate-in fade-in">
-          <div className="flex items-center gap-3">
-            <Smartphone className="h-6 w-6 text-[#fbbf24]" />
-            <div>
-              <div className="font-bold">Mobile Navigation</div>
-              <div className="text-sm text-slate-300">• Swipe to move on bridge</div>
-              <div className="text-sm text-slate-300">• Pinch to zoom in/out</div>
-              <div className="text-sm text-slate-300">• Tap locks and balloons to view stories</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!isMobile && navigationMode === 'flyover' && (
-        <div className="absolute top-20 left-4 z-50 bg-black/80 backdrop-blur-md text-white px-6 py-4 rounded-xl border border-white/20 animate-in fade-in">
-          <div className="flex items-center gap-3">
-            <Move className="h-6 w-6 text-[#fbbf24]" />
-            <div>
-              <div className="font-bold">Bridge Tour Active</div>
-              <div className="text-sm text-slate-300">• WASD/Arrows: Move around</div>
-              <div className="text-sm text-slate-300">• Q/E: Move up/down</div>
-              <div className="text-sm text-slate-300">• Right-click + drag: Look around</div>
-              <div className="text-sm text-slate-300">• Scroll: Zoom in/out</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="w-full h-full">
+      <div className="absolute inset-0 z-10">
         {mounted ? (
-          <Canvas 
-            shadows 
-            camera={{ position: [0, 5, 15], fov: isMobile ? 75 : 65 }}
+          <Canvas
+            shadows
+            dpr={isMobile ? [1, 1.25] : [1, 1.7]}
+            camera={{ position: [0, 1.72, 9.2], fov: isMobile ? 62 : 53, near: 0.08, far: 120 }}
+            gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
             style={{ touchAction: 'none' }}
-            onCreated={({ gl, camera }) => {
-              gl.domElement.style.touchAction = 'none';
-              (window as any).cameraRef = camera;
+            onCreated={({ gl }) => {
+              gl.setClearColor(0x000000, 0);
+              gl.outputColorSpace = THREE.SRGBColorSpace;
+              gl.toneMapping = THREE.ACESFilmicToneMapping;
+              gl.toneMappingExposure = 1.05;
+              gl.shadowMap.enabled = true;
+              gl.shadowMap.type = THREE.PCFSoftShadowMap;
             }}
           >
-            <SceneLighting />
-            
-            <ParisBridge />
-            <ParisianLamps />
-            <EiffelTower />
-            <LoveLocks onHover={setHoverInfo} />
-            <HeartBalloons />
-            
-            {isMobile ? <MobileNavigationControls /> : <DesktopNavigationControls />}
-            
-            {!isMobile && (
-              <OrbitControls 
-                enablePan={true}
-                panSpeed={1.2}
-                screenSpacePanning={true}
-                minDistance={2}
-                maxDistance={40}
-                maxPolarAngle={Math.PI / 1.8}
-                enableDamping={true}
-                dampingFactor={0.05}
-                rotateSpeed={0.7}
-                minAzimuthAngle={-Math.PI / 4}
-                maxAzimuthAngle={Math.PI / 4}
-              />
-            )}
+            <World isMobile={isMobile} tourActive={tourActive} onSelect={setSelectedLock} />
           </Canvas>
         ) : (
-          <div className="flex h-full items-center justify-center">
-            <div className="text-white text-center">
-              <Loader2 className="h-16 w-16 animate-spin mx-auto mb-4 text-[#fbbf24]" />
-              <div className="text-2xl font-bold mb-2">Pont des Arts</div>
-              <div className="text-sm text-slate-400">
-                Loading {currentLocks.toLocaleString()} love locks...
+          <div className="flex h-full items-center justify-center bg-black/30 backdrop-blur-sm">
+            <div className="text-center text-white">
+              <Loader2 className="mx-auto mb-4 h-11 w-11 animate-spin text-[#d7b067]" />
+              <div className="font-serif text-2xl">Pont des Arts</div>
+              <div className="mt-2 text-xs uppercase tracking-[0.2em] text-white/55">
+                {isFr ? 'Préparation de Paris' : 'Preparing Paris'}
               </div>
             </div>
           </div>
         )}
       </div>
 
-      <div className={`absolute ${isMobile ? 'bottom-4 left-4 right-4' : 'bottom-8 left-1/2 -translate-x-1/2'} z-50`}>
-        <div className="bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full border border-white/20 shadow-xl">
-          <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center gap-4'}`}>
-            <div className="flex items-center gap-2">
-              <Lock size={16} className="text-[#fbbf24]" />
-              <span className="font-bold">{currentLocks.toLocaleString()}</span>
-              <span className="text-slate-300">love locks</span>
+      {/* Cinematic vignette */}
+      <div className="pointer-events-none absolute inset-0 z-20 bg-[radial-gradient(circle_at_center,transparent_50%,rgba(7,6,5,0.42)_100%)]" />
+
+      <header className="absolute inset-x-0 top-0 z-40 flex items-start justify-between gap-4 p-4 md:p-6">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="h-11 rounded-full border-white/15 bg-black/35 px-4 text-white shadow-xl backdrop-blur-xl hover:bg-black/55 hover:text-white"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">{isFr ? 'Retour' : 'Back'}</span>
+          </Button>
+
+          <Button
+            onClick={() => router.push(`/${locale}/purchase`)}
+            className="h-11 rounded-full border border-[#efd08e]/40 bg-[#c99b43]/90 px-5 text-[#17120b] shadow-xl hover:bg-[#ddb45c]"
+          >
+            <Heart className="mr-2 h-4 w-4" />
+            {isFr ? 'Ajouter votre cadenas' : 'Add your lock'}
+          </Button>
+
+          {!isMobile && (
+            <Button
+              variant="outline"
+              onClick={() => setTourActive((value) => !value)}
+              className={`h-11 rounded-full border-white/15 px-4 text-white shadow-xl backdrop-blur-xl hover:text-white ${
+                tourActive ? 'bg-[#b48b45]/70 hover:bg-[#b48b45]/80' : 'bg-black/35 hover:bg-black/55'
+              }`}
+            >
+              <Move className="mr-2 h-4 w-4" />
+              {tourActive
+                ? isFr
+                  ? 'Arrêter la visite'
+                  : 'Stop tour'
+                : isFr
+                  ? 'Visite cinématique'
+                  : 'Cinematic tour'}
+            </Button>
+          )}
+        </div>
+
+        <div className="flex items-start gap-2">
+          <div className="hidden rounded-2xl border border-white/15 bg-black/35 px-4 py-3 text-right text-white shadow-2xl backdrop-blur-xl sm:block">
+            <div className="flex items-center justify-end gap-2 text-[10px] uppercase tracking-[0.2em] text-white/55">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,.8)]" />
+              {isFr ? 'Pont virtuel en direct' : 'Live virtual bridge'}
             </div>
-            {!isMobile && <div className="h-4 w-px bg-white/30"></div>}
-            <div className={`flex items-center gap-2 text-slate-300 ${isMobile ? 'text-sm' : ''}`}>
-              <Move size={14} />
-              <span>
-                {isMobile ? 'Swipe to explore • Pinch to zoom' : 
-                 navigationMode === 'flyover' ? 'WASD/Arrows to move • Q/E up/down • Right-click drag' :
-                 'Click locks & balloons for stories • Right-click drag to look'}
-              </span>
+            <div className="mt-1 font-serif text-2xl leading-none">{CURRENT_LOCKS.toLocaleString()}</div>
+            <div className="mt-2 h-1.5 w-44 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#b8863c] to-[#f1d18b]"
+                style={{ width: `${progress}%` }}
+              />
             </div>
+            <div className="mt-1 text-[10px] text-white/45">/ {TOTAL_GOAL.toLocaleString()}</div>
+          </div>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={enterFullscreen}
+            className="h-11 w-11 rounded-full border-white/15 bg-black/35 text-white shadow-xl backdrop-blur-xl hover:bg-black/55 hover:text-white"
+            aria-label="Fullscreen"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </header>
+
+      <div className="pointer-events-none absolute left-5 top-24 z-40 hidden md:block">
+        <div className="max-w-sm text-white drop-shadow-[0_3px_18px_rgba(0,0,0,.65)]">
+          <div className="text-[10px] font-medium uppercase tracking-[0.34em] text-[#e8c985]">
+            LoveLock Paris
+          </div>
+          <h1 className="mt-2 font-serif text-5xl leading-none lg:text-6xl">Pont des Arts</h1>
+          <p className="mt-4 max-w-xs text-sm leading-6 text-white/72">
+            {isFr
+              ? 'Entrez sur le pont. Approchez-vous des cadenas et découvrez les histoires qui vivent à Paris.'
+              : 'Step onto the bridge. Move closer to the locks and discover the stories living in Paris.'}
+          </p>
+        </div>
+      </div>
+
+      <div className="absolute bottom-5 left-4 z-40 md:bottom-6 md:left-6">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/12 bg-black/38 px-4 py-3 text-white shadow-xl backdrop-blur-xl">
+          <MapPin className="h-4 w-4 text-[#dfbd76]" />
+          <div>
+            <div className="text-xs font-semibold">Paris, France</div>
+            <div className="text-[10px] text-white/50">Pont des Arts</div>
           </div>
         </div>
       </div>
 
-      <div className="absolute bottom-4 right-4 z-50 text-white/60 text-xs">
-        <div className="flex items-center gap-2">
-          <span>Click any lock or balloon for love stories</span>
+      <div className="absolute bottom-5 left-1/2 z-40 hidden -translate-x-1/2 md:block">
+        <div className="rounded-full border border-white/12 bg-black/38 px-5 py-3 text-[11px] text-white/68 shadow-xl backdrop-blur-xl">
+          {isFr ? 'Glissez pour regarder' : 'Drag to look'}
+          <span className="mx-3 text-white/22">•</span>
+          {isFr ? 'Molette pour avancer' : 'Scroll to move closer'}
+          <span className="mx-3 text-white/22">•</span>
+          {isFr ? 'Cliquez sur un cadenas' : 'Click a lock'}
         </div>
       </div>
+
+      <div className="absolute bottom-5 right-4 z-40 md:bottom-6 md:right-6">
+        <div className="rounded-2xl border border-white/12 bg-black/38 px-4 py-3 text-right text-white shadow-xl backdrop-blur-xl sm:hidden">
+          <div className="text-lg font-semibold text-[#e2c27d]">{CURRENT_LOCKS.toLocaleString()}</div>
+          <div className="text-[9px] uppercase tracking-[0.16em] text-white/45">
+            {isFr ? 'cadenas installés' : 'locks installed'}
+          </div>
+        </div>
+      </div>
+
+      {selectedLock && (
+        <div className="absolute inset-0 z-[70] flex items-end justify-center bg-black/30 p-4 backdrop-blur-[2px] sm:items-center">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-[#171411]/95 p-6 text-white shadow-[0_30px_90px_rgba(0,0,0,.55)] backdrop-blur-2xl">
+            <button
+              onClick={() => setSelectedLock(null)}
+              className="absolute right-4 top-4 rounded-full border border-white/10 bg-white/5 p-2 text-white/65 transition hover:bg-white/10 hover:text-white"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#d7b66d]/25 bg-[#d7b66d]/10">
+                <Lock className="h-5 w-5 text-[#e5c77f]" />
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.22em] text-[#d7b66d]">#{selectedLock.id}</div>
+                <div className="font-serif text-2xl">{selectedLock.names}</div>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-white/8 bg-white/[0.035] p-5">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                <Eye className="h-3.5 w-3.5" />
+                {isFr ? 'Leur histoire' : 'Their story'}
+              </div>
+              <p className="mt-3 font-serif text-xl italic text-[#f0e5ce]">“{selectedLock.message}”</p>
+              <div className="mt-4 text-xs text-white/45">{selectedLock.skin} · Pont des Arts · Paris</div>
+            </div>
+
+            <Button
+              onClick={() => router.push(`/${locale}/purchase`)}
+              className="mt-5 w-full rounded-xl bg-[#c99b43] text-[#17120b] hover:bg-[#ddb45c]"
+            >
+              <Heart className="mr-2 h-4 w-4" />
+              {isFr ? 'Créer notre cadenas' : 'Create our lock'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <a
+        href="https://commons.wikimedia.org/wiki/File:Love_Locks_on_the_Pont_des_Arts.jpg"
+        target="_blank"
+        rel="noreferrer"
+        className="absolute bottom-1 left-1/2 z-40 hidden -translate-x-1/2 text-[8px] text-white/22 transition hover:text-white/55 lg:block"
+      >
+        Photo: Delatude / Wikimedia Commons · CC BY-SA 4.0
+      </a>
     </div>
   );
 }
